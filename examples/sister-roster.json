@@ -1,0 +1,20 @@
+[
+  {
+    "sessionKey": "Friday-Fall-2026",
+    "code": "12345",
+    "serviceName": "Splash 1",
+    "day": "Friday",
+    "time": "4:00 PM",
+    "location": "Training Pool",
+    "schedule": "September 4–25",
+    "instructor": "Alex Instructor",
+    "sourceId": "demo-splash1-friday",
+    "level": "Splash1",
+    "startTime24": "16:00",
+    "lessonDates": ["2026-09-04", "2026-09-11", "2026-09-18", "2026-09-25"],
+    "students": [
+      {"sourceId": "demo-swimmer-001", "name": "Harrold", "level": "Splash1", "waitlist": false},
+      {"sourceId": "demo-swimmer-002", "name": "Johnny", "level": "Splash1", "waitlist": false}
+    ]
+  }
+]

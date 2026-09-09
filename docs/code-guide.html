@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Developer guide to the Rec Tablet Go application">
+  <title>Rec Tablet — Code Guide</title>
+  <style>
+    :root { --navy:#123a73; --blue:#315daf; --pale:#e1e9f4; --page:#f3f6fb; --paper:#fff; --ink:#21344d; --muted:#526882; --green:#17675d; --amber:#815326; --border:#cbd8e8; --code:#16283f; }
+    * { box-sizing:border-box }
+    html { scroll-behavior:smooth }
+    body { margin:0; background:var(--page); color:var(--ink); font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif }
+    a { color:#244b94; text-underline-offset:.18em }
+    code,pre { font-family:ui-monospace,SFMono-Regular,Consolas,monospace }
+    code { padding:.1em .35em; border-radius:.35rem; background:var(--pale); font-size:.9em }
+    pre { overflow:auto; margin:1rem 0 0; padding:1rem 1.15rem; border-radius:.75rem; background:var(--code); color:#f7fbff; line-height:1.5 }
+    pre code { padding:0; background:none; color:inherit }
+    h1,h2,h3 { color:var(--navy); line-height:1.2 }
+    h1 { margin:0; font-size:clamp(2.2rem,6vw,4.6rem); letter-spacing:-.04em }
+    h2 { margin-top:0; font-size:clamp(1.55rem,3vw,2.15rem) }
+    h3 { margin:.1rem 0 .4rem; font-size:1.12rem }
+    p { margin:.65rem 0 }
+    .hero { padding:clamp(2.3rem,7vw,6rem) max(1.25rem,calc((100vw - 1160px)/2)); background:linear-gradient(145deg,var(--navy),var(--blue)); color:white }
+    .hero h1,.hero a { color:white }
+    .hero p { max-width:780px; color:#eaf1fb; font-size:1.15rem }
+    .eyebrow { margin:0 0 .4rem; font-weight:750; letter-spacing:.12em; text-transform:uppercase }
+    .pill { display:inline-block; margin:.75rem .4rem 0 0; padding:.3rem .7rem; border:1px solid #ffffff59; border-radius:999px; background:#ffffff1a; font-size:.88rem }
+    .layout { display:grid; grid-template-columns:235px minmax(0,1fr); gap:2rem; max-width:1160px; margin:auto; padding:2rem 1.25rem 5rem }
+    nav { position:sticky; top:1rem; align-self:start; padding:1rem; border:1px solid var(--border); border-radius:1rem; background:var(--paper); box-shadow:0 12px 35px #123a731a }
+    nav strong { display:block; margin-bottom:.6rem; color:var(--navy) }
+    nav a { display:block; padding:.28rem .45rem; border-radius:.4rem; text-decoration:none }
+    nav a:hover { background:var(--pale) }
+    main { min-width:0 }
+    section { scroll-margin-top:1rem; margin-bottom:1.5rem; padding:clamp(1.25rem,3vw,2rem); border:1px solid var(--border); border-radius:1rem; background:var(--paper); box-shadow:0 12px 35px #123a731a }
+    .callout { margin:1rem 0; padding:.85rem 1rem; border-left:.3rem solid var(--green); border-radius:.4rem; background:#eaf7f4 }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem }
+    .card { padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:#fbfdff }
+    .card p:last-child { margin-bottom:0 }
+    .flow { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem; margin-top:1rem }
+    .node { flex:1 1 125px; min-height:74px; padding:.75rem; border:2px solid var(--blue); border-radius:.75rem; background:#f7faff; text-align:center }
+    .node small { display:block; color:var(--muted) }
+    .arrow { color:var(--blue); font-size:1.45rem; font-weight:800 }
+    .table-wrap { overflow:auto }
+    table { width:100%; border-collapse:collapse; margin-top:.8rem; font-size:.94rem }
+    th,td { padding:.65rem .7rem; border-bottom:1px solid var(--border); text-align:left; vertical-align:top }
+    th { color:var(--navy); background:var(--page) }
+    ul,ol { padding-left:1.35rem } li+li { margin-top:.35rem }
+    .rule { border-left:.25rem solid var(--amber) }
+    footer { padding:2rem; text-align:center; color:var(--muted) }
+    @media(max-width:800px){ .layout{grid-template-columns:1fr} nav{position:static;columns:2} nav strong{column-span:all}.grid{grid-template-columns:1fr}.flow{flex-direction:column;align-items:stretch}.arrow{transform:rotate(90deg);text-align:center} }
+    @media print { .hero{padding:1.5rem;background:white;color:var(--ink);border-bottom:3px solid var(--blue)}.hero h1{color:var(--navy)}.hero p{color:var(--ink)}.layout{display:block;max-width:none;padding:1rem 0}nav{display:none}section{break-inside:avoid;box-shadow:none} }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <p class="eyebrow">Developer onboarding</p>
+    <h1>Rec Tablet code guide</h1>
+    <p>A map of the native Go application: how a tap becomes a database write, where lesson rules live, and which files to change for common tasks.</p>
+    <span class="pill">Go 1.25+</span><span class="pill">Fyne 2.8</span><span class="pill">SQLite</span><span class="pill">Offline first</span>
+  </header>
+  <div class="layout">
+    <nav aria-label="Page contents">
+      <strong>On this page</strong>
+      <a href="#start">Start here</a><a href="#architecture">Architecture</a><a href="#packages">Package map</a><a href="#screens">Screens and state</a><a href="#data">SQLite data</a><a href="#workflows">Core workflows</a><a href="#transfer">Import and export</a><a href="#changes">Where to make changes</a><a href="#tests">Tests and builds</a><a href="#limits">Current boundaries</a>
+    </nav>
+    <main>
+      <section id="start">
+        <h2>Start here</h2>
+        <p>Rec Tablet is a native Linux app for a five-inch landscape touchscreen. A swim instructor imports classes before a lesson, then records attendance, assesses skills, and reviews feedback. Lesson work stays on the device; the normal app has no server or lesson-time network dependency.</p>
+        <pre><code>make run                         # launch through go run
+make test                        # software-rendered tests
+make build                       # creates dist/native/rec-tablet
+./dist/native/rec-tablet --fullscreen</code></pre>
+        <div class="callout"><strong>Good first tour:</strong> run the app, hold <em>My Classes</em> for three seconds, import <a href="../examples/classes.json">examples/classes.json</a>, then follow Attendance and Skills. Launch with <code>go run ./cmd/rec-tablet --database /tmp/tour.sqlite3</code> for disposable data.</div>
+      </section>
+      <section id="architecture">
+        <h2>Architecture at a glance</h2>
+        <p>The code is organized by workflow and feature, similar to Angular feature folders. Each swimming feature keeps its repository interface in <code>model.go</code>, actions and screen state in <code>controller.go</code>, native presentation in <code>view.go</code>, and tests beside them.</p>
+        <div class="flow" role="img" aria-label="A feature view calls its controller, which calls a typed repository that applies domain rules inside SQLite transactions">
+          <div class="node"><strong>Feature view</strong><small>touch content and callbacks</small></div><span class="arrow">→</span><div class="node"><strong>Feature controller</strong><small>actions and screen state</small></div><span class="arrow">→</span><div class="node"><strong>Repository</strong><small>typed queries and transactions</small></div><span class="arrow">→</span><div class="node"><strong>Domain + SQLite</strong><small>rules applied atomically</small></div>
+        </div>
+        <p>The application constructs these objects explicitly. The shared shell hosts feature content and handles common navigation controls; it never checks for swimming screen names. Features depend on small repository interfaces, so controller tests can run with simple fakes. Domain functions do not depend on SQL or Fyne.</p>
+        <div class="callout"><strong>Think in features:</strong> changing attendance normally means opening the attendance folder. A new equipment workflow gets its own folder alongside swimming, with its own models and rules.</div>
+      </section>
+      <section id="packages">
+        <h2>Package map</h2>
+        <pre><code>cmd/rec-tablet/               CLI flags and transfer commands
+internal/
+  app/                        Construct dependencies; desktop lifecycle
+  shell/                      Host content; Home/Back; keyboard; disposal
+  platform/
+    database/                 SQLite connection and transaction policy
+    files/                    Atomic writes and local path comparison
+    instance/                 Per-database process lock
+  shared/ui/                  Touch controls, text fitting, list layout, theme
+  workflows/swimming/
+    module.go                 Construct features; register typed routes
+    navigation/               Swimming route parameters and coordinator
+    domain/                   Typed entities and pure swimming rules
+    classes/                  Classes, dates, lesson menu
+    attendance/               Roster and attendance marking
+    assessment/               Skills, swimmers, attempts, criteria
+    feedback/                 Feedback list and details
+    setup/                    File dialogs and import/export actions
+    repository/               SQL and schema, grouped by responsibility
+    curriculum/               Embedded catalog and extractor
+    transfer/                 Class/result JSON contracts and roster adapter</code></pre>
+        <p>Start reading at <a href="../internal/app/app.go">application startup</a>, then <a href="../internal/workflows/swimming/module.go">swimming module registration</a>. For a complete small feature, read attendance's <a href="../internal/workflows/swimming/attendance/model.go">model/interface</a>, <a href="../internal/workflows/swimming/attendance/controller.go">controller</a>, and <a href="../internal/workflows/swimming/attendance/view.go">view</a>.</p>
+        <p>Common presentation lives in <a href="../internal/shell/components.go">named shell components</a>, <a href="../internal/shell/layout_slots.go">named layout slots</a>, and <a href="../internal/shared/ui/surface.go">UI primitives</a>. SQLite configuration lives in <a href="../internal/platform/database/database.go">platform/database</a>; swimming owns its schema and curriculum initialization.</p>
+      </section>
+      <section id="screens">
+        <h2>Screens and state</h2>
+        <p>Swimming's <a href="../internal/workflows/swimming/navigation/controller.go">navigation coordinator</a> uses typed routes and a <code>Frame</code> with swimming-specific parameters. Each registered feature builds screen state and handles its own actions. The coordinator uses the shell's generic history stack; features navigate through the coordinator without importing one another.</p>
+        <div class="flow" role="img" aria-label="Typical assessment navigation sequence"><div class="node">My Classes</div><span class="arrow">→</span><div class="node">Class menu</div><span class="arrow">→</span><div class="node">Skills</div><span class="arrow">→</span><div class="node">Swimmer</div><span class="arrow">→</span><div class="node">Attempt</div><span class="arrow">→</span><div class="node">Assessment</div></div>
+        <p><code>shell.State</code> describes common chrome and provides a <code>ComposeBody</code> callback. The feature view draws content through <code>ui.Surface</code>. The shell's <a href="../internal/shell/compose.go">ComposeScreen</a> function assembles named components from <a href="../internal/shell/components.go">component factories</a>; the shell renders headers, paging controls, notices, and the footer. Optional <code>OnLeave</code> callbacks release feature resources on route changes or close.</p>
+        <p>Successful actions refresh state. Failed actions restore navigation and the selected date while displaying the error. A 120 ms guard prevents one physical tap from activating the next screen; detached controls are disabled and their hold timers stopped. Draft persistence remains in SQLite.</p>
+      </section>
+      <section id="data">
+        <h2>SQLite data model</h2>
+        <p>The schema lives in <a href="../internal/workflows/swimming/repository/schema.sql">internal/workflows/swimming/repository/schema.sql</a> and uses <code>PRAGMA user_version = 1</code>. Foreign keys, WAL journaling, full synchronous writes, and a busy timeout protect local work.</p>
+        <div class="table-wrap"><table><thead><tr><th>Table</th><th>Purpose</th><th>Relationship</th></tr></thead><tbody>
+          <tr><td><code>meta</code></td><td>Dataset, instructor, last import</td><td>One value per key</td></tr>
+          <tr><td><code>curricula</code></td><td>Versioned catalog JSON</td><td>Courses and attempts pin a version</td></tr>
+          <tr><td><code>courses</code></td><td>Imported class offerings</td><td>Unique source ID per dataset</td></tr>
+          <tr><td><code>swimmers</code></td><td>Stable source people</td><td>Unique source ID per dataset</td></tr>
+          <tr><td><code>enrollments</code></td><td>Swimmer in a course, level, active status</td><td>Course ↔ swimmer</td></tr>
+          <tr><td><code>lessons</code></td><td>Dated course occurrence</td><td>Unique course + date</td></tr>
+          <tr><td><code>attendance</code></td><td>Present, absent, or unmarked</td><td>Lesson + enrollment</td></tr>
+          <tr><td><code>attempts</code></td><td>Skill observation</td><td>Enrollment + lesson + skill</td></tr>
+          <tr><td><code>results</code></td><td>Submitted criterion outcomes</td><td>Attempt + subskill</td></tr>
+          <tr><td><code>drafts</code></td><td>Unfinished answer JSON</td><td>One per attempt</td></tr>
+          <tr><td><code>revisions</code></td><td>Prior answers after corrections</td><td>Many per attempt</td></tr>
+        </tbody></table></div>
+      </section>
+      <section id="workflows">
+        <h2>Core workflows and rules</h2>
+        <div class="grid">
+          <article class="card"><h3>Attendance</h3><p>A tap upserts the status for one lesson and enrollment and commits immediately.</p></article>
+          <article class="card rule"><h3>Skill completion</h3><p>An attempt succeeds only when every criterion succeeds. Three submitted successful attempts complete a skill. Failures do not erase successes, and one lesson may contain multiple attempts.</p></article>
+          <article class="card"><h3>Drafts</h3><p>Every mark persists immediately. A partial draft survives navigation and restart but does not affect progress. Starting the same lesson, swimmer, and skill resumes it.</p></article>
+          <article class="card"><h3>Corrections</h3><p>Editing a submitted attempt creates a draft. Submission records old answers in <code>revisions</code>, replaces results, and recalculates success transactionally.</p></article>
+          <article class="card"><h3>Feedback</h3><p>Feedback shows assessed, incomplete skills and uses the latest completed observation to identify unsuccessful criteria or successes still needed.</p></article>
+          <article class="card rule"><h3>Version isolation</h3><p>Courses and attempts keep their curriculum version, so catalog updates cannot reinterpret historical work.</p></article>
+        </div>
+      </section>
+      <section id="transfer">
+        <h2>Import and export</h2>
+        <div class="flow" role="img" aria-label="Class import flow"><div class="node"><strong>DeckSupervisor</strong><small>Device Exports</small></div><span class="arrow">→</span><div class="node"><strong>Class JSON</strong><small>rec-tablet-classes v1</small></div><span class="arrow">→</span><div class="node"><strong>Validation</strong><small>IDs, dates, bounds</small></div><span class="arrow">→</span><div class="node"><strong>Transaction</strong><small>roster + lessons</small></div></div>
+        <ul>
+          <li>Re-import updates course metadata and the active roster. Missing swimmers become inactive; their history remains.</li>
+          <li>One database accepts one <code>datasetId</code>. Use <code>--database</code> for a separate dataset.</li>
+          <li>Unknown levels work for attendance but show “Missing curriculum” for assessment.</li>
+          <li>A device result snapshot is a backup/export artifact, not a class-import package.</li>
+        </ul>
+        <p>See <a href="native-poc.md">the transfer contract</a> for the JSON format and identity rules. The <a href="../internal/workflows/swimming/repository/testdata/decksupervisor/README.md">DeckSupervisor fixtures</a> prove repeat imports preserve progress.</p>
+      </section>
+      <section id="changes">
+        <h2>Where to make common changes</h2>
+        <div class="table-wrap"><table><thead><tr><th>Goal</th><th>Start here</th><th>Verify</th></tr></thead><tbody>
+          <tr><td>Change a feature screen</td><td>The feature's controller and view</td><td>Its controller tests and swimming interaction tests</td></tr>
+          <tr><td>Change swimming rules</td><td><a href="../internal/workflows/swimming/domain/rules.go">domain/rules.go</a></td><td>Pure rule tests and repository transaction tests</td></tr>
+          <tr><td>Change persisted data</td><td>Swimming repository schema and initialization</td><td>Fresh and old databases, rollback, restart</td></tr>
+          <tr><td>Change class package fields</td><td><a href="../internal/workflows/swimming/transfer/package.go">transfer/package.go</a> and repository import validation</td><td>Sister-app compatibility fixtures</td></tr>
+          <tr><td>Adjust common touch layout</td><td>Shell chrome or shared UI primitives</td><td>800 × 480 and 1280 × 800 screenshots</td></tr>
+          <tr><td>Update curriculum</td><td>Curriculum extractor and embedded catalog</td><td>Hashes, IDs, exceptions, source parity</td></tr>
+          <tr><td>Add a CLI tool</td><td>cmd/rec-tablet</td><td>Arguments and real output artifact</td></tr>
+        </tbody></table></div>
+        <h3>Add a swimming feature</h3>
+        <ol><li>Create a feature folder with <code>model.go</code>, <code>controller.go</code>, <code>view.go</code>, and tests. Declare only the repository operations it needs.</li><li>Add typed routes and parameters to swimming navigation. Implement the <code>navigation.Feature</code> contract and give each route a named body composer.</li><li>Construct and register the feature in <code>module.go</code>. Add a navigation action in the relevant existing feature.</li><li>Add typed repository operations and domain rules only where needed. Keep SQL out of the controller and preserve transaction boundaries.</li></ol>
+        <h3>Add an unrelated workflow</h3>
+        <p>Create a sibling of swimming, implement <code>shell.Presenter</code>, and supply its own screen state and content. Use <code>shell.History</code> with that workflow's route type. Wire it into application startup when its entry flow is designed. The <a href="../internal/shell/view_test.go">test-only equipment workflow</a> demonstrates this without any swimming imports.</p>
+        <p>Design the new workflow's persistence and data coexistence when its requirements are known. Do not rename swimmers into a universal entity or require equipment checks to have lessons. Shared packages contain infrastructure and reusable presentation.</p>
+      </section>
+      <section id="tests">
+        <h2>Tests and builds</h2>
+        <pre><code>make test       # all packages with Fyne's software driver
+make race       # race detector
+make vet        # static checks
+make smoke      # headless render and screenshot
+make package    # Linux archive with binary, icon, and docs
+REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-screens go test -tags ci ./internal/workflows/swimming -count=1</code></pre>
+        <p>Read <a href="../internal/workflows/swimming/attendance/controller_test.go">attendance controller tests</a> for fake repositories, <a href="../internal/workflows/swimming/domain/rules_test.go">domain tests</a> for pure rules, and <a href="../internal/workflows/swimming/repository/store_test.go">repository tests</a> for atomic writes and recovery.</p>
+        <p><a href="../internal/workflows/swimming/view_test.go">Swimming interaction tests</a> and <a href="../internal/workflows/swimming/file_dialog_test.go">file-dialog tests</a> cover the assembled app. <a href="../internal/workflows/swimming/repository/sister_export_test.go">Sister export tests</a> preserve the contract. An <a href="../internal/app/architecture_test.go">architecture test</a> prevents shared infrastructure from importing workflows and features from importing SQL or sibling features.</p>
+        <p>The <code>ci</code> build tag uses Fyne's software driver. It verifies behavior and layout without claiming physical hardware, GPU, waterproofing, or wet-touch validation.</p>
+      </section>
+      <section id="limits">
+        <h2>Current boundaries</h2>
+        <ul><li>The POC covers aquatics attendance, skill assessment, corrections, and feedback.</li><li>Automatic sync, result import upstream, accounts, free-text parent notes, lesson plans, and timers are future work.</li><li>Session and device management across datasets is still manual.</li><li>Waterproofing, submerged touch, and battery endurance require the <a href="device-trial.md">device trial</a>.</li></ul>
+        <div class="callout"><strong>Design rule:</strong> keep swimming rules and schema inside swimming. New workflows own their concepts and use the common shell and platform. The current app still launches directly into My Classes, with unchanged v1 data and file formats.</div>
+      </section>
+    </main>
+  </div>
+  <footer>Rec Tablet developer guide · Opens offline. Source links work from a repository checkout.</footer>
+</body>
+</html>

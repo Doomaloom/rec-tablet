@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Rec Tablet
+Comment=Offline swim lesson companion
+Exec=rec-tablet --fullscreen
+Icon=rec-tablet
+Terminal=false
+Categories=Education;

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "rec-tablet-classes",
+  "datasetId": "decksupervisor:a3d2c4ea-d53a-421b-a70a-85cd359a153b",
+  "instructor": "Alex",
+  "courses": [
+    {
+      "sourceId": "session:export-test-session:course:004201",
+      "name": "Splash 1",
+      "level": "Splash1",
+      "startTime": "16:00",
+      "location": "Training Pool",
+      "lessonDates": [
+        "2026-09-04",
+        "2026-09-11",
+        "2026-09-18",
+        "2026-09-25"
+      ],
+      "swimmers": [
+        {
+          "sourceId": "a1f301a8-3c05-45db-9646-572068d6b545",
+          "name": "Harrold",
+          "level": "Splash2A"
+        }
+      ]
+    },
+    {
+      "sourceId": "session:export-test-session:course:004202",
+      "name": "Splash Private",
+      "level": "SplashPrivate",
+      "startTime": "16:30",
+      "location": "Training Pool",
+      "lessonDates": [
+        "2026-09-04",
+        "2026-09-11",
+        "2026-09-18",
+        "2026-09-25"
+      ],
+      "swimmers": [
+        {
+          "sourceId": "73fc6962-34a4-4182-b42c-40bfa81edc28",
+          "name": "Nikhil",
+          "level": "Splash2B"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "rec-tablet-classes",
+  "datasetId": "demo-autumn-2026",
+  "instructor": "Alex Instructor (demo)",
+  "courses": [
+    {
+      "sourceId": "demo-splash1-friday",
+      "name": "Splash 1",
+      "level": "Splash1",
+      "startTime": "16:00",
+      "location": "Training Pool",
+      "lessonDates": ["2026-09-04", "2026-09-11", "2026-09-18", "2026-09-25"],
+      "swimmers": [
+        {"sourceId": "demo-swimmer-001", "name": "Harrold", "level": "Splash1"},
+        {"sourceId": "demo-swimmer-002", "name": "Johnny", "level": "Splash1"},
+        {"sourceId": "demo-swimmer-003", "name": "Nikhil", "level": "Splash1"},
+        {"sourceId": "demo-swimmer-004", "name": "Alexandria Montgomery-Sutherland", "level": "Splash1"}
+      ]
+    },
+    {
+      "sourceId": "demo-little3-friday",
+      "name": "Little Splash 3",
+      "level": "LittleSplash3",
+      "startTime": "16:30",
+      "location": "Training Pool",
+      "lessonDates": ["2026-09-04", "2026-09-11", "2026-09-18", "2026-09-25"],
+      "swimmers": [
+        {"sourceId": "demo-swimmer-005", "name": "Rowan", "level": "LittleSplash3"},
+        {"sourceId": "demo-swimmer-006", "name": "Sam", "level": "LittleSplash3"}
+      ]
+    },
+    {
+      "sourceId": "demo-private-friday",
+      "name": "Private Lessons",
+      "level": "SplashPrivate",
+      "startTime": "17:00",
+      "location": "Training Pool",
+      "lessonDates": ["2026-09-04", "2026-09-11", "2026-09-18", "2026-09-25"],
+      "swimmers": [
+        {"sourceId": "demo-swimmer-007", "name": "Casey", "level": "Splash2B"},
+        {"sourceId": "demo-swimmer-008", "name": "Jordan", "level": "Splash9"}
+      ]
+    }
+  ]
+}

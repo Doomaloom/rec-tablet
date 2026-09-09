@@ -1,0 +1,169 @@
+// Package repository persists swimming data and applies domain rules within transactions.
+package repository
+
+import (
+	"encoding/json"
+	"errors"
+
+	"rectablet/internal/workflows/swimming/domain"
+)
+
+func progress(q queryer, person, skill, version string) (domain.Progress, error) {
+	r, e := one(q, `SELECT COUNT(*) AS assessed,COALESCE(SUM(success),0) AS successes FROM attempts WHERE enrollment_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NOT NULL`, person, skill, version)
+	if e != nil {
+		return domain.Progress{}, e
+	}
+	return domain.CalculateProgress(r.Int("assessed"), r.Int("successes")), nil
+}
+func (s *Store) Progress(person, skill, version string) (domain.Progress, error) {
+	return progress(s.DB, person, skill, version)
+}
+func (s *Store) attemptRecords(person, skill, version string) ([]record, error) {
+	return s.queryRows(`SELECT a.*,l.date,EXISTS(SELECT 1 FROM drafts d WHERE d.attempt_id=a.id) AS editing FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE a.enrollment_id=? AND a.skill_id=? AND a.curriculum_version=? ORDER BY a.created_at DESC,a.rowid DESC`, person, skill, version)
+}
+func (s *Store) NewAttempt(person, lesson, skill string) (string, error) {
+	id := ""
+	err := s.transaction(func(q queryer) error {
+		p, e := checkLesson(q, person, lesson)
+		if e != nil {
+			return e
+		}
+		c, e := s.catalog(q, p.String("curriculum_version"))
+		if e != nil {
+			return e
+		}
+		if e = domain.ValidateNewAttempt(c, p.String("level"), skill, p.Int("active") != 0); e != nil {
+			return e
+		}
+		r, e := one(q, `SELECT id FROM attempts WHERE enrollment_id=? AND lesson_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NULL`, person, lesson, skill, p.String("curriculum_version"))
+		if e == nil {
+			id = r.String("id")
+			return nil
+		}
+		if !errors.Is(e, ErrNotFound) {
+			return e
+		}
+		id = ID()
+		if _, e = q.Exec("INSERT INTO attempts VALUES (?,?,?,?,?,?,NULL,0)", id, person, lesson, skill, p.String("curriculum_version"), Now()); e != nil {
+			return e
+		}
+		_, e = q.Exec("INSERT INTO drafts VALUES (?,?,?)", id, "{}", Now())
+		return e
+	})
+	return id, err
+}
+func answers(q queryer, id string) (map[string]string, error) {
+	rs, e := rows(q, "SELECT * FROM results WHERE attempt_id=?", id)
+	out := map[string]string{}
+	for _, r := range rs {
+		out[r.String("subskill_id")] = r.String("status")
+	}
+	return out, e
+}
+func draft(q queryer, id string) (map[string]string, error) {
+	r, e := one(q, "SELECT answers FROM drafts WHERE attempt_id=?", id)
+	if e != nil {
+		return nil, e
+	}
+	out := map[string]string{}
+	e = json.Unmarshal([]byte(r.String("answers")), &out)
+	return out, e
+}
+func (s *Store) Draft(id string) (map[string]string, error) { return draft(s.DB, id) }
+func (s *Store) EditAttempt(id string) error {
+	return s.transaction(func(q queryer) error {
+		if _, e := one(q, "SELECT id FROM attempts WHERE id=?", id); e != nil {
+			return e
+		}
+		a, e := answers(q, id)
+		if e != nil {
+			return e
+		}
+		b, _ := json.Marshal(a)
+		_, e = q.Exec("INSERT OR IGNORE INTO drafts VALUES (?,?,?)", id, string(b), Now())
+		return e
+	})
+}
+func (s *Store) Mark(id, subskill, status string) error {
+	if status != "successful" && status != "not_yet" && status != "unmarked" {
+		return errors.New("invalid subskill result")
+	}
+	return s.transaction(func(q queryer) error {
+		a, e := one(q, "SELECT * FROM attempts WHERE id=?", id)
+		if e != nil {
+			return e
+		}
+		k, e := s.skill(q, a.String("curriculum_version"), a.String("skill_id"))
+		if e != nil {
+			return e
+		}
+		if e = domain.ValidateMark(k, subskill, status); e != nil {
+			return e
+		}
+		values, e := draft(q, id)
+		if e != nil {
+			return e
+		}
+		if status == "unmarked" {
+			delete(values, subskill)
+		} else {
+			values[subskill] = status
+		}
+		body, _ := json.Marshal(values)
+		_, e = q.Exec("UPDATE drafts SET answers=?,updated_at=? WHERE attempt_id=?", string(body), Now(), id)
+		return e
+	})
+}
+func (s *Store) Submit(id string) (bool, error) {
+	success := false
+	err := s.transaction(func(q queryer) error {
+		a, e := one(q, "SELECT * FROM attempts WHERE id=?", id)
+		if e != nil {
+			return e
+		}
+		values, e := draft(q, id)
+		if errors.Is(e, ErrNotFound) {
+			success = a.Int("success") == 1
+			return nil
+		}
+		if e != nil {
+			return e
+		}
+		skill, e := s.skill(q, a.String("curriculum_version"), a.String("skill_id"))
+		if e != nil {
+			return e
+		}
+		success, e = domain.Assess(skill, values)
+		if e != nil {
+			return e
+		}
+		if a["submitted_at"] != nil {
+			old, e := answers(q, id)
+			if e != nil {
+				return e
+			}
+			body, _ := json.Marshal(old)
+			if _, e = q.Exec("INSERT INTO revisions(attempt_id,answers,saved_at) VALUES (?,?,?)", id, string(body), Now()); e != nil {
+				return e
+			}
+		}
+		if _, e = q.Exec("DELETE FROM results WHERE attempt_id=?", id); e != nil {
+			return e
+		}
+		for _, c := range skill.Subskills {
+			if _, e = q.Exec("INSERT INTO results VALUES (?,?,?)", id, c.ID, values[c.ID]); e != nil {
+				return e
+			}
+		}
+		value := 0
+		if success {
+			value = 1
+		}
+		if _, e = q.Exec("UPDATE attempts SET success=?,submitted_at=? WHERE id=?", value, Now(), id); e != nil {
+			return e
+		}
+		_, e = q.Exec("DELETE FROM drafts WHERE attempt_id=?", id)
+		return e
+	})
+	return success, err
+}
