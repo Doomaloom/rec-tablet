@@ -1,9 +1,22 @@
 // Package shell hosts screens without knowing their workflow or storage model.
 package shell
 
-import "rectablet/internal/shared/ui"
+import (
+	"image/color"
+	"rectablet/internal/shared/ui"
+)
 
 type Row = ui.Item
+
+// RailAction customizes one of the persistent left-rail buttons for a screen.
+// Run is invoked after the button is pressed.
+type RailAction struct {
+	Label    string
+	Run      func() error
+	Fill     color.Color
+	Ink      color.Color
+	FontSize float32
+}
 type State struct {
 	// OnLeave releases feature resources when the route changes or the view closes.
 	OnLeave                                                                               func()
@@ -16,6 +29,7 @@ type State struct {
 	HeaderWidth                                                                           float32
 	DetailsTitle                                                                          string
 	HoldTitle                                                                             func()
+	HomeRailAction, BackRailAction                                                        *RailAction
 	ComposeBody                                                                           ui.BodyComposer
 }
 type Presenter interface {

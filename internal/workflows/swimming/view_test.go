@@ -146,7 +146,7 @@ func TestPointerNavigationAttendanceAndMaintenance(t *testing.T) {
 	}
 	f.shot(t, "maintenance")
 }
-func TestSkillChecklistAutoCompletesAndHoldRemovesCheck(t *testing.T) {
+func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)
 	if f.c.State.Screen != "assessment" || f.c.State.RowCount < 2 {
@@ -162,17 +162,52 @@ func TestSkillChecklistAutoCompletesAndHoldRemovesCheck(t *testing.T) {
 	}
 	f.shot(t, "assessment")
 	f.tap(t, "row:"+secondID)
-	if f.c.State.Screen != "skill_swimmers" {
-		t.Fatal("complete checklist did not close")
+	if f.c.State.Screen != "assessment" {
+		t.Fatal("checklist exited before Save was pressed")
 	}
 	if f.c.State.Notice != "" {
 		t.Fatalf("skill completion displayed an unexpected notice: %q", f.c.State.Notice)
+	}
+	if f.view.Buttons["home"].Text != "✓" || f.view.Buttons["back"].Text != "✕" {
+		t.Fatal("checklist did not replace Home and Back with Save and Discard")
+	}
+	f.tap(t, "home")
+	if f.c.State.Screen != "skill_swimmers" {
+		t.Fatal("Save attempt did not return to the student list")
 	}
 	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 1 {
 		t.Fatal("successful check did not increment progress")
 	}
 	if f.view.Buttons["row:"+person] == nil {
 		t.Fatal("student button was not rebuilt after completing the checklist")
+	}
+	var count int
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
+	if count != 1 {
+		t.Fatalf("saved attempt count = %d, want 1", count)
+	}
+	f.rowLabel(t, "Harrold")
+	f.tap(t, "row:"+f.c.State.Rows[0].ID)
+	f.tap(t, "home")
+	if f.c.State.Screen != "skill_swimmers" {
+		t.Fatal("Save incomplete attempt did not return to the student list")
+	}
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
+	if count != 2 {
+		t.Fatalf("saved incomplete attempt count = %d, want 2", count)
+	}
+	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 1 {
+		t.Fatal("incomplete attempt incorrectly changed successful progress")
+	}
+	f.rowLabel(t, "Harrold")
+	f.tap(t, "row:"+f.c.State.Rows[0].ID)
+	f.tap(t, "back")
+	if f.c.State.Screen != "skill_swimmers" {
+		t.Fatal("Discard attempt did not return to the student list")
+	}
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
+	if count != 2 {
+		t.Fatalf("discarded unfinished attempt changed saved attempt count to %d", count)
 	}
 	for _, row := range f.c.State.Rows {
 		if row.ID == person {
@@ -208,10 +243,9 @@ func TestSkillChecklistAutoCompletesAndHoldRemovesCheck(t *testing.T) {
 	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 0 {
 		t.Fatal("holding a skill did not remove its latest check")
 	}
-	var count int
 	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
-	if count != 0 {
-		t.Fatal("removed check left its attempt behind")
+	if count != 1 {
+		t.Fatal("removed check left more than the saved incomplete attempt")
 	}
 }
 func TestMissingCurriculumAndEmptyClass(t *testing.T) {
@@ -236,7 +270,7 @@ func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 		t.Fatal("empty roster not empty")
 	}
 }
-func TestSaveFailureKeepsDraftAndVisibleError(t *testing.T) {
+func TestSkillActionFailuresAreQuiet(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)
 	_, e := f.s.DB.Exec(`CREATE TEMP TRIGGER reject_draft BEFORE UPDATE ON drafts BEGIN SELECT RAISE(ABORT,'Disk full'); END`)

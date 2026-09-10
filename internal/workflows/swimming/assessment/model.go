@@ -21,5 +21,6 @@ type Repository interface {
 	EditAttempt(string) error
 	Mark(string, string, string) error
 	Submit(string) (bool, error)
+	DiscardAttempt(string) error
 	RemoveLatestSuccess(string, string, string) error
 }

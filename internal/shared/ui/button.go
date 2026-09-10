@@ -17,6 +17,7 @@ var (
 	Rail       = color.NRGBA{R: 225, G: 233, B: 244, A: 255}
 	Muted      = color.NRGBA{R: 82, G: 104, B: 130, A: 255}
 	Green      = color.NRGBA{R: 23, G: 103, B: 93, A: 255}
+	Red        = color.NRGBA{R: 164, G: 54, B: 51, A: 255}
 	Amber      = color.NRGBA{R: 129, G: 83, B: 38, A: 255}
 	White      = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 	Background = color.NRGBA{R: 243, G: 246, B: 251, A: 255}

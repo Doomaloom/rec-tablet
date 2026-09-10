@@ -69,18 +69,32 @@ func TestAllCriteriaAndFailures(t *testing.T) {
 	f := setup(t)
 	a := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:1"))
 	check(t, f.s.Mark(a, "Splash1:1:1", "successful"))
-	if _, e := f.s.Submit(a); e == nil {
-		t.Fatal("incomplete attempt submitted")
+	if must(f.s.Submit(a)) {
+		t.Fatal("incomplete attempt was marked successful")
 	}
-	if f.progress().Assessed != 0 {
+	if p := f.progress(); p.Assessed != 1 || p.Successes != 0 {
 		t.Fatal(f.progress())
 	}
-	check(t, f.s.Mark(a, "Splash1:1:2", "not_yet"))
-	if must(f.s.Submit(a)) {
-		t.Fatal("mixed attempt passed")
+	var drafts int
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM drafts WHERE attempt_id=?", a).Scan(&drafts))
+	if drafts != 0 {
+		t.Fatal("saved attempt retained its draft")
+	}
+	results := must(f.s.queryRows("SELECT * FROM results WHERE attempt_id=?", a))
+	if len(results) != 2 {
+		t.Fatalf("saved incomplete attempt has %d results, want 2", len(results))
+	}
+	for _, result := range results {
+		if result.String("status") != "not_yet" && result.String("subskill_id") == "Splash1:1:2" {
+			t.Fatal("unchecked subskill was not saved as not_yet")
+		}
 	}
 	if p := f.progress(); p.Assessed != 1 || p.Successes != 0 {
 		t.Fatal(p)
+	}
+	feedback := must(f.s.Feedback(f.person.String("id")))
+	if len(feedback) != 1 || len(feedback[0].Remaining) != 1 {
+		t.Fatalf("saved incomplete attempt missing from feedback: %+v", feedback)
 	}
 }
 func TestThreeSameLessonSuccessesAccumulate(t *testing.T) {

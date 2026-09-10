@@ -133,10 +133,29 @@ func (s *Store) Submit(id string) (bool, error) {
 		if e != nil {
 			return e
 		}
-		success, e = domain.Assess(skill, values)
-		if e != nil {
-			return e
+		// Saving an attempt is allowed before every subskill is checked. Missing
+		// answers are stored as not_yet, while only an all-successful set earns
+		// progress.
+		normalized := map[string]string{}
+		for id, value := range values {
+			if value == "" {
+				continue
+			}
+			if e = domain.ValidateMark(skill, id, value); e != nil {
+				return e
+			}
+			normalized[id] = value
 		}
+		success = true
+		for _, subskill := range skill.Subskills {
+			if normalized[subskill.ID] != "successful" {
+				success = false
+				if normalized[subskill.ID] == "" {
+					normalized[subskill.ID] = "not_yet"
+				}
+			}
+		}
+		values = normalized
 		if a["submitted_at"] != nil {
 			old, e := answers(q, id)
 			if e != nil {
@@ -166,6 +185,22 @@ func (s *Store) Submit(id string) (bool, error) {
 		return e
 	})
 	return success, err
+}
+
+// DiscardAttempt removes an unfinished skill observation and its draft.
+func (s *Store) DiscardAttempt(id string) error {
+	return s.transaction(func(q queryer) error {
+		if _, e := one(q, "SELECT id FROM attempts WHERE id=? AND submitted_at IS NULL", id); e != nil {
+			return e
+		}
+		for _, table := range []string{"revisions", "results", "drafts"} {
+			if _, e := q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
+				return e
+			}
+		}
+		_, e := q.Exec("DELETE FROM attempts WHERE id=?", id)
+		return e
+	})
 }
 
 // RemoveLatestSuccess removes the newest successful observation for one skill.

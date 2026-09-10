@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"image/color"
 	"rectablet/internal/shared/ui"
 )
 
@@ -61,13 +62,34 @@ func newBackgroundComponent(builder *componentBuilder) {
 }
 
 func newHomeRailComponent(builder *componentBuilder) {
-	homeButton := builder.newTouchButton("home", "Home", func() { _ = builder.controller.Home() })
-	homeButton.Fill = ui.Rail
-	homeButton.Ink = ui.Blue
-	homeButton.FontSize = 17
-	homeButton.Icon = homeIcon
+	action := builder.state.HomeRailAction
+	label := "Home"
+	callback := func() { _ = builder.controller.Home() }
+	var fill, ink color.Color = ui.Rail, ui.Blue
+	fontSize := float32(17)
+	if action != nil {
+		label = action.Label
+		callback = func() { _ = action.Run() }
+		fill, ink, fontSize = action.Fill, action.Ink, action.FontSize
+		if fill == nil {
+			fill = ui.Rail
+		}
+		if ink == nil {
+			ink = ui.Blue
+		}
+		if fontSize <= 0 {
+			fontSize = 32
+		}
+	}
+	homeButton := builder.newTouchButton("home", label, callback)
+	homeButton.Fill = fill
+	homeButton.Ink = ink
+	homeButton.FontSize = fontSize
+	if action == nil {
+		homeButton.Icon = homeIcon
+	}
 	homePosition := homeRailSlot
-	if builder.state.CanBack {
+	if builder.state.CanBack || builder.state.BackRailAction != nil {
 		homePosition = splitHomeRailSlot
 	}
 	builder.addComponent("home-rail", homeButton, homePosition)
@@ -95,13 +117,32 @@ func newPagingRailComponents(builder *componentBuilder) {
 }
 
 func newBackButtonComponent(builder *componentBuilder) {
-	if !builder.state.CanBack {
+	if !builder.state.CanBack && builder.state.BackRailAction == nil {
 		return
 	}
-	backButton := builder.newTouchButton("back", "‹", func() { _ = builder.controller.Back() })
-	backButton.Fill = ui.Rail
-	backButton.Ink = ui.Blue
-	backButton.FontSize = 36
+	action := builder.state.BackRailAction
+	label := "‹"
+	callback := func() { _ = builder.controller.Back() }
+	var fill, ink color.Color = ui.Rail, ui.Blue
+	fontSize := float32(36)
+	if action != nil {
+		label = action.Label
+		callback = func() { _ = action.Run() }
+		fill, ink, fontSize = action.Fill, action.Ink, action.FontSize
+		if fill == nil {
+			fill = ui.Rail
+		}
+		if ink == nil {
+			ink = ui.Blue
+		}
+		if fontSize <= 0 {
+			fontSize = 32
+		}
+	}
+	backButton := builder.newTouchButton("back", label, callback)
+	backButton.Fill = fill
+	backButton.Ink = ink
+	backButton.FontSize = fontSize
 	builder.addComponent("back-button", backButton, backRailSlot)
 }
 

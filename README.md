@@ -51,11 +51,11 @@ The same hidden screen provides **Export Data**. Select a folder, accept or edit
 ## During a lesson
 
 - **Attendance:** tap a swimmer, then Present, Absent, or Unmarked. Each selection commits immediately.
-- **Skills:** choose a skill, then choose a swimmer. Each swimmer shows zero to three green progress segments for that skill. Tap a swimmer to open its subskills; tap each completed subskill and the checklist closes automatically when all are checked.
-- **Completion:** all subskills must succeed together in an attempt. Three successful attempts complete the skill, including multiple attempts in one lesson. Failed attempts do not reset earned successes.
+- **Skills:** choose a skill, then choose a swimmer. Each swimmer shows zero to three green progress segments for that skill. Tap a swimmer to open its subskills and mark the criteria that were completed. The checklist stays open while you review the work; use the green checkmark rail button to save the attempt or the red X rail button to discard it.
+- **Completion:** all subskills must succeed together for an attempt to count toward progress. Saved incomplete attempts are retained for later feedback but do not add a green progress segment. Three successful attempts complete the skill, including multiple attempts in one lesson. Failed attempts do not reset earned successes.
 - **Corrections:** existing attempts remain reviewable through Feedback; corrections still save through the review screen and preserve revision history.
 - **Undo:** hold a student button for two seconds to remove that student's newest successful check for the selected skill. The associated observation is removed transactionally.
-- **Feedback:** shows skills assessed anywhere in the current enrollment that remain below three successes. It shows unsuccessful criteria from the latest completed observation, or the additional successes needed. Unassessed and completed skills are excluded.
+- **Feedback:** shows skills assessed anywhere in the current enrollment that remain below three successes. It uses the latest saved attempt to identify unsuccessful criteria, or shows the additional successes needed. Unassessed and completed skills are excluded.
 
 Home and Back preserve drafts. Selecting a swimmer for a skill resumes an unfinished observation for that swimmer, skill, and lesson. Existing attempts remain reviewable through Feedback. Tap the title/subtitle to read the full lesson context. Former enrollments remain available in Feedback but cannot receive new checks.
 

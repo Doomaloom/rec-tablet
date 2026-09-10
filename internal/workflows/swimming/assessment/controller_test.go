@@ -17,6 +17,7 @@ func (s *attemptStore) Mark(a, k, status string) error {
 	return s.err
 }
 func (s *attemptStore) Submit(string) (bool, error)                      { return true, s.err }
+func (s *attemptStore) DiscardAttempt(string) error                      { return s.err }
 func (s *attemptStore) RemoveLatestSuccess(string, string, string) error { return s.err }
 
 func TestAssessmentActionsUseCurrentDraftAndKeepFailedSubmission(t *testing.T) {

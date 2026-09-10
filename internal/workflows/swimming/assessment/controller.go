@@ -2,6 +2,8 @@ package assessment
 
 import (
 	"fmt"
+	"rectablet/internal/shared/ui"
+	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/navigation"
 	"strings"
 	"time"
@@ -163,6 +165,8 @@ func (c *Controller) Build() (navigation.State, error) {
 			state.PageSize = 1
 			state.Progress = fmt.Sprintf("%d/%d assessed · %s", len(answers), len(rows), lesson.Date)
 		} else {
+			state.HomeRailAction = &shell.RailAction{Label: "✓", Run: c.SaveAttempt, Fill: ui.Green, Ink: ui.White, FontSize: 34}
+			state.BackRailAction = &shell.RailAction{Label: "✕", Run: c.DiscardAttempt, Fill: ui.Red, Ink: ui.White, FontSize: 34}
 			state.PageSize = 3
 			state.Progress = fmt.Sprintf("%d/%d complete · %s", successfulAnswers(answers), len(rows), lesson.Date)
 		}
@@ -260,48 +264,7 @@ func (c *Controller) toggleSubskill(id string) error {
 		return nil
 	}
 	c.Saved("")
-	if !f.Review {
-		complete, e := c.assessmentComplete(f.Attempt)
-		if e != nil {
-			return nil
-		}
-		if complete {
-			success, e := c.Store.Submit(f.Attempt)
-			if e != nil {
-				return nil
-			}
-			if !success {
-				return nil
-			}
-			c.Pop()
-			return nil
-		}
-	}
 	return nil
-}
-
-func (c *Controller) assessmentComplete(id string) (bool, error) {
-	attempt, e := c.Store.GetAttempt(id)
-	if e != nil {
-		return false, e
-	}
-	skill, e := c.Store.Skill(attempt.CurriculumVersion, attempt.SkillID)
-	if e != nil {
-		return false, e
-	}
-	answers, e := c.Store.Draft(id)
-	if e != nil {
-		return false, e
-	}
-	if len(answers) != len(skill.Subskills) {
-		return false, nil
-	}
-	for _, subskill := range skill.Subskills {
-		if answers[subskill.ID] != "successful" {
-			return false, nil
-		}
-	}
-	return true, nil
 }
 
 func (c *Controller) RemoveLatestSuccess(person, skill, version string) error {
@@ -310,6 +273,36 @@ func (c *Controller) RemoveLatestSuccess(person, skill, version string) error {
 			return nil
 		}
 		c.Saved("")
+		return nil
+	})
+}
+
+// SaveAttempt submits the current draft. Incomplete attempts are stored with
+// success=false so they remain available for later feedback without counting
+// toward skill progress.
+func (c *Controller) SaveAttempt() error {
+	if c.Frame().Screen != navigation.Assessment || c.Frame().Review {
+		return nil
+	}
+	return c.Run(func() error {
+		if _, e := c.Store.Submit(c.Frame().Attempt); e != nil {
+			return nil
+		}
+		c.Pop()
+		return nil
+	})
+}
+
+// DiscardAttempt removes the unfinished draft and returns to the student list.
+func (c *Controller) DiscardAttempt() error {
+	if c.Frame().Screen != navigation.Assessment || c.Frame().Review {
+		return nil
+	}
+	return c.Run(func() error {
+		if e := c.Store.DiscardAttempt(c.Frame().Attempt); e != nil {
+			return nil
+		}
+		c.Pop()
 		return nil
 	})
 }

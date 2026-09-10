@@ -68,7 +68,7 @@ Exports have `kind: "rec-tablet-results"`, `schemaVersion: 1`, `databaseVersion:
 - Courses, swimmers, enrollments (including inactive ones), and dated lessons.
 - Attendance, attempts, submitted subskill results, persistent drafts, and prior submitted revisions.
 
-Rows retain device and source IDs. Curriculum `body` and draft/revision `answers` columns are JSON strings, matching their SQLite representation. Submitted attempts have a non-null `submitted_at`; unfinished attempts do not count toward progress. Draft edits coexist with the previous submitted result until saved. Revision rows capture the prior result before each correction.
+Rows retain device and source IDs. Curriculum `body` and draft/revision `answers` columns are JSON strings, matching their SQLite representation. Submitted attempts have a non-null `submitted_at`; an attempt counts toward successful progress only when every subskill is successful. Incomplete attempts saved from the checklist are retained with `success = 0` so Feedback can use them later. Draft edits coexist with the previous submitted result until saved. Revision rows capture the prior result before each correction.
 
 The database snapshot is read in one transaction, serialized to a temporary file, flushed, and atomically renamed. A failed export cannot replace a previous export with partial content. Export never deletes data. Results snapshots are not accepted by the class importer; restore and upstream synchronization are not implemented yet.
 
