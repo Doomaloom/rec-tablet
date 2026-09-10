@@ -63,10 +63,12 @@ func (c *Controller) Select(id string) error {
 		c.Push(navigation.AttendanceMark, func(n *navigation.Frame) { n.Person = id })
 
 	case navigation.AttendanceMark:
+		// Attendance is an immediate touch action. A failed write leaves the
+		// selection screen unchanged and is intentionally quiet.
 		if e := c.Store.SetAttendance(f.Person, f.Lesson, id); e != nil {
-			return e
+			return nil
 		}
-		c.Saved("Attendance saved")
+		c.Saved("")
 		c.Pop()
 
 	}

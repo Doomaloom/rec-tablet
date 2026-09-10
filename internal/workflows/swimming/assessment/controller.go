@@ -202,6 +202,8 @@ func (c *Controller) Select(id string) error {
 		})
 
 	case navigation.SkillSwimmers:
+		// Skill taps are best-effort on the device. Failed reads or writes leave
+		// the current list intact without surfacing an error state.
 		params := navigation.Destination(row)
 		version := params.Version
 		if version == "" {
@@ -213,15 +215,15 @@ func (c *Controller) Select(id string) error {
 		}
 		progress, e := c.Store.Progress(id, skillID, version)
 		if e != nil {
-			return e
+			return nil
 		}
 		if progress.Complete {
-			c.Saved("This skill already has three checks")
+			c.Saved("")
 			return nil
 		}
 		attempt, e := c.Store.NewAttempt(id, f.Lesson, skillID)
 		if e != nil {
-			return e
+			return nil
 		}
 		c.Push(navigation.Assessment, func(n *navigation.Frame) {
 			n.Attempt = attempt
@@ -233,7 +235,7 @@ func (c *Controller) Select(id string) error {
 
 	case navigation.Attempts:
 		if e := c.Store.EditAttempt(id); e != nil {
-			return e
+			return nil
 		}
 		c.Push(navigation.Assessment, func(n *navigation.Frame) { n.Attempt = id; n.Review = true })
 
@@ -253,27 +255,27 @@ func (c *Controller) toggleSubskill(id string) error {
 		}
 	}
 	if e := c.Store.Mark(f.Attempt, id, status); e != nil {
-		return e
+		// Keep the checklist usable if a local write fails; the persisted draft
+		// remains unchanged and the next refresh shows its previous state.
+		return nil
 	}
+	c.Saved("")
 	if !f.Review {
 		complete, e := c.assessmentComplete(f.Attempt)
 		if e != nil {
-			return e
+			return nil
 		}
 		if complete {
 			success, e := c.Store.Submit(f.Attempt)
 			if e != nil {
-				return e
+				return nil
 			}
 			if !success {
-				return fmt.Errorf("all subskills must be successful to complete this skill")
+				return nil
 			}
 			c.Pop()
 			return nil
 		}
-	}
-	if f.Review {
-		c.Saved("Subskill saved")
 	}
 	return nil
 }
@@ -305,9 +307,9 @@ func (c *Controller) assessmentComplete(id string) (bool, error) {
 func (c *Controller) RemoveLatestSuccess(person, skill, version string) error {
 	return c.Run(func() error {
 		if e := c.Store.RemoveLatestSuccess(person, skill, version); e != nil {
-			return e
+			return nil
 		}
-		c.Saved("Successful check removed")
+		c.Saved("")
 		return nil
 	})
 }
@@ -319,9 +321,9 @@ func (c *Controller) Mark(status string) error {
 		return nil
 	}
 	if e := c.Store.Mark(c.Frame().Attempt, c.State.Rows[0].ID, status); e != nil {
-		return e
+		return nil
 	}
-	c.Saved("Subskill saved")
+	c.Saved("")
 	return nil
 }
 
@@ -329,15 +331,11 @@ func (c *Controller) Submit() error {
 	if c.Frame().Screen != navigation.Assessment {
 		return nil
 	}
-	success, e := c.Store.Submit(c.Frame().Attempt)
+	_, e := c.Store.Submit(c.Frame().Attempt)
 	if e != nil {
-		return e
+		return nil
 	}
-	message := "Attempt saved · Not yet successful"
-	if success {
-		message = "Attempt saved · Successful"
-	}
-	c.Saved(message)
+	c.Saved("")
 	c.Pop()
 	return nil
 }

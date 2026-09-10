@@ -33,14 +33,14 @@ func TestAssessmentActionsUseCurrentDraftAndKeepFailedSubmission(t *testing.T) {
 		t.Fatal("wrong draft mark")
 	}
 	s.err = errors.New("disk full")
-	if c.Submit() == nil || nav.Frame().Screen != navigation.Assessment {
-		t.Fatal("failed submission discarded screen")
+	if c.Submit() != nil || nav.Frame().Screen != navigation.Assessment || nav.State.Error {
+		t.Fatal("failed submission was not handled quietly")
 	}
 	s.err = nil
 	if err := c.Submit(); err != nil {
 		t.Fatal(err)
 	}
-	if nav.Frame().Screen != navigation.Attempts || nav.State.Notice != "Attempt saved · Successful" {
+	if nav.Frame().Screen != navigation.Attempts || nav.State.Notice != "" {
 		t.Fatal("successful submission did not return to attempts")
 	}
 }

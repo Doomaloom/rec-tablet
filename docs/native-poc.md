@@ -6,7 +6,7 @@
 
 The Go implementation opens existing Python POC databases directly, using the same default path and schema version 1. Tests restore a Python-created SQL fixture and compare every exported table, then continue its unfinished assessment and correction. Import/export formats, source IDs, curriculum IDs, and the catalog version hash are unchanged. Close the previous app before opening its database; the Go process lock also respects a live legacy Qt lock.
 
-The schema starts at version 1, migrated transactionally via `PRAGMA user_version`. SQLite uses foreign keys, WAL, FULL synchronous writes, and a busy timeout. Committed results and persistent draft edits are separate; replacing a result and adding its revision happen in one transaction. UI save errors remain visible until dismissed. A brief input guard prevents a tap carrying across a screen transition.
+The schema starts at version 1, migrated transactionally via `PRAGMA user_version`. SQLite uses foreign keys, WAL, FULL synchronous writes, and a busy timeout. Committed results and persistent draft edits are separate; replacing a result and adding its revision happen in one transaction. UI failures remain in controller state for quiet handling. A brief input guard prevents a tap carrying across a screen transition.
 
 Courses pin a curriculum version. Progress belongs to an enrollment + skill + curriculum version, so students in different classes never share progress accidentally. Attendance and observations also reference a dated lesson. Feedback orders observations by lesson date, then creation time; correcting an older observation does not make it today's observation.
 

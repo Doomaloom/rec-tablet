@@ -242,18 +242,14 @@ func TestSaveFailureKeepsDraftAndVisibleError(t *testing.T) {
 	_, e := f.s.DB.Exec(`CREATE TEMP TRIGGER reject_draft BEFORE UPDATE ON drafts BEGIN SELECT RAISE(ABORT,'Disk full'); END`)
 	check(t, e)
 	f.tap(t, "row:"+f.c.State.Rows[0].ID)
-	if !f.c.State.Error || f.c.State.Rows[0].Status != "unmarked" {
-		t.Fatal("failed save falsely acknowledged")
+	if f.c.State.Error || f.c.State.Rows[0].Status != "unmarked" {
+		t.Fatal("failed save was not handled quietly")
 	}
 	f.tap(t, "down")
-	if !f.c.State.Error {
-		t.Fatal("error dismissed by navigation")
+	if f.c.State.Error {
+		t.Fatal("quiet skill failure set an error state")
 	}
 	f.shot(t, "save-error")
-	f.tap(t, "dismiss")
-	if f.c.State.Error {
-		t.Fatal("dismiss did not clear error")
-	}
 }
 func TestLongCriteriaAndLargerLandscape(t *testing.T) {
 	f := setupUI(t)

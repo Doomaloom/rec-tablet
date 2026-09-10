@@ -85,7 +85,10 @@ func (c *Controller) Fail(err error) error {
 	}
 	return err
 }
-func (c *Controller) Saved(message string) { c.State.Notice = message; c.State.Error = false }
+
+// Saved clears any previous error state. Successful actions are reflected by
+// the refreshed screen rather than a transient popup.
+func (c *Controller) Saved(string) { c.State.Notice = ""; c.State.Error = false }
 func (c *Controller) Run(fn func() error) error {
 	before := append([]Frame{}, c.Frames...)
 	date := c.Date

@@ -51,7 +51,7 @@ func TestComposeScreenUsesNamedCommonComponents(t *testing.T) {
 	}
 }
 
-func TestComposeScreenPreservesFeatureBodyAndNoticeComponents(t *testing.T) {
+func TestComposeScreenPreservesFeatureBodyWithoutPopupNotices(t *testing.T) {
 	app := test.NewApp()
 	defer app.Quit()
 	window := app.NewWindow("composition")
@@ -67,8 +67,8 @@ func TestComposeScreenPreservesFeatureBodyAndNoticeComponents(t *testing.T) {
 	for _, component := range composition.Components {
 		seen[component.Name] = true
 	}
-	if !seen["notice-background"] || !seen["notice-message"] || !seen["notice-dismiss"] {
-		t.Fatal("notice components were not composed")
+	if seen["notice-background"] || seen["notice-message"] || seen["notice-dismiss"] {
+		t.Fatal("transient notice popup components were composed")
 	}
 	if !seen["feature-body-element-6"] {
 		t.Fatalf("feature body was not named: %v", seen)

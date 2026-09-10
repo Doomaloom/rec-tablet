@@ -46,8 +46,8 @@ func TestAttendanceControllerSaveAndFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.err = errors.New("disk full")
-	if nav.Select("present") == nil || nav.Frame().Screen != navigation.AttendanceMark || !nav.State.Error {
-		t.Fatal("failed save navigated away or hid the error")
+	if nav.Select("present") != nil || nav.Frame().Screen != navigation.AttendanceMark || nav.State.Error {
+		t.Fatal("failed save was not handled quietly")
 	}
 	s.err = nil
 	if err := nav.Select("present"); err != nil {

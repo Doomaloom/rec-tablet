@@ -13,7 +13,6 @@ func ComposeScreen(view *View, state State) ScreenComposition {
 	newContextComponent(builder)
 	newBodyComponent(builder)
 	newFooterComponents(builder)
-	newNoticeComponents(builder)
 
 	return ScreenComposition{
 		Components: builder.components,

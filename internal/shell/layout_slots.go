@@ -55,15 +55,3 @@ func submitFooterSlot(width, height float32) (float32, float32, float32, float32
 func deviceStatusSlot(width, height float32) (float32, float32, float32, float32) {
 	return width - 230, height - 71, 130, 57
 }
-
-func noticeBackgroundSlot(width, height float32) (float32, float32, float32, float32) {
-	return 105, height - 116, width - 210, 102
-}
-
-func noticeMessageSlot(width, height float32) (float32, float32, float32, float32) {
-	return 117, height - 110, width - 314, 90
-}
-
-func noticeDismissSlot(width, height float32) (float32, float32, float32, float32) {
-	return width - 185, height - 91, 64, 50
-}

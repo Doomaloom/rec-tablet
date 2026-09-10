@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
-	"image/color"
 	"rectablet/internal/shared/ui"
 )
 
@@ -186,27 +185,6 @@ func newFooterComponents(builder *componentBuilder) {
 	deviceStatus := ui.NewText("ON DEVICE", 12, ui.Green)
 	deviceStatus.Center = true
 	builder.addComponent("device-status", deviceStatus, deviceStatusSlot)
-}
-
-func newNoticeComponents(builder *componentBuilder) {
-	state := builder.state
-	if state.Notice == "" {
-		return
-	}
-	fillColor := color.Color(ui.Navy)
-	if state.Error {
-		fillColor = color.NRGBA{R: 141, G: 49, B: 47, A: 255}
-	}
-	noticeBackground := canvas.NewRectangle(fillColor)
-	noticeBackground.CornerRadius = 14
-	builder.addComponent("notice-background", noticeBackground, noticeBackgroundSlot)
-
-	noticeMessage := ui.NewText(state.Notice, 17, ui.White)
-	builder.addComponent("notice-message", noticeMessage, noticeMessageSlot)
-
-	dismissButton := builder.newTouchButton("dismiss", "OK", builder.controller.Dismiss)
-	dismissButton.FontSize = 18
-	builder.addComponent("notice-dismiss", dismissButton, noticeDismissSlot)
 }
 
 func formatPageIndicator(page, pageCount int) string {

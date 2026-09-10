@@ -35,8 +35,6 @@ type View struct {
 	Criterion  *ui.TextBlock
 	lastScreen string
 	readyAt    time.Time
-	timer      *time.Timer
-	lastNotice string
 	closed     bool
 	onLeave    func()
 }
@@ -87,9 +85,6 @@ func (view *View) Close() {
 		return
 	}
 	view.closed = true
-	if view.timer != nil {
-		view.timer.Stop()
-	}
 	view.Controller.Subscribe(nil)
 	if view.onLeave != nil {
 		view.onLeave()
@@ -132,29 +127,6 @@ func (view *View) Render() {
 	view.Root.Layout = &surfaceLayout{items: placements}
 	view.Root.Objects = objects
 	view.Root.Refresh()
-	view.updateNoticeTimer(state)
-}
-
-func (view *View) updateNoticeTimer(state State) {
-	if state.Notice == view.lastNotice {
-		return
-	}
-	if view.timer != nil {
-		view.timer.Stop()
-	}
-	view.lastNotice = state.Notice
-	if state.Notice == "" || state.Error {
-		return
-	}
-	noticeMessage := state.Notice
-	view.timer = time.AfterFunc(2200*time.Millisecond, func() {
-		fyne.Do(func() {
-			currentState := view.Controller.Snapshot()
-			if !view.closed && !currentState.Error && currentState.Notice == noticeMessage {
-				view.Controller.Dismiss()
-			}
-		})
-	})
 }
 
 func (view *View) details() {

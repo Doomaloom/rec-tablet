@@ -1,7 +1,6 @@
 package setup
 
 import (
-	"fmt"
 	"path/filepath"
 	"rectablet/internal/workflows/swimming/navigation"
 	"strings"
@@ -44,7 +43,7 @@ func (c *Controller) Mark(string) error   { return nil }
 func (c *Controller) Submit() error       { return nil }
 func (c *Controller) Import(path string) error {
 	return c.Run(func() error {
-		n, e := c.Store.ImportFile(path)
+		_, e := c.Store.ImportFile(path)
 		if e != nil {
 			return e
 		}
@@ -71,7 +70,7 @@ func (c *Controller) Import(path string) error {
 			}
 			c.Date = nearest
 		}
-		c.Saved(fmt.Sprintf("Imported %d course(s) · Saved on device", n))
+		c.Saved("")
 		return nil
 	})
 }
@@ -83,7 +82,7 @@ func (c *Controller) Export(path string) error {
 		if e := c.Store.Export(path); e != nil {
 			return e
 		}
-		c.Saved("Export saved · " + filepath.Base(path))
+		c.Saved("")
 		return nil
 	})
 }
