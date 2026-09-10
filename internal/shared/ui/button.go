@@ -25,19 +25,20 @@ var (
 
 type TouchButton struct {
 	widget.BaseWidget
-	Text, Detail                string
-	Fill, Ink                   color.Color
-	FontSize, ScaleFactor       float32
-	HoldDuration                time.Duration
-	ProgressSegments            int
-	Disabled, Selected, focused bool
-	OnTap, OnHold               func()
-	CanActivate                 func() bool
-	Icon                        fyne.Resource
-	IconOnly                    bool
-	timer                       *time.Timer
-	mu                          sync.Mutex
-	held, pressed               bool
+	Text, Detail                 string
+	Fill, Ink                    color.Color
+	FontSize, ScaleFactor        float32
+	HoldDuration                 time.Duration
+	ProgressSegments             int
+	ProgressValue, ProgressTotal int
+	Disabled, Selected, focused  bool
+	OnTap, OnHold                func()
+	CanActivate                  func() bool
+	Icon                         fyne.Resource
+	IconOnly                     bool
+	timer                        *time.Timer
+	mu                           sync.Mutex
+	held, pressed                bool
 }
 
 func NewButton(text string, fn func()) *TouchButton {
@@ -214,18 +215,32 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		r.label.Move(fyne.NewPos(x, pad))
 		r.label.Resize(fyne.NewSize(available, max(1, labelHeight)))
 		segmentCount := min(3, max(0, b.ProgressSegments))
-		segmentGap, segmentInset := 2*s, 2*s
-		segmentWidth := max(1, (size.Width-2*segmentInset-2*segmentGap)/3)
+		segmentInset := 2 * s
 		segmentHeight := max(1, size.Height-2*segmentInset)
-		totalWidth := 3*segmentWidth + 2*segmentGap
-		startX := (size.Width - totalWidth) / 2
-		for i := 0; i < segmentCount; i++ {
-			segment := r.progressSegments[i]
-			segment.FillColor = Green
-			segment.CornerRadius = 16 * s
-			segment.Move(fyne.NewPos(startX+float32(i)*(segmentWidth+segmentGap), segmentInset))
-			segment.Resize(fyne.NewSize(segmentWidth, segmentHeight))
-			segment.Show()
+		if b.ProgressTotal > 0 {
+			value := min(b.ProgressTotal, max(0, b.ProgressValue))
+			width := size.Width * float32(value) / float32(b.ProgressTotal)
+			if width > 0 {
+				segment := r.progressSegments[0]
+				segment.FillColor = Green
+				segment.CornerRadius = 16 * s
+				segment.Move(fyne.NewPos(0, segmentInset))
+				segment.Resize(fyne.NewSize(width, segmentHeight))
+				segment.Show()
+			}
+		} else {
+			segmentGap := 2 * s
+			segmentWidth := max(1, (size.Width-2*segmentInset-2*segmentGap)/3)
+			totalWidth := 3*segmentWidth + 2*segmentGap
+			startX := (size.Width - totalWidth) / 2
+			for i := 0; i < segmentCount; i++ {
+				segment := r.progressSegments[i]
+				segment.FillColor = Green
+				segment.CornerRadius = 16 * s
+				segment.Move(fyne.NewPos(startX+float32(i)*(segmentWidth+segmentGap), segmentInset))
+				segment.Resize(fyne.NewSize(segmentWidth, segmentHeight))
+				segment.Show()
+			}
 		}
 	}
 	r.bg.Refresh()

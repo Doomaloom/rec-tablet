@@ -18,6 +18,8 @@ const (
 	Attendance       Route = "attendance"
 	Skills           Route = "skills"
 	SkillSwimmers    Route = "skill_swimmers"
+	TimedLaps        Route = "timed_laps"
+	TimedHeat        Route = "timed_heat"
 	Attempts         Route = "attempts"
 	Assessment       Route = "assessment"
 	FeedbackSwimmers Route = "feedback_swimmers"
@@ -138,6 +140,12 @@ func (c *Controller) Select(id string) error {
 		if r.ID == id && !r.Disabled {
 			return c.dispatch(func(f Feature) error { return f.Select(id) })
 		}
+	}
+	// Feature-owned controls such as the lap keypad and timer rows are not
+	// represented in State.Rows, but still dispatch through the active feature.
+	if (c.Frame().Screen == TimedLaps && (strings.HasPrefix(id, "timed-digit:") || id == "timed-clear")) ||
+		(c.Frame().Screen == TimedHeat && strings.HasPrefix(id, "timed-lap:")) {
+		return c.dispatch(func(f Feature) error { return f.Select(id) })
 	}
 	return nil
 }

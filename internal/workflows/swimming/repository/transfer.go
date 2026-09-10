@@ -185,6 +185,18 @@ func (s *Store) Snapshot() (transfer.Snapshot, error) {
 				snap.Tables[table] = append(snap.Tables[table], map[string]any(r))
 			}
 		}
+		// Older v1 snapshots do not contain timed_attempts. Keep that shape when
+		// there is no timed data, while exporting the table once it has rows.
+		timed, e := rows(q, "SELECT * FROM timed_attempts")
+		if e != nil {
+			return e
+		}
+		if len(timed) > 0 {
+			snap.Tables["timed_attempts"] = make([]map[string]any, 0, len(timed))
+			for _, r := range timed {
+				snap.Tables["timed_attempts"] = append(snap.Tables["timed_attempts"], map[string]any(r))
+			}
+		}
 		return nil
 	})
 	return snap, e

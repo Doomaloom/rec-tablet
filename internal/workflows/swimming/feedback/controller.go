@@ -53,7 +53,11 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, e
 		}
 		for _, entry := range feedback {
-			rows = append(rows, navigation.Row{ID: entry.Skill.ID, Label: entry.Skill.Name, Detail: navigation.ProgressText(entry.Progress), Data: navigation.Parameters{Version: entry.Version}})
+			detail := navigation.ProgressText(entry.Progress)
+			if entry.Timed {
+				detail += " · Last heat " + formatTimedElapsed(entry.TimedElapsedMS)
+			}
+			rows = append(rows, navigation.Row{ID: entry.Skill.ID, Label: entry.Skill.Name, Detail: detail, Data: navigation.Parameters{Version: entry.Version}})
 		}
 		state.Empty = "No assessed skills remain incomplete. Unassessed skills are not included here."
 
@@ -77,6 +81,9 @@ func (c *Controller) Build() (navigation.State, error) {
 			state.Context += "\n" + state.Title + "\n" + entry.Skill.Name
 			state.Progress = navigation.ProgressText(entry.Progress)
 			state.Empty = fmt.Sprintf("Latest attempt successful. Needs %d more successful observation(s).", 3-entry.Successes)
+			if entry.Timed {
+				rows = append(rows, navigation.Row{Label: "Timed heat", Detail: fmt.Sprintf("%d/%d laps · %s", entry.TimedLaps, entry.TimedRequired, formatTimedElapsed(entry.TimedElapsedMS)), Disabled: true})
+			}
 			for _, subskill := range entry.Remaining {
 				rows = append(rows, navigation.Row{Label: subskill.Text, Detail: strings.Join(subskill.Group, " › "), Disabled: true})
 			}
@@ -89,6 +96,16 @@ func (c *Controller) Build() (navigation.State, error) {
 	c.Paginate(&state, rows)
 	c.composeFeatureBody(&state)
 	return state, nil
+}
+
+func formatTimedElapsed(milliseconds int64) string {
+	if milliseconds < 0 {
+		milliseconds = 0
+	}
+	minutes := milliseconds / 60000
+	seconds := (milliseconds / 1000) % 60
+	tenths := (milliseconds % 1000) / 100
+	return fmt.Sprintf("%02d:%02d.%d", minutes, seconds, tenths)
 }
 func (c *Controller) Select(id string) error {
 	var row navigation.Row

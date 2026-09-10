@@ -33,5 +33,10 @@ CREATE TABLE drafts (
 CREATE TABLE revisions (
  id INTEGER PRIMARY KEY, attempt_id TEXT NOT NULL REFERENCES attempts(id),
  answers TEXT NOT NULL, saved_at TEXT NOT NULL);
+CREATE TABLE timed_attempts (
+ attempt_id TEXT PRIMARY KEY REFERENCES attempts(id),
+ laps_required INTEGER NOT NULL CHECK(laps_required > 0),
+ laps_completed INTEGER NOT NULL DEFAULT 0 CHECK(laps_completed >= 0),
+ elapsed_ms INTEGER NOT NULL DEFAULT 0 CHECK(elapsed_ms >= 0));
 CREATE INDEX attempt_progress ON attempts(enrollment_id, skill_id, submitted_at);
 PRAGMA user_version = 1;

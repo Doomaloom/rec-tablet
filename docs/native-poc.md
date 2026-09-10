@@ -66,7 +66,7 @@ Exports have `kind: "rec-tablet-results"`, `schemaVersion: 1`, `databaseVersion:
 
 - Device metadata and all versioned curriculum bodies.
 - Courses, swimmers, enrollments (including inactive ones), and dated lessons.
-- Attendance, attempts, submitted subskill results, persistent drafts, and prior submitted revisions.
+- Attendance, attempts, submitted subskill results, persistent drafts, prior submitted revisions, and timed heat lap/time results when timed benchmarks have been recorded.
 
 Rows retain device and source IDs. Curriculum `body` and draft/revision `answers` columns are JSON strings, matching their SQLite representation. Submitted attempts have a non-null `submitted_at`; an attempt counts toward successful progress only when every subskill is successful. Incomplete attempts saved from the checklist are retained with `success = 0` so Feedback can use them later. Draft edits coexist with the previous submitted result until saved. Revision rows capture the prior result before each correction.
 

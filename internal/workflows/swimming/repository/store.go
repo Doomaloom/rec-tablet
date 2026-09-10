@@ -61,6 +61,16 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
 		if err = s.transaction(func(q queryer) error { _, e := q.Exec(schema); return e }); err != nil {
 			return fail(err)
 		}
+	} else {
+		// Keep the v1 database contract while adding the timed-assessment table
+		// for databases created by earlier builds.
+		if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS timed_attempts (
+		 attempt_id TEXT PRIMARY KEY REFERENCES attempts(id),
+		 laps_required INTEGER NOT NULL CHECK(laps_required > 0),
+		 laps_completed INTEGER NOT NULL DEFAULT 0 CHECK(laps_completed >= 0),
+		 elapsed_ms INTEGER NOT NULL DEFAULT 0 CHECK(elapsed_ms >= 0))`); err != nil {
+			return fail(err)
+		}
 	}
 	body, err := json.Marshal(c)
 	if err != nil {

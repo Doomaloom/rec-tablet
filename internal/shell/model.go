@@ -17,6 +17,15 @@ type RailAction struct {
 	Ink      color.Color
 	FontSize float32
 }
+
+// HeaderAction adds a feature-owned button beside the screen title.
+type HeaderAction struct {
+	Label    string
+	Run      func() error
+	Fill     color.Color
+	Ink      color.Color
+	FontSize float32
+}
 type State struct {
 	// OnLeave releases feature resources when the route changes or the view closes.
 	OnLeave                                                                               func()
@@ -30,6 +39,8 @@ type State struct {
 	DetailsTitle                                                                          string
 	HoldTitle                                                                             func()
 	HomeRailAction, BackRailAction                                                        *RailAction
+	HeaderActions                                                                         []HeaderAction
+	HeaderTitleFontSize                                                                   float32
 	ComposeBody                                                                           ui.BodyComposer
 }
 type Presenter interface {

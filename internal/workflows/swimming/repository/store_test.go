@@ -112,6 +112,48 @@ func TestThreeSameLessonSuccessesAccumulate(t *testing.T) {
 	}
 }
 
+func TestTimedHeatPersistsLapsAndElapsedResults(t *testing.T) {
+	f := setup(t)
+	level := "Splash7"
+	for i := range f.p.Courses[0].Swimmers[:2] {
+		f.p.Courses[0].Swimmers[i].Level = &level
+	}
+	_ = must(f.s.Import(f.p))
+	roster := must(f.s.rosterRecords(f.course.String("id")))
+	people := []string{}
+	for _, swimmer := range roster {
+		if swimmer.String("level") == level {
+			people = append(people, swimmer.String("id"))
+		}
+	}
+	if len(people) != 2 {
+		t.Fatalf("expected two Splash7 swimmers, got %d", len(people))
+	}
+	participants := must(f.s.NewTimedHeat(people, f.course.String("lesson_id"), "Splash7:10", 3))
+	if len(participants) != 2 || participants[0].LapsRequired != 3 {
+		t.Fatalf("unexpected heat participants: %+v", participants)
+	}
+	for i := 0; i < 3; i++ {
+		if laps := must(f.s.RecordTimedLap(participants[0].AttemptID)); laps != i+1 {
+			t.Fatalf("lap %d recorded as %d", i+1, laps)
+		}
+	}
+	check(t, f.s.SaveTimedHeat([]domain.TimedResult{
+		{AttemptID: participants[0].AttemptID, LapsRequired: 3, LapsCompleted: 3, ElapsedMS: 2500, Success: true},
+		{AttemptID: participants[1].AttemptID, LapsRequired: 3, LapsCompleted: 1, ElapsedMS: 5000, Success: false},
+	}))
+	if p := must(f.s.Progress(people[0], "Splash7:10", f.version)); p.Successes != 1 || p.Assessed != 1 {
+		t.Fatalf("successful timed progress incorrect: %+v", p)
+	}
+	if p := must(f.s.Progress(people[1], "Splash7:10", f.version)); p.Successes != 0 || p.Assessed != 1 {
+		t.Fatalf("failed timed progress incorrect: %+v", p)
+	}
+	feedback := must(f.s.Feedback(people[1]))
+	if len(feedback) != 1 || !feedback[0].Timed || feedback[0].TimedLaps != 1 || feedback[0].TimedRequired != 3 || feedback[0].TimedElapsedMS != 5000 {
+		t.Fatalf("timed feedback data missing: %+v", feedback)
+	}
+}
+
 func TestRemoveLatestSuccessDecrementsProgressAndRemovesAttempt(t *testing.T) {
 	f := setup(t)
 	first := f.attempt(t, true, "")

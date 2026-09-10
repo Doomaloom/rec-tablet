@@ -251,6 +251,72 @@ func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 		t.Fatal("removed check left more than the saved incomplete attempt")
 	}
 }
+
+func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
+	f := setupUI(t)
+	p := must(transfer.ReadPackage("../../../examples/classes.json"))
+	level := "Splash7"
+	for i := range p.Courses[0].Swimmers[:2] {
+		p.Courses[0].Swimmers[i].Level = &level
+	}
+	_ = must(f.s.Import(p))
+	check(t, f.c.Refresh())
+	f.row(t, 0)
+	f.tap(t, "row:skills")
+	for {
+		found := false
+		for _, row := range f.c.State.Rows {
+			if row.ID == "Splash7:10" {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+		f.tap(t, "down")
+	}
+	f.tap(t, "row:Splash7:10")
+	if f.c.State.Screen != "skill_swimmers" || len(f.c.State.Rows) != 2 {
+		t.Fatalf("timed skill did not show its selected roster: screen=%s rows=%d", f.c.State.Screen, len(f.c.State.Rows))
+	}
+	people := []string{f.c.State.Rows[0].ID, f.c.State.Rows[1].ID}
+	f.tap(t, "row:"+people[0])
+	f.tap(t, "row:"+people[1])
+	if f.view.Buttons["home"].Text != "✓" || f.view.Buttons["back"].Text != "✕" {
+		t.Fatal("timed swimmer selection did not show heat actions")
+	}
+	f.tap(t, "home")
+	if f.c.State.Screen != "timed_laps" {
+		t.Fatal("timed selection did not open lap setup")
+	}
+	f.tap(t, "timed-digit:3")
+	f.tap(t, "home")
+	if f.c.State.Screen != "timed_heat" || f.view.Buttons["header-action-0"] == nil || f.view.Buttons["header-action-1"] == nil {
+		t.Fatal("lap setup did not open the timed heat")
+	}
+	f.tap(t, "header-action-0")
+	for i := 0; i < 3; i++ {
+		f.tap(t, "row:timed-lap:"+people[0])
+	}
+	if f.c.State.Screen != "timed_heat" || f.c.State.Rows[0].ProgressValue != 3 || f.c.State.Rows[0].ProgressTotal != 3 {
+		t.Fatal("lap taps did not complete the swimmer")
+	}
+	f.tap(t, "home")
+	if f.c.State.Screen != "skill_swimmers" {
+		t.Fatal("saving timed heat did not return to swimmers")
+	}
+	var attempts, timed int
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts WHERE skill_id='Splash7:10'").Scan(&attempts))
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM timed_attempts").Scan(&timed))
+	if attempts != 2 || timed != 2 {
+		t.Fatalf("timed heat was not persisted: attempts=%d timed=%d", attempts, timed)
+	}
+	if progress := must(f.s.Progress(people[0], "Splash7:10", f.c.Frame().Version)); progress.Successes != 1 {
+		t.Fatalf("completed timed swimmer did not pass: %+v", progress)
+	}
+}
+
 func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 	f := setupUI(t)
 	p := must(transfer.ReadPackage("../../../examples/classes.json"))

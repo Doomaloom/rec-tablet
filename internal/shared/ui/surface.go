@@ -19,13 +19,14 @@ type Surface struct {
 	Criterion *TextBlock
 }
 type Item struct {
-	ID, Label, Detail, Status string
-	Disabled                  bool
-	Data                      any
-	Fill                      color.Color
-	ProgressSegments          int
-	OnHold                    func()
-	HoldDuration              time.Duration
+	ID, Label, Detail, Status    string
+	Disabled                     bool
+	Data                         any
+	Fill                         color.Color
+	ProgressSegments             int
+	ProgressValue, ProgressTotal int
+	OnHold                       func()
+	HoldDuration                 time.Duration
 }
 
 func List(surface *Surface, rows []Item, selectRow func(string)) {
@@ -37,6 +38,8 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 		b.OnHold = row.OnHold
 		b.HoldDuration = row.HoldDuration
 		b.ProgressSegments = row.ProgressSegments
+		b.ProgressValue = row.ProgressValue
+		b.ProgressTotal = row.ProgressTotal
 		if row.Fill != nil {
 			b.Fill = row.Fill
 		}

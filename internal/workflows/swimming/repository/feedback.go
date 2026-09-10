@@ -34,7 +34,14 @@ func (s *Store) Feedback(person string) ([]domain.Feedback, error) {
 				return e
 			}
 			remaining := domain.Remaining(skill, values)
-			out = append(out, domain.Feedback{Skill: skill, Version: version, Progress: p, Remaining: remaining})
+			entry := domain.Feedback{Skill: skill, Version: version, Progress: p, Remaining: remaining}
+			if timed, timedErr := one(q, "SELECT laps_required,laps_completed,elapsed_ms FROM timed_attempts WHERE attempt_id=?", latest.String("id")); timedErr == nil {
+				entry.Timed = true
+				entry.TimedRequired = timed.Int("laps_required")
+				entry.TimedLaps = timed.Int("laps_completed")
+				entry.TimedElapsedMS = int64(timed.Int("elapsed_ms"))
+			}
+			out = append(out, entry)
 		}
 		return nil
 	})

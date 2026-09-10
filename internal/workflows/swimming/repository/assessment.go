@@ -52,6 +52,160 @@ func (s *Store) NewAttempt(person, lesson, skill string) (string, error) {
 	})
 	return id, err
 }
+
+// NewTimedHeat creates one timed attempt per selected swimmer and initializes
+// the shared lap target. The whole heat is created atomically.
+func (s *Store) NewTimedHeat(people []string, lesson, skill string, laps int) ([]domain.TimedParticipant, error) {
+	if len(people) == 0 {
+		return nil, errors.New("select at least one swimmer")
+	}
+	if laps < 1 || laps > 999 {
+		return nil, errors.New("laps must be between 1 and 999")
+	}
+	participants := []domain.TimedParticipant{}
+	err := s.transaction(func(q queryer) error {
+		for _, person := range people {
+			p, e := checkLesson(q, person, lesson)
+			if e != nil {
+				return e
+			}
+			if p.Int("active") == 0 {
+				return errors.New("this swimmer is no longer enrolled")
+			}
+			catalog, e := s.catalog(q, p.String("curriculum_version"))
+			if e != nil {
+				return e
+			}
+			if e = domain.ValidateNewAttempt(catalog, p.String("level"), skill, true); e != nil {
+				return e
+			}
+			_, e = one(q, `SELECT id FROM attempts WHERE enrollment_id=? AND lesson_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NULL`, person, lesson, skill, p.String("curriculum_version"))
+			if e == nil {
+				return errors.New("this swimmer already has an unfinished attempt")
+			}
+			if !errors.Is(e, ErrNotFound) {
+				return e
+			}
+			attemptID := ID()
+			if _, e = q.Exec("INSERT INTO attempts VALUES (?,?,?,?,?,?,NULL,0)", attemptID, person, lesson, skill, p.String("curriculum_version"), Now()); e != nil {
+				return e
+			}
+			if _, e = q.Exec("INSERT INTO drafts VALUES (?,?,?)", attemptID, "{}", Now()); e != nil {
+				return e
+			}
+			if _, e = q.Exec("INSERT INTO timed_attempts(attempt_id,laps_required) VALUES (?,?)", attemptID, laps); e != nil {
+				return e
+			}
+			participants = append(participants, domain.TimedParticipant{AttemptID: attemptID, EnrollmentID: p.String("id"), PersonID: person, Name: p.String("name"), LapsRequired: laps})
+		}
+		return nil
+	})
+	return participants, err
+}
+
+// RecordTimedLap advances one participant up to the configured lap target.
+func (s *Store) RecordTimedLap(attemptID string) (int, error) {
+	completed := 0
+	err := s.transaction(func(q queryer) error {
+		r, e := one(q, "SELECT laps_completed,laps_required FROM timed_attempts WHERE attempt_id=?", attemptID)
+		if e != nil {
+			return e
+		}
+		completed = r.Int("laps_completed")
+		if completed >= r.Int("laps_required") {
+			return nil
+		}
+		completed++
+		_, e = q.Exec("UPDATE timed_attempts SET laps_completed=? WHERE attempt_id=?", completed, attemptID)
+		return e
+	})
+	return completed, err
+}
+
+// ResetTimedHeat clears lap progress before a heat is started again.
+func (s *Store) ResetTimedHeat(attemptIDs []string) error {
+	return s.transaction(func(q queryer) error {
+		for _, id := range attemptIDs {
+			if _, e := q.Exec("UPDATE timed_attempts SET laps_completed=0,elapsed_ms=0 WHERE attempt_id=?", id); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+}
+
+// SaveTimedHeat submits every participant with the measured elapsed time.
+// A participant passes only when the caller marks it successful after all
+// required laps were completed within the benchmark limit.
+func (s *Store) SaveTimedHeat(results []domain.TimedResult) error {
+	if len(results) == 0 {
+		return errors.New("heat has no swimmers")
+	}
+	return s.transaction(func(q queryer) error {
+		for _, result := range results {
+			if result.LapsRequired < 1 || result.LapsCompleted < 0 || result.LapsCompleted > result.LapsRequired || result.ElapsedMS < 0 {
+				return errors.New("invalid timed result")
+			}
+			a, e := one(q, "SELECT * FROM attempts WHERE id=? AND submitted_at IS NULL", result.AttemptID)
+			if e != nil {
+				return e
+			}
+			if _, e = one(q, "SELECT attempt_id FROM timed_attempts WHERE attempt_id=? AND laps_required=?", result.AttemptID, result.LapsRequired); e != nil {
+				return e
+			}
+			skill, e := s.skill(q, a.String("curriculum_version"), a.String("skill_id"))
+			if e != nil {
+				return e
+			}
+			status := "not_yet"
+			if result.Success {
+				status = "successful"
+			}
+			if _, e = q.Exec("DELETE FROM results WHERE attempt_id=?", result.AttemptID); e != nil {
+				return e
+			}
+			for _, subskill := range skill.Subskills {
+				if _, e = q.Exec("INSERT INTO results VALUES (?,?,?)", result.AttemptID, subskill.ID, status); e != nil {
+					return e
+				}
+			}
+			if _, e = q.Exec("UPDATE timed_attempts SET laps_completed=?,elapsed_ms=? WHERE attempt_id=?", result.LapsCompleted, result.ElapsedMS, result.AttemptID); e != nil {
+				return e
+			}
+			success := 0
+			if result.Success {
+				success = 1
+			}
+			if _, e = q.Exec("UPDATE attempts SET success=?,submitted_at=? WHERE id=?", success, Now(), result.AttemptID); e != nil {
+				return e
+			}
+			if _, e = q.Exec("DELETE FROM drafts WHERE attempt_id=?", result.AttemptID); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+}
+
+// DiscardTimedHeat removes all unfinished attempts created for a heat.
+func (s *Store) DiscardTimedHeat(attemptIDs []string) error {
+	return s.transaction(func(q queryer) error {
+		for _, id := range attemptIDs {
+			if _, e := one(q, "SELECT attempt_id FROM timed_attempts WHERE attempt_id=?", id); e != nil {
+				return e
+			}
+			for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
+				if _, e := q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
+					return e
+				}
+			}
+			if _, e := q.Exec("DELETE FROM attempts WHERE id=? AND submitted_at IS NULL", id); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+}
 func answers(q queryer, id string) (map[string]string, error) {
 	rs, e := rows(q, "SELECT * FROM results WHERE attempt_id=?", id)
 	out := map[string]string{}
@@ -193,7 +347,7 @@ func (s *Store) DiscardAttempt(id string) error {
 		if _, e := one(q, "SELECT id FROM attempts WHERE id=? AND submitted_at IS NULL", id); e != nil {
 			return e
 		}
-		for _, table := range []string{"revisions", "results", "drafts"} {
+		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
 			if _, e := q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
 				return e
 			}
@@ -213,7 +367,7 @@ func (s *Store) RemoveLatestSuccess(person, skill, version string) error {
 			return e
 		}
 		id := a.String("id")
-		for _, table := range []string{"revisions", "results", "drafts"} {
+		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
 			if _, e = q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
 				return e
 			}

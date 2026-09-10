@@ -149,7 +149,29 @@ func newBackButtonComponent(builder *componentBuilder) {
 func newHeaderComponents(builder *componentBuilder) {
 	state := builder.state
 	actionWidth := float32(0)
-	if state.HeaderAction != "" {
+	actions := state.HeaderActions
+	if len(actions) > 0 {
+		actionWidth = float32(len(actions))*98 + float32(len(actions)-1)*8
+		for i, action := range actions {
+			index, action := i, action
+			button := builder.newTouchButton(fmt.Sprintf("header-action-%d", i), action.Label, func() { _ = action.Run() })
+			button.Fill, button.Ink, button.FontSize = action.Fill, action.Ink, action.FontSize
+			if button.Fill == nil {
+				button.Fill = ui.Rail
+			}
+			if button.Ink == nil {
+				button.Ink = ui.Blue
+			}
+			if button.FontSize <= 0 {
+				button.FontSize = 18
+			}
+			position := func(width, height float32) (float32, float32, float32, float32) {
+				x := width - 100 - actionWidth + float32(index)*106
+				return x, 14, 98, 58
+			}
+			builder.addComponent(fmt.Sprintf("header-action-%d", i), button, position)
+		}
+	} else if state.HeaderAction != "" {
 		actionWidth = 98
 		if state.HeaderWidth > 0 {
 			actionWidth = state.HeaderWidth
@@ -171,6 +193,9 @@ func newHeaderComponents(builder *componentBuilder) {
 	titleButton.Fill = ui.White
 	titleButton.Ink = ui.Navy
 	titleButton.FontSize = 25
+	if state.HeaderTitleFontSize > 0 {
+		titleButton.FontSize = state.HeaderTitleFontSize
+	}
 	titleButton.OnHold = state.HoldTitle
 	position := func(width, height float32) (float32, float32, float32, float32) {
 		return headerTitleSlot(width, height, left, actionWidth)

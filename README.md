@@ -51,7 +51,7 @@ The same hidden screen provides **Export Data**. Select a folder, accept or edit
 ## During a lesson
 
 - **Attendance:** tap a swimmer to toggle Present and Absent. The first tap marks an unmarked swimmer present. When a lesson date is past, any active swimmer without a present mark is automatically recorded absent.
-- **Skills:** choose a skill, then choose a swimmer. Each swimmer shows zero to three green progress segments for that skill. Tap a swimmer to open its subskills and mark the criteria that were completed. The checklist stays open while you review the work; use the green checkmark rail button to save the attempt or the red X rail button to discard it.
+- **Skills:** choose a skill, then choose a swimmer. Each swimmer shows zero to three green progress segments for that skill. Tap a swimmer to open its subskills and mark the criteria that were completed. The checklist stays open while you review the work; use the green checkmark rail button to save the attempt or the red X rail button to discard it. Timed benchmark skills instead let you select a heat, enter the required laps, count laps with the shared timer, and save or discard the entire heat.
 - **Completion:** all subskills must succeed together for an attempt to count toward progress. Saved incomplete attempts are retained for later feedback but do not add a green progress segment. Three successful attempts complete the skill, including multiple attempts in one lesson. Failed attempts do not reset earned successes.
 - **Corrections:** existing attempts remain reviewable through Feedback; corrections still save through the review screen and preserve revision history.
 - **Undo:** hold a student button for two seconds to remove that student's newest successful check for the selected skill. The associated observation is removed transactionally.
@@ -104,4 +104,4 @@ Tests cover the original POC workflows, recovery after abrupt process exit, fail
 
 `make package` creates `dist/native/rec-tablet-linux-<architecture>.tar.gz`, containing an executable, desktop entry, icon, and documentation in a `usr/` directory tree. The catalog is embedded in the executable. Install on the same architecture with the required Linux graphics libraries. An x86-64 build does not establish ARM device compatibility.
 
-Follow [the device acceptance trial](docs/device-trial.md) before a pool trial. Actual hardware, enclosure, wet-touch, and battery validation remain outstanding. Login, automated sync, free-text feedback, lesson plans, and timers remain outside this POC.
+Follow [the device acceptance trial](docs/device-trial.md) before a pool trial. Actual hardware, enclosure, wet-touch, and battery validation remain outstanding. Login, automated sync, free-text feedback, and lesson plans remain outside this POC.
