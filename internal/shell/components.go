@@ -67,7 +67,11 @@ func newHomeRailComponent(builder *componentBuilder) {
 	homeButton.Ink = ui.Blue
 	homeButton.FontSize = 17
 	homeButton.Icon = homeIcon
-	builder.addComponent("home-rail", homeButton, homeRailSlot)
+	homePosition := homeRailSlot
+	if builder.state.CanBack {
+		homePosition = splitHomeRailSlot
+	}
+	builder.addComponent("home-rail", homeButton, homePosition)
 }
 
 func newPagingRailComponents(builder *componentBuilder) {
@@ -99,7 +103,7 @@ func newBackButtonComponent(builder *componentBuilder) {
 	backButton.Fill = ui.Rail
 	backButton.Ink = ui.Blue
 	backButton.FontSize = 36
-	builder.addComponent("back-button", backButton, backButtonSlot)
+	builder.addComponent("back-button", backButton, backRailSlot)
 }
 
 func newHeaderComponents(builder *componentBuilder) {
@@ -119,9 +123,6 @@ func newHeaderComponents(builder *componentBuilder) {
 	}
 
 	left := float32(100)
-	if state.CanBack {
-		left += 64
-	}
 	titleButton := builder.newTouchButton("title", state.Title, func() {
 		if state.TitleDetails {
 			builder.view.details()

@@ -74,3 +74,56 @@ func TestComposeScreenPreservesFeatureBodyAndNoticeComponents(t *testing.T) {
 		t.Fatalf("feature body was not named: %v", seen)
 	}
 }
+
+func TestComposeScreenSharesLeftRailBetweenHomeAndBack(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("composition")
+	defer window.Close()
+
+	withoutBack := &compositionPresenter{state: State{Title: "My Classes", PageCount: 1}}
+	withoutBackView := New(withoutBack, window)
+	withoutBackComposition := ComposeScreen(withoutBackView, withoutBack.state)
+	withoutBackView.Close()
+
+	fullHome := componentNamed(withoutBackComposition.Components, "home-rail")
+	x, y, width, height := fullHome.Position(800, 480)
+	if x != 12 || y != 14 || width != 76 || height != 452 {
+		t.Fatalf("full Home rail slot = %v, %v, %v, %v", x, y, width, height)
+	}
+	if hasComponent(withoutBackComposition.Components, "back-button") {
+		t.Fatal("Back should be hidden when the route cannot go back")
+	}
+
+	withBack := &compositionPresenter{state: State{Title: "Class menu", CanBack: true, PageCount: 1}}
+	withBackView := New(withBack, window)
+	withBackComposition := ComposeScreen(withBackView, withBack.state)
+	withBackView.Close()
+
+	homeX, homeY, homeWidth, homeHeight := componentNamed(withBackComposition.Components, "home-rail").Position(800, 480)
+	backX, backY, backWidth, backHeight := componentNamed(withBackComposition.Components, "back-button").Position(800, 480)
+	if homeX != 12 || homeY != 14 || homeWidth != 76 || homeHeight != 220 {
+		t.Fatalf("split Home rail slot = %v, %v, %v, %v", homeX, homeY, homeWidth, homeHeight)
+	}
+	if backX != 12 || backY != 246 || backWidth != 76 || backHeight != 220 {
+		t.Fatalf("split Back rail slot = %v, %v, %v, %v", backX, backY, backWidth, backHeight)
+	}
+}
+
+func componentNamed(components []LayoutComponent, name string) LayoutComponent {
+	for _, component := range components {
+		if component.Name == name {
+			return component
+		}
+	}
+	panic("missing component: " + name)
+}
+
+func hasComponent(components []LayoutComponent, name string) bool {
+	for _, component := range components {
+		if component.Name == name {
+			return true
+		}
+	}
+	return false
+}
