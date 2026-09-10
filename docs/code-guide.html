@@ -135,7 +135,7 @@ internal/
       <section id="workflows">
         <h2>Core workflows and rules</h2>
         <div class="grid">
-          <article class="card"><h3>Attendance</h3><p>A tap upserts the status for one lesson and enrollment and commits immediately.</p></article>
+          <article class="card"><h3>Attendance</h3><p>Each swimmer is a direct toggle: an unmarked swimmer becomes present on the first tap, then taps alternate present and absent. Opening a past lesson transactionally records absent for active swimmers who have no present mark.</p></article>
           <article class="card rule"><h3>Skill completion</h3><p>An observation succeeds only when every subskill is checked. The checklist remains open after the last mark: the green checkmark rail button saves the attempt and the red X rail button discards it. Three successful observations complete a skill. The student list for the selected skill shows up to three green progress segments, and holding a student for two seconds removes that student's newest check.</p></article>
           <article class="card"><h3>Drafts and saved attempts</h3><p>Every mark persists immediately. A partial draft survives navigation and restart. Saving an incomplete checklist records an unsuccessful attempt for feedback, but it does not add progress. Selecting the same lesson, swimmer, and skill resumes an unfinished draft.</p></article>
           <article class="card"><h3>Corrections</h3><p>Editing a submitted attempt creates a draft. Submission records old answers in <code>revisions</code>, replaces results, and recalculates success transactionally.</p></article>

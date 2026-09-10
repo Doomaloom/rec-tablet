@@ -113,9 +113,12 @@ func TestPointerNavigationAttendanceAndMaintenance(t *testing.T) {
 	}
 	f.shot(t, "attendance")
 	f.row(t, 0)
-	f.row(t, 0)
 	if f.c.State.Rows[0].Status != "present" {
 		t.Fatal("attendance did not save")
+	}
+	f.row(t, 0)
+	if f.c.State.Rows[0].Status != "absent" {
+		t.Fatal("attendance toggle did not switch to absent")
 	}
 	f.c.Dismiss()
 	f.tap(t, "down")

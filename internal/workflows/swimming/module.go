@@ -24,7 +24,6 @@ func New(s *repository.Store) *Controller {
 	nav.Features[navigation.Class] = classesFeature
 	attendanceFeature := attendance.New(nav, s)
 	nav.Features[navigation.Attendance] = attendanceFeature
-	nav.Features[navigation.AttendanceMark] = attendanceFeature
 	assessmentFeature := assessment.New(nav, s)
 	nav.Features[navigation.Skills] = assessmentFeature
 	nav.Features[navigation.SkillSwimmers] = assessmentFeature

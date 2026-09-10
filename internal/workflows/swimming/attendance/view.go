@@ -17,16 +17,10 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 	}
 	if c.Frame().Screen == navigation.Attendance {
 		state.ComposeBody = c.composeAttendanceRosterBody(*state)
-	} else {
-		state.ComposeBody = c.composeAttendanceChoiceBody(*state)
 	}
 }
 
 func (c *Controller) composeAttendanceRosterBody(state shell.State) ui.BodyComposer {
-	return c.composeAttendanceListBody(state)
-}
-
-func (c *Controller) composeAttendanceChoiceBody(state shell.State) ui.BodyComposer {
 	return c.composeAttendanceListBody(state)
 }
 

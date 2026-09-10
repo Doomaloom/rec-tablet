@@ -3,6 +3,7 @@ package attendance
 import (
 	"rectablet/internal/workflows/swimming/navigation"
 	"strings"
+	"time"
 )
 
 type Controller struct {
@@ -16,16 +17,16 @@ func (c *Controller) Build() (navigation.State, error) {
 	state := c.InitialState()
 	rows := []navigation.Row{}
 	s := c.Store
-	course, roster, e := navigation.LessonContext(s, f, c.Date, &state)
+	_, roster, e := navigation.LessonContext(s, f, c.Date, &state)
 	if e != nil {
 		return state, e
 	}
-	_ = roster
-	version := course.CurriculumVersion
-	_ = version
 	switch f.Screen {
 	case navigation.Attendance:
 		state.Title = "Attendance"
+		// Attendance finalization is best effort on the device. A failed
+		// background write leaves the roster usable without an error popup.
+		_ = s.MarkPastAttendanceAbsent(f.Lesson, time.Now().Format("2006-01-02"))
 		marks, e := s.Attendance(f.Lesson)
 		if e != nil {
 			return state, e
@@ -41,16 +42,6 @@ func (c *Controller) Build() (navigation.State, error) {
 			rows = append(rows, navigation.Row{ID: p.ID, Label: p.Name, Detail: strings.ToUpper(status[:1]) + status[1:], Status: status})
 		}
 		state.Empty = "No enrolled swimmers."
-
-	case navigation.AttendanceMark:
-		p, e := s.GetEnrollment(f.Person)
-		if e != nil {
-			return state, e
-		}
-		state.Title = p.Name
-		state.Subtitle = "Attendance · " + state.Subtitle
-		rows = []navigation.Row{{ID: "present", Label: "Present"}, {ID: "absent", Label: "Absent"}, {ID: "unmarked", Label: "Unmarked"}}
-
 	}
 	c.Paginate(&state, rows)
 	c.composeFeatureBody(&state)
@@ -60,16 +51,27 @@ func (c *Controller) Select(id string) error {
 	f := c.Frame()
 	switch f.Screen {
 	case navigation.Attendance:
-		c.Push(navigation.AttendanceMark, func(n *navigation.Frame) { n.Person = id })
-
-	case navigation.AttendanceMark:
-		// Attendance is an immediate touch action. A failed write leaves the
-		// selection screen unchanged and is intentionally quiet.
-		if e := c.Store.SetAttendance(f.Person, f.Lesson, id); e != nil {
+		status := "present"
+		found := false
+		for _, row := range c.State.Rows {
+			if row.ID != id {
+				continue
+			}
+			found = true
+			if row.Status == "present" {
+				status = "absent"
+			}
+			break
+		}
+		if !found {
+			return nil
+		}
+		// Attendance is an immediate toggle. A failed write leaves the current
+		// row unchanged and is intentionally quiet.
+		if e := c.Store.SetAttendance(id, f.Lesson, status); e != nil {
 			return nil
 		}
 		c.Saved("")
-		c.Pop()
 
 	}
 	return nil

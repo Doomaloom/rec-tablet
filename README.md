@@ -50,7 +50,7 @@ The same hidden screen provides **Export Data**. Select a folder, accept or edit
 
 ## During a lesson
 
-- **Attendance:** tap a swimmer, then Present, Absent, or Unmarked. Each selection commits immediately.
+- **Attendance:** tap a swimmer to toggle Present and Absent. The first tap marks an unmarked swimmer present. When a lesson date is past, any active swimmer without a present mark is automatically recorded absent.
 - **Skills:** choose a skill, then choose a swimmer. Each swimmer shows zero to three green progress segments for that skill. Tap a swimmer to open its subskills and mark the criteria that were completed. The checklist stays open while you review the work; use the green checkmark rail button to save the attempt or the red X rail button to discard it.
 - **Completion:** all subskills must succeed together for an attempt to count toward progress. Saved incomplete attempts are retained for later feedback but do not add a green progress segment. Three successful attempts complete the skill, including multiple attempts in one lesson. Failed attempts do not reset earned successes.
 - **Corrections:** existing attempts remain reviewable through Feedback; corrections still save through the review screen and preserve revision history.

@@ -282,6 +282,38 @@ func TestCrossClassAndWrongLevelRejected(t *testing.T) {
 		t.Fatal("wrong level")
 	}
 }
+
+func TestPastAttendanceDefaultsUncheckedStudentsAbsent(t *testing.T) {
+	f := setup(t)
+	roster := must(f.s.rosterRecords(f.course.String("id")))
+	check(t, f.s.SetAttendance(f.person.String("id"), f.course.String("lesson_id"), "present"))
+	check(t, f.s.MarkPastAttendanceAbsent(f.course.String("lesson_id"), "2026-09-05"))
+	marks := must(f.s.Attendance(f.course.String("lesson_id")))
+	for _, swimmer := range roster {
+		if swimmer.Int("active") == 0 {
+			continue
+		}
+		status := marks[swimmer.String("id")]
+		if swimmer.String("id") == f.person.String("id") {
+			if status != "present" {
+				t.Fatalf("present student was changed to %q", status)
+			}
+			continue
+		}
+		if status != "absent" {
+			t.Fatalf("unchecked student %s was marked %q", swimmer.String("id"), status)
+		}
+	}
+
+	future := must(f.s.courseRecords("2026-09-11"))[0]
+	check(t, f.s.SetAttendance(f.person.String("id"), future.String("lesson_id"), "present"))
+	check(t, f.s.MarkPastAttendanceAbsent(future.String("lesson_id"), "2026-09-05"))
+	futureMarks := must(f.s.Attendance(future.String("lesson_id")))
+	if len(futureMarks) != 1 || futureMarks[f.person.String("id")] != "present" {
+		t.Fatalf("future lesson attendance was finalized: %+v", futureMarks)
+	}
+}
+
 func TestPrivateAndMissingLevel(t *testing.T) {
 	f := setup(t)
 	level := "SplashPrivate"

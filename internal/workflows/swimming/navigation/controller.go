@@ -16,7 +16,6 @@ const (
 	Dates            Route = "dates"
 	Class            Route = "class"
 	Attendance       Route = "attendance"
-	AttendanceMark   Route = "attendance_mark"
 	Skills           Route = "skills"
 	SkillSwimmers    Route = "skill_swimmers"
 	Attempts         Route = "attempts"
