@@ -18,7 +18,11 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 	case navigation.Attempts:
 		state.ComposeBody = c.composeAttemptListBody(*state)
 	case navigation.Assessment:
-		state.ComposeBody = c.composeAssessmentBody(*state)
+		if state.FooterAction == "" {
+			state.ComposeBody = c.composeSubskillChecklistBody(*state)
+		} else {
+			state.ComposeBody = c.composeAssessmentBody(*state)
+		}
 	}
 }
 
@@ -53,5 +57,27 @@ func (c *Controller) composeAssessmentBody(state shell.State) ui.BodyComposer {
 			return
 		}
 		renderCriterion(surface, snapshot.Rows[0], func(status string) { _ = c.Controller.Mark(status) })
+	}
+}
+
+func (c *Controller) composeSubskillChecklistBody(state shell.State) ui.BodyComposer {
+	snapshot := state
+	return func(surface *ui.Surface) {
+		if snapshot.RowCount == 0 {
+			ui.Empty(surface, snapshot.Empty)
+			return
+		}
+		rows := append([]ui.Item(nil), snapshot.Rows...)
+		for i := range rows {
+			if rows[i].Status == "successful" {
+				rows[i].Fill = ui.Green
+				if rows[i].Detail == "" {
+					rows[i].Detail = "Complete"
+				} else {
+					rows[i].Detail = "Complete · " + rows[i].Detail
+				}
+			}
+		}
+		ui.List(surface, rows, func(id string) { _ = c.Controller.Select(id) })
 	}
 }

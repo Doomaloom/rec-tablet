@@ -99,7 +99,7 @@ internal/
     domain/                   Typed entities and pure swimming rules
     classes/                  Classes, dates, lesson menu
     attendance/               Roster and attendance marking
-    assessment/               Skills, swimmers, attempts, criteria
+    assessment/               Swimmer skills, checklists, attempts, criteria
     feedback/                 Feedback list and details
     setup/                    File dialogs and import/export actions
     repository/               SQL and schema, grouped by responsibility
@@ -111,7 +111,7 @@ internal/
       <section id="screens">
         <h2>Screens and state</h2>
         <p>Swimming's <a href="../internal/workflows/swimming/navigation/controller.go">navigation coordinator</a> uses typed routes and a <code>Frame</code> with swimming-specific parameters. Each registered feature builds screen state and handles its own actions. The coordinator uses the shell's generic history stack; features navigate through the coordinator without importing one another.</p>
-        <div class="flow" role="img" aria-label="Typical assessment navigation sequence"><div class="node">My Classes</div><span class="arrow">→</span><div class="node">Class menu</div><span class="arrow">→</span><div class="node">Skills</div><span class="arrow">→</span><div class="node">Swimmer</div><span class="arrow">→</span><div class="node">Attempt</div><span class="arrow">→</span><div class="node">Assessment</div></div>
+        <div class="flow" role="img" aria-label="Typical assessment navigation sequence"><div class="node">My Classes</div><span class="arrow">→</span><div class="node">Class menu</div><span class="arrow">→</span><div class="node">Skills</div><span class="arrow">→</span><div class="node">Skill</div><span class="arrow">→</span><div class="node">Swimmer</div><span class="arrow">→</span><div class="node">Subskills</div></div>
         <p><code>shell.State</code> describes common chrome and provides a <code>ComposeBody</code> callback. The feature view draws content through <code>ui.Surface</code>. The shell's <a href="../internal/shell/compose.go">ComposeScreen</a> function assembles named components from <a href="../internal/shell/components.go">component factories</a>; the shell renders headers, paging controls, notices, and the footer. Optional <code>OnLeave</code> callbacks release feature resources on route changes or close.</p>
         <p>Successful actions refresh state. Failed actions restore navigation and the selected date while displaying the error. A 120 ms guard prevents one physical tap from activating the next screen; detached controls are disabled and their hold timers stopped. Draft persistence remains in SQLite.</p>
       </section>
@@ -136,8 +136,8 @@ internal/
         <h2>Core workflows and rules</h2>
         <div class="grid">
           <article class="card"><h3>Attendance</h3><p>A tap upserts the status for one lesson and enrollment and commits immediately.</p></article>
-          <article class="card rule"><h3>Skill completion</h3><p>An attempt succeeds only when every criterion succeeds. Three submitted successful attempts complete a skill. Failures do not erase successes, and one lesson may contain multiple attempts.</p></article>
-          <article class="card"><h3>Drafts</h3><p>Every mark persists immediately. A partial draft survives navigation and restart but does not affect progress. Starting the same lesson, swimmer, and skill resumes it.</p></article>
+          <article class="card rule"><h3>Skill completion</h3><p>An observation succeeds only when every subskill is checked. Three successful observations complete a skill. The student list for the selected skill shows up to three green progress segments, and holding a student for two seconds removes that student's newest check.</p></article>
+          <article class="card"><h3>Drafts</h3><p>Every mark persists immediately. A partial draft survives navigation and restart but does not affect progress. Selecting the same lesson, swimmer, and skill resumes it.</p></article>
           <article class="card"><h3>Corrections</h3><p>Editing a submitted attempt creates a draft. Submission records old answers in <code>revisions</code>, replaces results, and recalculates success transactionally.</p></article>
           <article class="card"><h3>Feedback</h3><p>Feedback shows assessed, incomplete skills and uses the latest completed observation to identify unsuccessful criteria or successes still needed.</p></article>
           <article class="card rule"><h3>Version isolation</h3><p>Courses and attempts keep their curriculum version, so catalog updates cannot reinterpret historical work.</p></article>

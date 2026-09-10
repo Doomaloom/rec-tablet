@@ -51,12 +51,13 @@ The same hidden screen provides **Export Data**. Select a folder, accept or edit
 ## During a lesson
 
 - **Attendance:** tap a swimmer, then Present, Absent, or Unmarked. Each selection commits immediately.
-- **Skills:** choose a skill, a swimmer, then New attempt. Assess every subskill as Successful or Not yet. Use the arrows to page through criteria. Draft selections save immediately; progress changes only after submitting the complete attempt.
+- **Skills:** choose a skill, then choose a swimmer. Each swimmer shows zero to three green progress segments for that skill. Tap a swimmer to open its subskills; tap each completed subskill and the checklist closes automatically when all are checked.
 - **Completion:** all subskills must succeed together in an attempt. Three successful attempts complete the skill, including multiple attempts in one lesson. Failed attempts do not reset earned successes.
-- **Corrections:** open an existing attempt, edit its marks, then Save correction. Unfinished edits persist separately from the submitted result; the prior result is retained in revision history when the correction is submitted.
+- **Corrections:** existing attempts remain reviewable through Feedback; corrections still save through the review screen and preserve revision history.
+- **Undo:** hold a student button for two seconds to remove that student's newest successful check for the selected skill. The associated observation is removed transactionally.
 - **Feedback:** shows skills assessed anywhere in the current enrollment that remain below three successes. It shows unsuccessful criteria from the latest completed observation, or the additional successes needed. Unassessed and completed skills are excluded.
 
-Home and Back preserve drafts. New attempt resumes an unfinished attempt for the same swimmer, skill, and lesson. Tap the title/subtitle to read the full lesson context. Former enrollments remain available in Feedback but cannot receive new attempts.
+Home and Back preserve drafts. Selecting a swimmer for a skill resumes an unfinished observation for that swimmer, skill, and lesson. Existing attempts remain reviewable through Feedback. Tap the title/subtitle to read the full lesson context. Former enrollments remain available in Feedback but cannot receive new checks.
 
 ## Curriculum and transfer tools
 

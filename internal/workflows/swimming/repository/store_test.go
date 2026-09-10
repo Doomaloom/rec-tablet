@@ -97,6 +97,25 @@ func TestThreeSameLessonSuccessesAccumulate(t *testing.T) {
 		t.Fatal(p)
 	}
 }
+
+func TestRemoveLatestSuccessDecrementsProgressAndRemovesAttempt(t *testing.T) {
+	f := setup(t)
+	first := f.attempt(t, true, "")
+	second := f.attempt(t, true, "")
+	if f.progress().Successes != 2 {
+		t.Fatal(f.progress())
+	}
+	check(t, f.s.RemoveLatestSuccess(f.person.String("id"), "Splash1:1", f.version))
+	if f.progress().Successes != 1 {
+		t.Fatal(f.progress())
+	}
+	if _, e := f.s.GetAttempt(second); e == nil {
+		t.Fatal("latest successful attempt was not removed")
+	}
+	if _, e := f.s.GetAttempt(first); e != nil {
+		t.Fatal("older successful attempt was removed")
+	}
+}
 func TestRepeatedDraftAndSubmit(t *testing.T) {
 	f := setup(t)
 	a := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:1"))

@@ -3,6 +3,7 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"image/color"
+	"time"
 )
 
 // Surface exposes layout primitives to feature views in the 800x480 design space.
@@ -22,6 +23,9 @@ type Item struct {
 	Disabled                  bool
 	Data                      any
 	Fill                      color.Color
+	ProgressSegments          int
+	OnHold                    func()
+	HoldDuration              time.Duration
 }
 
 func List(surface *Surface, rows []Item, selectRow func(string)) {
@@ -30,6 +34,9 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 		b := surface.Button("row:"+row.ID, row.Label, func() { selectRow(row.ID) })
 		b.Detail = row.Detail
 		b.Disabled = row.Disabled
+		b.OnHold = row.OnHold
+		b.HoldDuration = row.HoldDuration
+		b.ProgressSegments = row.ProgressSegments
 		if row.Fill != nil {
 			b.Fill = row.Fill
 		}

@@ -167,3 +167,23 @@ func (s *Store) Submit(id string) (bool, error) {
 	})
 	return success, err
 }
+
+// RemoveLatestSuccess removes the newest successful observation for one skill.
+// Its result rows and revision history are removed in the same transaction so
+// the progress count and stored attempt history stay consistent.
+func (s *Store) RemoveLatestSuccess(person, skill, version string) error {
+	return s.transaction(func(q queryer) error {
+		a, e := one(q, `SELECT id FROM attempts WHERE enrollment_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NOT NULL AND success=1 ORDER BY submitted_at DESC,created_at DESC,rowid DESC LIMIT 1`, person, skill, version)
+		if e != nil {
+			return e
+		}
+		id := a.String("id")
+		for _, table := range []string{"revisions", "results", "drafts"} {
+			if _, e = q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
+				return e
+			}
+		}
+		_, e = q.Exec("DELETE FROM attempts WHERE id=?", id)
+		return e
+	})
+}

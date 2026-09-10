@@ -66,7 +66,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, e
 		}
 		state.Title = "This Lesson"
-		rows = []navigation.Row{{ID: "attendance", Label: "Attendance", Detail: "Who's here today?"}, {ID: "skills", Label: "Skills", Detail: "Choose a skill, then assess swimmers"}, {ID: "feedback_swimmers", Label: "Feedback", Detail: "Assessed skills still in progress"}}
+		rows = []navigation.Row{{ID: "attendance", Label: "Attendance", Detail: "Who's here today?"}, {ID: "skills", Label: "Skills", Detail: "Choose a skill, then a swimmer"}, {ID: "feedback_swimmers", Label: "Feedback", Detail: "Assessed skills still in progress"}}
 
 	}
 	c.Paginate(&state, rows)

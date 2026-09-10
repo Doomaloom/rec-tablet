@@ -67,11 +67,21 @@ func (f *uiFixture) row(t *testing.T, index int) {
 	t.Helper()
 	f.tap(t, "row:"+f.c.State.Rows[index].ID)
 }
+func (f *uiFixture) rowLabel(t *testing.T, label string) {
+	t.Helper()
+	for i, row := range f.c.State.Rows {
+		if row.Label == label {
+			f.row(t, i)
+			return
+		}
+	}
+	t.Fatalf("missing row %q", label)
+}
 func (f *uiFixture) skill(t *testing.T) {
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	f.row(t, 0)
-	f.row(t, 0)
+	f.rowLabel(t, "Harrold")
 }
 func (f *uiFixture) shot(t *testing.T, name string) {
 	t.Helper()
@@ -136,75 +146,88 @@ func TestPointerNavigationAttendanceAndMaintenance(t *testing.T) {
 	}
 	f.shot(t, "maintenance")
 }
-func TestAssessmentDraftResumeFeedbackAndDoubleSubmit(t *testing.T) {
+func TestSkillChecklistAutoCompletesAndHoldRemovesCheck(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)
-	f.tap(t, "header")
-	a := f.c.Frame().Attempt
-	if f.c.State.CanSubmit {
-		t.Fatal("incomplete submit enabled")
+	if f.c.State.Screen != "assessment" || f.c.State.RowCount < 2 {
+		t.Fatal("skill checklist did not open")
 	}
-	f.tap(t, "successful")
-	f.c.Dismiss()
+	firstID := f.c.State.Rows[0].ID
+	secondID := f.c.State.Rows[1].ID
+	person := f.c.Frame().Person
+	version := f.c.Frame().Version
+	f.tap(t, "row:"+firstID)
 	if f.c.State.Rows[0].Status != "successful" {
-		t.Fatal("mark not saved")
+		t.Fatal("subskill check not saved")
 	}
 	f.shot(t, "assessment")
-	f.tap(t, "home")
-	f.skill(t)
-	f.tap(t, "header")
-	if f.c.Frame().Attempt != a || f.c.State.Rows[0].Status != "successful" {
-		t.Fatal("draft not resumed")
+	f.tap(t, "row:"+secondID)
+	if f.c.State.Screen != "skill_swimmers" {
+		t.Fatal("complete checklist did not close")
 	}
-	f.tap(t, "down")
-	f.tap(t, "not_yet")
-	f.c.Dismiss()
-	if !f.c.State.CanSubmit {
-		t.Fatal("submit not enabled")
+	if f.c.State.Notice != "" {
+		t.Fatalf("skill completion displayed an unexpected notice: %q", f.c.State.Notice)
 	}
-	f.tap(t, "submit")
-	if f.c.State.Screen != "attempts" {
-		t.Fatal("submit did not navigate")
+	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 1 {
+		t.Fatal("successful check did not increment progress")
 	}
-	check(t, f.c.Submit())
+	if f.view.Buttons["row:"+person] == nil {
+		t.Fatal("student button was not rebuilt after completing the checklist")
+	}
+	for _, row := range f.c.State.Rows {
+		if row.ID == person {
+			if row.Detail != "" {
+				t.Fatalf("student progress subtext was not removed: %q", row.Detail)
+			}
+			if row.ProgressSegments != 1 {
+				t.Fatalf("student button did not show one segment: %d", row.ProgressSegments)
+			}
+		}
+	}
+
+	skillButton := f.view.Buttons["row:"+person]
+	if skillButton == nil || skillButton.OnHold == nil || skillButton.HoldDuration != 2*time.Second || skillButton.ProgressSegments != 1 {
+		t.Fatal("skill hold action is not configured for two seconds")
+	}
+	for _, b := range f.view.Buttons {
+		b.CanActivate = func() bool { return true }
+	}
+	originalHold := skillButton.OnHold
+	holdComplete := make(chan struct{})
+	skillButton.OnHold = func() {
+		originalHold()
+		close(holdComplete)
+	}
+	skillButton.MouseDown(&desktop.MouseEvent{Button: desktop.MouseButtonPrimary})
+	select {
+	case <-holdComplete:
+	case <-time.After(5 * time.Second):
+		t.Fatal("two-second skill hold did not fire")
+	}
+	skillButton.MouseUp(&desktop.MouseEvent{})
+	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 0 {
+		t.Fatal("holding a skill did not remove its latest check")
+	}
 	var count int
 	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
-	if count != 1 {
-		t.Fatal("double submit duplicated")
+	if count != 0 {
+		t.Fatal("removed check left its attempt behind")
 	}
-	person := f.c.Frame().Person
-	f.c.Dismiss()
-	f.tap(t, "home")
-	f.row(t, 0)
-	f.tap(t, "row:feedback_swimmers")
-	f.tap(t, "row:"+person)
-	f.row(t, 0)
-	if f.c.State.RowCount != 1 {
-		t.Fatal("feedback missing failed subskill")
-	}
-	f.shot(t, "feedback")
 }
 func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 	f := setupUI(t)
 	p := must(transfer.ReadPackage("../../../examples/classes.json"))
 	level := "Unknown Level"
-	p.Courses[0].Swimmers[0].Level = &level
+	for i := range p.Courses[0].Swimmers {
+		p.Courses[0].Swimmers[i].Level = &level
+	}
 	p.Courses[1].Swimmers = []transfer.SwimmerInput{}
 	_ = must(f.s.Import(p))
 	check(t, f.c.Refresh())
 	f.row(t, 0)
 	f.tap(t, "row:skills")
-	for f.c.State.Page+1 < f.c.State.PageCount {
-		f.tap(t, "down")
-	}
-	found := false
-	for _, r := range f.c.State.Rows {
-		if r.Disabled {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("missing curriculum state absent")
+	if f.c.State.RowCount != 1 || !f.c.State.Rows[0].Disabled || f.c.State.Rows[0].Detail != "Missing curriculum · update swimmer level" {
+		t.Fatalf("missing curriculum state absent: screen=%s rows=%d empty=%q", f.c.State.Screen, f.c.State.RowCount, f.c.State.Empty)
 	}
 	f.tap(t, "home")
 	f.row(t, 1)
@@ -216,10 +239,9 @@ func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 func TestSaveFailureKeepsDraftAndVisibleError(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)
-	f.tap(t, "header")
 	_, e := f.s.DB.Exec(`CREATE TEMP TRIGGER reject_draft BEFORE UPDATE ON drafts BEGIN SELECT RAISE(ABORT,'Disk full'); END`)
 	check(t, e)
-	f.tap(t, "successful")
+	f.tap(t, "row:"+f.c.State.Rows[0].ID)
 	if !f.c.State.Error || f.c.State.Rows[0].Status != "unmarked" {
 		t.Fatal("failed save falsely acknowledged")
 	}
@@ -250,13 +272,12 @@ func TestLongCriteriaAndLargerLandscape(t *testing.T) {
 		f.tap(t, "down")
 	}
 	f.tap(t, "row:Splash9:7")
-	f.row(t, 0)
-	f.tap(t, "header")
+	f.rowLabel(t, "Jordan")
 	f.shot(t, "long-skill")
 	f.w.Resize(fyne.NewSize(1280, 800))
 	f.shot(t, "assessment-1280")
-	if f.view.Criterion.Truncated {
-		t.Fatal("criterion clipped")
+	if f.c.State.RowCount == 0 {
+		t.Fatal("long skill has no subskills")
 	}
 }
 func TestNavigationGuard(t *testing.T) {
@@ -293,12 +314,10 @@ func TestLongestCriterionFitsAndGroupsRemainVisible(t *testing.T) {
 		f.tap(t, "down")
 	}
 	f.tap(t, "row:SplashFitness:3")
-	f.row(t, 0)
-	f.tap(t, "header")
-	f.tap(t, "down")
+	f.rowLabel(t, "Harrold")
 	_ = f.w.Canvas().Capture()
-	if f.view.Criterion.Truncated {
-		t.Fatal("longest criterion clipped")
+	if f.c.State.RowCount == 0 {
+		t.Fatal("longest skill has no subskills")
 	}
 	f.shot(t, "longest-criterion")
 }

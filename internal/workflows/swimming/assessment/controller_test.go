@@ -16,21 +16,15 @@ func (s *attemptStore) Mark(a, k, status string) error {
 	s.attempt, s.criterion, s.status = a, k, status
 	return s.err
 }
-func (s *attemptStore) Submit(string) (bool, error)                       { return true, s.err }
-func (s *attemptStore) NewAttempt(string, string, string) (string, error) { return "draft", s.err }
+func (s *attemptStore) Submit(string) (bool, error)                      { return true, s.err }
+func (s *attemptStore) RemoveLatestSuccess(string, string, string) error { return s.err }
 
 func TestAssessmentActionsUseCurrentDraftAndKeepFailedSubmission(t *testing.T) {
 	nav := navigation.New()
 	s := &attemptStore{}
 	c := New(nav, s)
 	nav.Push(navigation.Attempts, nil)
-	nav.State.HeaderAction = "New attempt"
-	if err := c.Header(); err != nil {
-		t.Fatal(err)
-	}
-	if nav.Frame().Attempt != "draft" {
-		t.Fatal("did not open returned draft")
-	}
+	nav.Push(navigation.Assessment, func(f *navigation.Frame) { f.Attempt = "draft"; f.Review = true })
 	nav.State.Rows = []navigation.Row{{ID: "criterion"}}
 	if err := c.Mark("successful"); err != nil {
 		t.Fatal(err)

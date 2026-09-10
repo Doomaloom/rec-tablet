@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/domain"
+	"strings"
 	"time"
 )
 
@@ -26,7 +27,10 @@ const (
 	Maintenance      Route = "maintenance"
 )
 
-type Parameters struct{ Course, Lesson, Person, Skill, Level, Version, Attempt string }
+type Parameters struct {
+	Course, Lesson, Person, Skill, Level, Version, Attempt string
+	Review                                                 bool
+}
 type Frame struct {
 	Screen Route
 	Page   int
@@ -171,6 +175,10 @@ func ProgressText(p domain.Progress) string {
 		return "Complete · 3/3"
 	}
 	return fmt.Sprintf("%d/3 successful attempts", p.Successes)
+}
+
+func ProgressMarks(p domain.Progress) string {
+	return strings.Repeat("✓", min(3, max(0, p.Successes)))
 }
 
 type LessonReader interface {
