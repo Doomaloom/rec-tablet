@@ -33,6 +33,10 @@ For the dedicated display:
 ./dist/native/rec-tablet --fullscreen
 ```
 
+To QA the native app from iPhone Safari while it runs in an isolated 800 × 480
+virtual display on this PC, follow [iPhone QA over noVNC](docs/iphone-qa.md).
+The short form is `make qa-setup`, `make qa-start`, and `make qa-stop`.
+
 `F11` toggles fullscreen. `Alt+Left` or Escape goes back. The layout starts at 800 × 480 and scales to larger landscape sizes. The packaged desktop build uses Fyne's Linux graphical driver and requires a working OpenGL/X11 environment (including XWayland on Wayland desktops). The SQLite driver is Go-only; the graphics stack still has native system dependencies.
 
 The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling back to `~/.local/share/rec-tablet/lessons.sqlite3`. Use `--database /path/to/lessons.sqlite3` for an isolated dataset. Close the old Python app before opening the same database in Go. Existing databases are read directly: no re-import or reset is required. A per-database process lock prevents concurrent app instances.

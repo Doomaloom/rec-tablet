@@ -1,0 +1,768 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+umask 077
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+PROJECT_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
+CONFIG_FILE=${REC_TABLET_QA_CONFIG:-$PROJECT_DIR/config/iphone-qa.env}
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck disable=SC1090
+    source "$CONFIG_FILE"
+fi
+
+QA_WIDTH=${QA_WIDTH:-800}
+QA_HEIGHT=${QA_HEIGHT:-480}
+QA_DISPLAY=${QA_DISPLAY:-90}
+QA_VNC_PORT=${QA_VNC_PORT:-5990}
+QA_WEB_PORT=${QA_WEB_PORT:-6080}
+QA_FYNE_SCALE=${QA_FYNE_SCALE:-1}
+QA_LISTEN_HOST=${QA_LISTEN_HOST:-}
+QA_PUBLIC_HOST=${QA_PUBLIC_HOST:-}
+QA_FULLSCREEN=${QA_FULLSCREEN:-0}
+QA_BUILD=${QA_BUILD:-1}
+QA_SOFTWARE_RENDERING=${QA_SOFTWARE_RENDERING:-1}
+QA_TLS=${QA_TLS:-1}
+
+QA_DIR=${QA_DIR:-$PROJECT_DIR/.qa}
+DEPS_DIR=$QA_DIR/deps
+ARCH_ROOT=$DEPS_DIR/arch-root
+DOWNLOAD_DIR=$QA_DIR/downloads
+RUN_DIR=$QA_DIR/run
+LOG_DIR=$QA_DIR/logs
+DATA_DIR=$QA_DIR/data
+CACHE_DIR=$QA_DIR/cache
+CONFIG_DIR=$QA_DIR/config
+SCREENSHOT_DIR=$QA_DIR/screenshots
+PASSWORD_FILE=${QA_PASSWORD_FILE:-$QA_DIR/credentials/vnc.passwd}
+TLS_CERT_FILE=${QA_TLS_CERT_FILE:-$QA_DIR/credentials/novnc.crt}
+TLS_KEY_FILE=${QA_TLS_KEY_FILE:-$QA_DIR/credentials/novnc.key}
+TLS_HOST_FILE=$QA_DIR/credentials/novnc.host
+DATABASE_FILE=${QA_DATABASE:-$DATA_DIR/rec-tablet-qa/lessons.sqlite3}
+APP_BINARY=$PROJECT_DIR/dist/native/rec-tablet
+SESSION_FILE=$RUN_DIR/session.env
+
+NOVNC_VERSION=${QA_NOVNC_VERSION:-1.7.0}
+WEBSOCKIFY_VERSION=${QA_WEBSOCKIFY_VERSION:-0.13.0}
+NOVNC_DIR=$DEPS_DIR/noVNC-$NOVNC_VERSION
+VENV_DIR=$DEPS_DIR/websockify-venv
+
+XVNC_PID_FILE=$RUN_DIR/xvnc.pid
+APP_PID_FILE=$RUN_DIR/app.pid
+WEBSOCKIFY_PID_FILE=$RUN_DIR/websockify.pid
+READY_FILE=$RUN_DIR/ready
+RESTART_REQUEST_FILE=$RUN_DIR/restart-app
+SYSTEMD_UNIT=${QA_SYSTEMD_UNIT:-rec-tablet-iphone-qa.service}
+
+XVNC_LOG=$LOG_DIR/xvnc.log
+APP_LOG=$LOG_DIR/app.log
+WEBSOCKIFY_LOG=$LOG_DIR/websockify.log
+
+die() {
+    printf 'iPhone QA: %s\n' "$*" >&2
+    exit 1
+}
+
+note() {
+    printf 'iPhone QA: %s\n' "$*"
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
+}
+
+validate_number() {
+    local name=$1 value=$2 min=$3 max=$4
+    [[ "$value" =~ ^[0-9]+$ ]] || die "$name must be a whole number"
+    (( value >= min && value <= max )) || die "$name must be between $min and $max"
+}
+
+require_path_under_qa() {
+    local label=$1 path=$2 qa_root target
+    qa_root=$(realpath -m -- "$QA_DIR")
+    target=$(realpath -m -- "$path")
+    [[ "$target" == "$qa_root/"* ]] || die "$label must stay inside QA_DIR ($qa_root)"
+}
+
+validate_config() {
+    require_command realpath
+    validate_number QA_WIDTH "$QA_WIDTH" 320 7680
+    validate_number QA_HEIGHT "$QA_HEIGHT" 240 4320
+    validate_number QA_DISPLAY "$QA_DISPLAY" 1 999
+    validate_number QA_VNC_PORT "$QA_VNC_PORT" 1024 65535
+    validate_number QA_WEB_PORT "$QA_WEB_PORT" 1024 65535
+    [[ "$QA_VNC_PORT" != "$QA_WEB_PORT" ]] || die "QA_VNC_PORT and QA_WEB_PORT must differ"
+    [[ "$QA_FULLSCREEN" == 0 || "$QA_FULLSCREEN" == 1 ]] || die "QA_FULLSCREEN must be 0 or 1"
+    [[ "$QA_BUILD" == 0 || "$QA_BUILD" == 1 ]] || die "QA_BUILD must be 0 or 1"
+    [[ "$QA_SOFTWARE_RENDERING" == 0 || "$QA_SOFTWARE_RENDERING" == 1 ]] || die "QA_SOFTWARE_RENDERING must be 0 or 1"
+    [[ "$QA_TLS" == 0 || "$QA_TLS" == 1 ]] || die "QA_TLS must be 0 or 1"
+    [[ "$NOVNC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "QA_NOVNC_VERSION must be a release number such as 1.7.0"
+    [[ "$WEBSOCKIFY_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "QA_WEBSOCKIFY_VERSION must be a release number such as 0.13.0"
+    local qa_root
+    qa_root=$(realpath -m -- "$QA_DIR")
+    [[ "$qa_root" != / && "$qa_root" != "$PROJECT_DIR" && "$qa_root" != "$HOME" ]] || die "QA_DIR must be a dedicated subdirectory"
+    require_path_under_qa QA_DATABASE "$DATABASE_FILE"
+    require_path_under_qa QA_PASSWORD_FILE "$PASSWORD_FILE"
+    require_path_under_qa QA_TLS_CERT_FILE "$TLS_CERT_FILE"
+    require_path_under_qa QA_TLS_KEY_FILE "$TLS_KEY_FILE"
+}
+
+make_directories() {
+    mkdir -p "$DEPS_DIR" "$DOWNLOAD_DIR" "$RUN_DIR" "$LOG_DIR" "$DATA_DIR" "$CACHE_DIR" "$CONFIG_DIR" "$SCREENSHOT_DIR" "$(dirname -- "$PASSWORD_FILE")" "$(dirname -- "$DATABASE_FILE")"
+    chmod 700 "$QA_DIR" "$RUN_DIR" "$LOG_DIR" "$DATA_DIR" "$CONFIG_DIR" "$(dirname -- "$PASSWORD_FILE")"
+}
+
+detect_lan_address() {
+    local address
+    require_command ip
+    address=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')
+    if [[ -z "$address" ]]; then
+        address=$(ip -4 -o address show scope global 2>/dev/null | awk '{split($4, parts, "/"); print parts[1]; exit}')
+    fi
+    [[ -n "$address" ]] || die "could not detect a LAN IPv4 address; set QA_LISTEN_HOST in config/iphone-qa.env"
+    printf '%s\n' "$address"
+}
+
+resolve_network() {
+    if [[ -z "$QA_LISTEN_HOST" ]]; then
+        QA_LISTEN_HOST=$(detect_lan_address)
+    fi
+    if [[ -z "$QA_PUBLIC_HOST" ]]; then
+        if [[ "$QA_LISTEN_HOST" == "0.0.0.0" ]]; then
+            QA_PUBLIC_HOST=$(detect_lan_address)
+        else
+            QA_PUBLIC_HOST=$QA_LISTEN_HOST
+        fi
+    fi
+}
+
+detect_lan_subnet() {
+    local subnet
+    subnet=$(ip -4 route show scope link 2>/dev/null | awk -v host="$QA_LISTEN_HOST" '$0 ~ ("src " host "([[:space:]]|$)") {print $1; exit}')
+    [[ -n "$subnet" ]] || die "could not detect the subnet for $QA_LISTEN_HOST"
+    printf '%s\n' "$subnet"
+}
+
+configure_firewall() {
+    validate_config
+    resolve_network
+    require_command ip
+    require_command sudo
+    require_command ufw
+    [[ "$QA_LISTEN_HOST" != "0.0.0.0" ]] || die "set QA_LISTEN_HOST to this PC's exact LAN address before configuring UFW"
+    local subnet
+    subnet=$(detect_lan_subnet)
+    note "allowing TCP $QA_WEB_PORT from $subnet to $QA_LISTEN_HOST; VNC port $QA_VNC_PORT remains closed"
+    sudo ufw allow from "$subnet" to "$QA_LISTEN_HOST" port "$QA_WEB_PORT" proto tcp comment "Rec Tablet iPhone QA"
+}
+
+novnc_url() {
+    local scheme=http
+    [[ "$QA_TLS" == 1 ]] && scheme=https
+    printf '%s://%s:%s/vnc.html?autoconnect=1&resize=scale&path=websockify\n' "$scheme" "$QA_PUBLIC_HOST" "$QA_WEB_PORT"
+}
+
+ensure_tls_certificate() {
+    [[ "$QA_TLS" == 1 ]] || return 0
+    require_command openssl
+    local recorded_host= subject_alt_name
+    [[ -f "$TLS_HOST_FILE" ]] && read -r recorded_host < "$TLS_HOST_FILE"
+    if [[ "$recorded_host" == "$QA_PUBLIC_HOST" && -s "$TLS_CERT_FILE" && -s "$TLS_KEY_FILE" ]] &&
+        openssl x509 -checkend 86400 -noout -in "$TLS_CERT_FILE" >/dev/null 2>&1; then
+        return 0
+    fi
+    if [[ "$QA_PUBLIC_HOST" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        subject_alt_name="IP:$QA_PUBLIC_HOST,IP:127.0.0.1"
+    else
+        subject_alt_name="DNS:$QA_PUBLIC_HOST,IP:127.0.0.1"
+    fi
+    openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 825 \
+        -keyout "$TLS_KEY_FILE" -out "$TLS_CERT_FILE" \
+        -subj "/CN=Rec Tablet QA" -addext "subjectAltName=$subject_alt_name" >/dev/null 2>&1
+    printf '%s\n' "$QA_PUBLIC_HOST" > "$TLS_HOST_FILE"
+    chmod 600 "$TLS_KEY_FILE" "$TLS_HOST_FILE"
+    chmod 644 "$TLS_CERT_FILE"
+    note "generated a self-signed noVNC certificate for $QA_PUBLIC_HOST"
+}
+
+find_tigervnc_binary() {
+    local name=$1
+    if command -v "$name" >/dev/null 2>&1; then
+        command -v "$name"
+        return
+    fi
+    if [[ -x "$ARCH_ROOT/usr/bin/$name" ]]; then
+        printf '%s\n' "$ARCH_ROOT/usr/bin/$name"
+        return
+    fi
+    return 1
+}
+
+download_file() {
+    local url=$1 destination=$2
+    if [[ -s "$destination" ]]; then
+        return
+    fi
+    note "downloading ${url##*/}"
+    curl --fail --location --retry 3 --connect-timeout 15 --output "$destination.part" "$url"
+    mv "$destination.part" "$destination"
+}
+
+install_local_tigervnc() {
+    require_command pacman
+    require_command pacman-key
+    require_command bsdtar
+    require_command curl
+    local urls=() url package signature
+    mapfile -t urls < <(pacman -Sp --print-format '%l' tigervnc)
+    ((${#urls[@]} > 0)) || die "pacman could not resolve Arch's tigervnc package"
+    mkdir -p "$ARCH_ROOT"
+    for url in "${urls[@]}"; do
+        package=$DOWNLOAD_DIR/${url##*/}
+        signature=$package.sig
+        download_file "$url" "$package"
+        download_file "$url.sig" "$signature"
+        pacman-key --verify "$signature" "$package" >/dev/null || die "signature verification failed for ${package##*/}"
+        bsdtar -xf "$package" -C "$ARCH_ROOT"
+    done
+    [[ -x "$ARCH_ROOT/usr/bin/Xvnc" && -x "$ARCH_ROOT/usr/bin/vncpasswd" ]] || die "the local TigerVNC package is incomplete"
+    note "installed signed Arch TigerVNC packages under $ARCH_ROOT"
+}
+
+install_novnc() {
+    require_command curl
+    require_command tar
+    if [[ ! -f "$NOVNC_DIR/vnc.html" ]]; then
+        local archive=$DOWNLOAD_DIR/noVNC-v$NOVNC_VERSION.tar.gz
+        download_file "https://github.com/novnc/noVNC/archive/refs/tags/v$NOVNC_VERSION.tar.gz" "$archive"
+        rm -rf "$NOVNC_DIR"
+        tar -xzf "$archive" -C "$DEPS_DIR"
+        [[ -f "$NOVNC_DIR/vnc.html" ]] || die "noVNC archive did not contain vnc.html"
+    fi
+    # Force local browser scaling and remove the remote-resize choice. Xvnc
+    # also rejects SetDesktopSize, so the configured framebuffer stays fixed.
+    printf '{\n  "resize": "scale"\n}\n' > "$NOVNC_DIR/mandatory.json"
+}
+
+install_websockify() {
+    require_command python3
+    if [[ ! -x "$VENV_DIR/bin/websockify" ]]; then
+        python3 -m venv "$VENV_DIR"
+        "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check "websockify==$WEBSOCKIFY_VERSION"
+    fi
+}
+
+install_dependencies() {
+    make_directories
+    if ! find_tigervnc_binary Xvnc >/dev/null 2>&1; then
+        install_local_tigervnc
+    fi
+    install_novnc
+    install_websockify
+}
+
+write_password() {
+    local password=${QA_VNC_PASSWORD:-} confirmation=${QA_VNC_PASSWORD:-} vncpasswd_bin
+    vncpasswd_bin=$(find_tigervnc_binary vncpasswd) || die "run '$0 setup' before creating the VNC password"
+    if [[ -z "$password" ]]; then
+        [[ -t 0 ]] || die "VNC password is missing; run '$0 password' in a terminal"
+        read -r -s -p "New VNC password (6-8 characters): " password
+        printf '\n'
+        read -r -s -p "Confirm VNC password: " confirmation
+        printf '\n'
+    fi
+    [[ "$password" == "$confirmation" ]] || die "passwords did not match"
+    ((${#password} >= 6 && ${#password} <= 8)) || die "VNC password must contain 6-8 characters"
+    mkdir -p "$(dirname -- "$PASSWORD_FILE")"
+    if [[ -d "$ARCH_ROOT/usr/lib" ]]; then
+        printf '%s\n' "$password" | LD_LIBRARY_PATH="$ARCH_ROOT/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$vncpasswd_bin" -f > "$PASSWORD_FILE"
+    else
+        printf '%s\n' "$password" | "$vncpasswd_bin" -f > "$PASSWORD_FILE"
+    fi
+    chmod 600 "$PASSWORD_FILE"
+    unset password confirmation QA_VNC_PASSWORD
+    note "saved the VNC credential at $PASSWORD_FILE"
+}
+
+pid_is_live() {
+    local file=$1
+    [[ -s "$file" ]] || return 1
+    local pid
+    read -r pid < "$file"
+    [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null
+}
+
+owned_pid() {
+    local role=$1 pid=$2 command_line
+    [[ -r "/proc/$pid/cmdline" ]] || return 1
+    command_line=$(tr '\0' ' ' < "/proc/$pid/cmdline")
+    case "$role" in
+        xvnc) [[ "$command_line" == *Xvnc* && "$command_line" == *":$QA_DISPLAY"* ]] ;;
+        app) [[ "$command_line" == *"$APP_BINARY"* && "$command_line" == *"$DATABASE_FILE"* ]] ;;
+        websockify) [[ "$command_line" == *websockify* && "$command_line" == *"$QA_WEB_PORT"* && "$command_line" == *"$QA_VNC_PORT"* ]] ;;
+        *) return 1 ;;
+    esac
+}
+
+port_is_listening() {
+    local port=$1
+    ss -H -ltn "sport = :$port" 2>/dev/null | grep -q .
+}
+
+wait_for_pid() {
+    local name=$1 pid=$2 log_file=$3
+    local attempt
+    for attempt in {1..50}; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            printf '\n%s failed to start. Last log lines:\n' "$name" >&2
+            tail -n 30 "$log_file" >&2 || true
+            return 1
+        fi
+        sleep 0.1
+    done
+}
+
+wait_for_x() {
+    local pid=$1 attempt
+    for attempt in {1..100}; do
+        kill -0 "$pid" 2>/dev/null || return 1
+        if DISPLAY=":$QA_DISPLAY" xrandr --current >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 0.1
+    done
+    return 1
+}
+
+wait_for_window() {
+    local pid=$1 attempt
+    for attempt in {1..100}; do
+        kill -0 "$pid" 2>/dev/null || return 1
+        if DISPLAY=":$QA_DISPLAY" xprop -name "Rec Tablet" WM_NAME >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 0.1
+    done
+    return 1
+}
+
+write_session() {
+    {
+        printf 'QA_WIDTH=%q\n' "$QA_WIDTH"
+        printf 'QA_HEIGHT=%q\n' "$QA_HEIGHT"
+        printf 'QA_DISPLAY=%q\n' "$QA_DISPLAY"
+        printf 'QA_VNC_PORT=%q\n' "$QA_VNC_PORT"
+        printf 'QA_WEB_PORT=%q\n' "$QA_WEB_PORT"
+        printf 'QA_LISTEN_HOST=%q\n' "$QA_LISTEN_HOST"
+        printf 'QA_PUBLIC_HOST=%q\n' "$QA_PUBLIC_HOST"
+        printf 'QA_FYNE_SCALE=%q\n' "$QA_FYNE_SCALE"
+        printf 'QA_FULLSCREEN=%q\n' "$QA_FULLSCREEN"
+        printf 'QA_SOFTWARE_RENDERING=%q\n' "$QA_SOFTWARE_RENDERING"
+        printf 'QA_TLS=%q\n' "$QA_TLS"
+        printf 'QA_DATABASE=%q\n' "$DATABASE_FILE"
+        printf 'QA_PASSWORD_FILE=%q\n' "$PASSWORD_FILE"
+    } > "$SESSION_FILE"
+    chmod 600 "$SESSION_FILE"
+}
+
+load_session() {
+    if [[ -f "$SESSION_FILE" ]]; then
+        # shellcheck disable=SC1090
+        source "$SESSION_FILE"
+        DATABASE_FILE=${QA_DATABASE:-$DATABASE_FILE}
+        PASSWORD_FILE=${QA_PASSWORD_FILE:-$PASSWORD_FILE}
+    fi
+}
+
+stop_owned_process() {
+    local role=$1 file=$2
+    [[ -s "$file" ]] || return 0
+    local pid attempt
+    read -r pid < "$file"
+    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+        if ! owned_pid "$role" "$pid"; then
+            note "left PID $pid running because it is not the recorded $role command"
+            return 1
+        fi
+        kill -TERM "$pid"
+        for attempt in {1..50}; do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 0.1
+        done
+        if kill -0 "$pid" 2>/dev/null; then
+            kill -KILL "$pid"
+        fi
+        note "stopped $role (PID $pid)"
+    fi
+    rm -f "$file"
+}
+
+stop_processes() {
+    local failed=0
+    stop_owned_process app "$APP_PID_FILE" || failed=1
+    stop_owned_process websockify "$WEBSOCKIFY_PID_FILE" || failed=1
+    stop_owned_process xvnc "$XVNC_PID_FILE" || failed=1
+    return "$failed"
+}
+
+unit_is_active() {
+    systemctl --user is-active --quiet "$SYSTEMD_UNIT" 2>/dev/null
+}
+
+unit_is_owned() {
+    local command_line
+    command_line=$(systemctl --user show --property=ExecStart --value "$SYSTEMD_UNIT" 2>/dev/null || true)
+    [[ "$command_line" == *"$SCRIPT_DIR/iphone-qa"* && "$command_line" == *supervise* ]]
+}
+
+stop_session() {
+    load_session
+    local failed=0 attempt
+    if unit_is_active; then
+        unit_is_owned || die "systemd unit $SYSTEMD_UNIT was not started by this workflow"
+        systemctl --user stop "$SYSTEMD_UNIT"
+        for attempt in {1..50}; do
+            unit_is_active || break
+            sleep 0.1
+        done
+        unit_is_active && die "systemd unit $SYSTEMD_UNIT did not stop"
+    fi
+    stop_processes || failed=1
+    rm -f "$READY_FILE" "$RESTART_REQUEST_FILE"
+    (( failed == 0 )) || die "one or more recorded PIDs were not owned by this workflow"
+}
+
+clean_failed_start() {
+    stop_processes >/dev/null 2>&1 || true
+    rm -f "$READY_FILE" "$RESTART_REQUEST_FILE"
+}
+
+start_app_process() {
+    local app_arguments=(--database "$DATABASE_FILE")
+    if [[ "$QA_FULLSCREEN" == 1 ]]; then
+        app_arguments+=(--fullscreen)
+    fi
+    local rendering_environment=()
+    if [[ "$QA_SOFTWARE_RENDERING" == 1 ]]; then
+        rendering_environment+=(LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe)
+    fi
+    setsid env -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
+        DISPLAY=":$QA_DISPLAY" FYNE_SCALE="$QA_FYNE_SCALE" \
+        XDG_DATA_HOME="$DATA_DIR" XDG_CACHE_HOME="$CACHE_DIR" XDG_CONFIG_HOME="$CONFIG_DIR" \
+        "${rendering_environment[@]}" "$APP_BINARY" "${app_arguments[@]}" \
+        >"$APP_LOG" 2>&1 </dev/null &
+    app_pid=$!
+    printf '%s\n' "$app_pid" > "$APP_PID_FILE"
+    wait_for_window "$app_pid" || die "Rec Tablet did not open a window; see $APP_LOG"
+}
+
+supervise_session() {
+    load_session
+    validate_config
+    require_command xrandr
+    require_command xprop
+    require_command ss
+    make_directories
+    : > "$XVNC_LOG"
+    : > "$APP_LOG"
+    : > "$WEBSOCKIFY_LOG"
+    rm -f "$READY_FILE"
+    trap clean_failed_start EXIT INT TERM
+
+    local xvnc_bin vnc_library_path
+    xvnc_bin=$(find_tigervnc_binary Xvnc) || die "TigerVNC is not installed; run '$0 setup'"
+    vnc_library_path=${LD_LIBRARY_PATH:-}
+    if [[ "$xvnc_bin" == "$ARCH_ROOT/"* ]]; then
+        vnc_library_path="$ARCH_ROOT/usr/lib${vnc_library_path:+:$vnc_library_path}"
+    fi
+    setsid env LD_LIBRARY_PATH="$vnc_library_path" "$xvnc_bin" ":$QA_DISPLAY" \
+        -geometry "${QA_WIDTH}x${QA_HEIGHT}" -depth 24 -rfbport "$QA_VNC_PORT" \
+        -localhost=1 -SecurityTypes=VncAuth -PasswordFile="$PASSWORD_FILE" \
+        -AcceptSetDesktopSize=0 -AlwaysShared=1 -DisconnectClients=0 -rendernode "" \
+        >"$XVNC_LOG" 2>&1 </dev/null &
+    printf '%s\n' "$!" > "$XVNC_PID_FILE"
+    wait_for_x "$!" || die "Xvnc did not make display :$QA_DISPLAY ready; see $XVNC_LOG"
+
+    local app_pid
+    start_app_process
+
+    local tls_arguments=()
+    if [[ "$QA_TLS" == 1 ]]; then
+        tls_arguments+=(--cert "$TLS_CERT_FILE" --key "$TLS_KEY_FILE" --ssl-only)
+    fi
+    setsid "$VENV_DIR/bin/websockify" --web "$NOVNC_DIR" --heartbeat 30 "${tls_arguments[@]}" \
+        "$QA_LISTEN_HOST:$QA_WEB_PORT" "127.0.0.1:$QA_VNC_PORT" \
+        >"$WEBSOCKIFY_LOG" 2>&1 </dev/null &
+    printf '%s\n' "$!" > "$WEBSOCKIFY_PID_FILE"
+    wait_for_pid websockify "$!" "$WEBSOCKIFY_LOG" || die "websockify failed to start"
+    port_is_listening "$QA_WEB_PORT" || die "noVNC did not listen on port $QA_WEB_PORT; see $WEBSOCKIFY_LOG"
+    local curl_tls=()
+    [[ "$QA_TLS" == 1 ]] && curl_tls+=(--insecure)
+    curl "${curl_tls[@]}" --fail --silent --show-error --max-time 5 "$(novnc_url)" >/dev/null || die "noVNC did not serve vnc.html"
+
+    touch "$READY_FILE"
+    note "QA supervisor is ready"
+    local xvnc_pid websockify_pid exited_pid exit_status
+    xvnc_pid=$(<"$XVNC_PID_FILE")
+    websockify_pid=$(<"$WEBSOCKIFY_PID_FILE")
+    while true; do
+        exit_status=0
+        wait -n -p exited_pid "$xvnc_pid" "$app_pid" "$websockify_pid" || exit_status=$?
+        if [[ "${exited_pid:-}" == "$app_pid" && -f "$RESTART_REQUEST_FILE" ]]; then
+            rm -f "$RESTART_REQUEST_FILE"
+            : > "$APP_LOG"
+            start_app_process
+            note "restarted Rec Tablet (PID $app_pid)"
+            continue
+        fi
+        die "QA component PID ${exited_pid:-unknown} exited with status $exit_status; inspect '$0 logs'"
+    done
+}
+
+build_replacement_app() {
+    require_command go
+    mkdir -p "$(dirname -- "$APP_BINARY")"
+    local replacement="$APP_BINARY.next.$$"
+    rm -f "$replacement"
+    if ! (cd "$PROJECT_DIR" && go build -trimpath -o "$replacement" ./cmd/rec-tablet); then
+        rm -f "$replacement"
+        return 1
+    fi
+    chmod 755 "$replacement"
+    mv -f "$replacement" "$APP_BINARY"
+}
+
+restart_app() {
+    load_session
+    validate_config
+    unit_is_active && unit_is_owned || die "start the QA session before restarting the app"
+    pid_is_live "$APP_PID_FILE" || die "the QA app is not running; inspect '$0 logs'"
+    local old_pid new_pid attempt
+    read -r old_pid < "$APP_PID_FILE"
+    owned_pid app "$old_pid" || die "the recorded app PID does not belong to this QA session"
+
+    note "building a replacement app"
+    build_replacement_app || die "the new build failed; the current QA app is still running"
+    rm -f "$RESTART_REQUEST_FILE"
+    touch "$RESTART_REQUEST_FILE"
+    kill -TERM "$old_pid"
+
+    for attempt in {1..150}; do
+        if ! unit_is_active; then
+            tail -n 40 "$LOG_DIR/supervisor.log" >&2 || true
+            die "the QA supervisor stopped while restarting the app"
+        fi
+        if [[ ! -f "$RESTART_REQUEST_FILE" && -s "$APP_PID_FILE" ]]; then
+            read -r new_pid < "$APP_PID_FILE"
+            if [[ "$new_pid" != "$old_pid" ]] && kill -0 "$new_pid" 2>/dev/null && owned_pid app "$new_pid"; then
+                wait_for_window "$new_pid" || die "the replacement app did not open; inspect '$0 logs'"
+                note "app restarted without restarting the iPhone connection (PID $new_pid)"
+                return 0
+            fi
+        fi
+        sleep 0.1
+    done
+    die "timed out waiting for the replacement app; inspect '$0 logs'"
+}
+
+watch_sources() {
+    require_command inotifywait
+    if ! unit_is_active; then
+        start_session
+    fi
+    note "watching cmd, internal, go.mod, and go.sum; press Ctrl-C to stop watching"
+    inotifywait --monitor --quiet --recursive \
+        --event close_write,moved_to,create,delete --format '%w%f' \
+        "$PROJECT_DIR/cmd" "$PROJECT_DIR/internal" "$PROJECT_DIR/go.mod" "$PROJECT_DIR/go.sum" |
+        while IFS= read -r changed_file; do
+            case "$changed_file" in
+                *.go|*.json|*.png|*.svg|*.ttf|*/go.mod|*/go.sum) ;;
+                *) continue ;;
+            esac
+            while IFS= read -r -t 0.3 newer_file; do
+                changed_file=$newer_file
+            done
+            note "change detected: ${changed_file#"$PROJECT_DIR/"}"
+            if ! "$0" restart; then
+                note "restart failed; fix the build error and save again"
+            fi
+        done
+}
+
+start_session() {
+    validate_config
+    require_command systemctl
+    require_command systemd-run
+    require_command ss
+    make_directories
+    resolve_network
+    install_dependencies
+    [[ -s "$PASSWORD_FILE" ]] || write_password
+    ensure_tls_certificate
+
+    if unit_is_active || pid_is_live "$XVNC_PID_FILE" || pid_is_live "$APP_PID_FILE" || pid_is_live "$WEBSOCKIFY_PID_FILE"; then
+        die "a QA session is already running; use '$0 status'"
+    fi
+    port_is_listening "$QA_VNC_PORT" && die "VNC port $QA_VNC_PORT is already occupied"
+    port_is_listening "$QA_WEB_PORT" && die "noVNC port $QA_WEB_PORT is already occupied"
+    [[ ! -e "/tmp/.X11-unix/X$QA_DISPLAY" && ! -e "/tmp/.X$QA_DISPLAY-lock" ]] || die "X display :$QA_DISPLAY is already occupied"
+
+    if [[ "$QA_BUILD" == 1 ]]; then
+        note "building the native Fyne app"
+        make -C "$PROJECT_DIR" build
+    fi
+    [[ -x "$APP_BINARY" ]] || die "missing app binary; run 'make build' or set QA_BUILD=1"
+
+    write_session
+    rm -f "$READY_FILE"
+    : > "$LOG_DIR/supervisor.log"
+    systemd-run --user --quiet --collect --unit="$SYSTEMD_UNIT" \
+        --property=Type=simple --property=Restart=no --property=KillMode=control-group \
+        --property="StandardOutput=append:$LOG_DIR/supervisor.log" \
+        --property="StandardError=append:$LOG_DIR/supervisor.log" \
+        --working-directory="$PROJECT_DIR" \
+        --setenv="REC_TABLET_QA_CONFIG=$CONFIG_FILE" --setenv="QA_DIR=$QA_DIR" \
+        "$SCRIPT_DIR/iphone-qa" supervise
+
+    local attempt
+    for attempt in {1..200}; do
+        if [[ -f "$READY_FILE" ]]; then
+            break
+        fi
+        if ! unit_is_active; then
+            tail -n 40 "$LOG_DIR/supervisor.log" >&2 || true
+            die "QA supervisor exited during startup"
+        fi
+        sleep 0.1
+    done
+    if [[ ! -f "$READY_FILE" ]]; then
+        systemctl --user stop "$SYSTEMD_UNIT" >/dev/null 2>&1 || true
+        die "QA supervisor did not become ready; inspect '$0 logs'"
+    fi
+
+    note "QA session started"
+    printf 'Open this exact URL in iPhone Safari:\n%s\n' "$(novnc_url)"
+    printf 'Use the VNC password created by %s password.\n' "$0"
+    printf 'Database: %s\nLogs: %s\n' "$DATABASE_FILE" "$LOG_DIR"
+    if systemctl is-active --quiet ufw 2>/dev/null; then
+        printf 'UFW is active. Run %s firewall once if this LAN rule is not installed.\n' "$0"
+    fi
+}
+
+process_status() {
+    local role=$1 file=$2
+    if pid_is_live "$file"; then
+        local pid
+        read -r pid < "$file"
+        if owned_pid "$role" "$pid"; then
+            printf '  %-11s running (PID %s)\n' "$role" "$pid"
+            return 0
+        fi
+        printf '  %-11s PID %s belongs to another command\n' "$role" "$pid"
+        return 1
+    fi
+    printf '  %-11s stopped\n' "$role"
+    return 1
+}
+
+status_session() {
+    load_session
+    resolve_network
+    local failed=0
+    printf 'Rec Tablet iPhone QA status:\n'
+    if unit_is_active && unit_is_owned; then
+        printf '  %-11s running (%s)\n' supervisor "$SYSTEMD_UNIT"
+    else
+        printf '  %-11s stopped\n' supervisor
+        failed=1
+    fi
+    process_status xvnc "$XVNC_PID_FILE" || failed=1
+    process_status app "$APP_PID_FILE" || failed=1
+    process_status websockify "$WEBSOCKIFY_PID_FILE" || failed=1
+    if (( failed == 0 )); then
+        printf '  resolution  %s x %s on display :%s\n' "$QA_WIDTH" "$QA_HEIGHT" "$QA_DISPLAY"
+        printf '  database    %s\n' "$DATABASE_FILE"
+        printf '  Safari URL  %s\n' "$(novnc_url)"
+        return 0
+    fi
+    return 1
+}
+
+verify_session() {
+    status_session || die "start the QA session before verifying it"
+    require_command xrandr
+    local dimensions
+    dimensions=$(DISPLAY=":$QA_DISPLAY" xrandr --current | awk '/current/ {gsub(/,/, ""); print $8 "x" $10; exit}')
+    [[ "$dimensions" == "${QA_WIDTH}x${QA_HEIGHT}" ]] || die "display is $dimensions instead of ${QA_WIDTH}x${QA_HEIGHT}"
+    local curl_tls=()
+    [[ "$QA_TLS" == 1 ]] && curl_tls+=(--insecure)
+    curl "${curl_tls[@]}" --fail --silent --show-error --max-time 5 "$(novnc_url)" | grep -q 'noVNC' || die "noVNC browser page check failed"
+    DISPLAY=":$QA_DISPLAY" xprop -name "Rec Tablet" WM_NAME 2>/dev/null | grep -q 'Rec Tablet' || die "Rec Tablet window check failed"
+    if command -v import >/dev/null 2>&1; then
+        local screenshot=$SCREENSHOT_DIR/latest.png
+        DISPLAY=":$QA_DISPLAY" import -window root "$screenshot"
+        note "captured the virtual display at $screenshot"
+    fi
+    note "verified Xvnc resolution, native app window, and noVNC browser page"
+    note "Safari VNC authentication and touch input still require the iPhone check"
+}
+
+show_logs() {
+    make_directories
+    for log_file in "$LOG_DIR/supervisor.log" "$XVNC_LOG" "$APP_LOG" "$WEBSOCKIFY_LOG"; do
+        printf '\n-- %s --\n' "$log_file"
+        tail -n 40 "$log_file" 2>/dev/null || printf '(no log yet)\n'
+    done
+}
+
+usage() {
+    cat <<EOF
+Usage: ${0##*/} COMMAND
+
+Commands:
+  setup      Install ignored local dependencies and create a VNC password
+  password   Create or replace the required VNC password
+  firewall   Add a UFW rule limited to the detected LAN subnet and noVNC port
+  start      Build and launch Xvnc, Rec Tablet, and noVNC
+  restart    Rebuild and restart only Rec Tablet; keep the iPhone connection
+  watch      Restart Rec Tablet whenever relevant source files change
+  stop       Stop only the processes recorded by this QA workflow
+  status     Show process state and the exact Safari URL
+  verify     Verify resolution, app window, noVNC page, and capture a screenshot
+  logs       Show the latest Xvnc, app, and noVNC logs
+
+Configuration: $CONFIG_FILE
+See config/iphone-qa.env.example and docs/iphone-qa.md.
+EOF
+}
+
+command=${1:-}
+case "$command" in
+    setup)
+        validate_config
+        install_dependencies
+        [[ -s "$PASSWORD_FILE" ]] || write_password
+        note "setup complete"
+        ;;
+    password)
+        validate_config
+        make_directories
+        unit_is_active && die "stop the QA session before changing its VNC password"
+        if ! find_tigervnc_binary vncpasswd >/dev/null 2>&1; then
+            install_local_tigervnc
+        fi
+        write_password
+        ;;
+    firewall) configure_firewall ;;
+    start) start_session ;;
+    restart) restart_app ;;
+    watch) watch_sources ;;
+    supervise) supervise_session ;;
+    stop) stop_session ;;
+    status) status_session ;;
+    verify) verify_session ;;
+    logs) show_logs ;;
+    help|-h|--help) usage ;;
+    *) usage; exit 2 ;;
+esac

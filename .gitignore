@@ -3,6 +3,8 @@ logs
 *.log
 dist
 *.local
+.qa/
+/config/iphone-qa.env
 
 # Editor directories and files
 .vscode/*
