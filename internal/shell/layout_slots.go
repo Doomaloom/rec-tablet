@@ -13,6 +13,10 @@ func homeRailSlot(_, height float32) (float32, float32, float32, float32) {
 }
 
 func splitHomeRailSlot(_, height float32) (float32, float32, float32, float32) {
+	return 12, 26 + (height-40)/2, 76, (height - 40) / 2
+}
+
+func splitBackRailSlot(_, height float32) (float32, float32, float32, float32) {
 	return 12, 14, 76, (height - 40) / 2
 }
 
@@ -22,10 +26,6 @@ func previousPageSlot(width, height float32) (float32, float32, float32, float32
 
 func nextPageSlot(width, height float32) (float32, float32, float32, float32) {
 	return width - 88, 26 + (height-40)/2, 76, (height - 40) / 2
-}
-
-func backRailSlot(_, height float32) (float32, float32, float32, float32) {
-	return 12, 26 + (height-40)/2, 76, (height - 40) / 2
 }
 
 func headerActionSlot(width, _ float32, actionWidth float32) (float32, float32, float32, float32) {

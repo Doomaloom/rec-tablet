@@ -102,10 +102,10 @@ func TestComposeScreenSharesLeftRailBetweenHomeAndBack(t *testing.T) {
 
 	homeX, homeY, homeWidth, homeHeight := componentNamed(withBackComposition.Components, "home-rail").Position(800, 480)
 	backX, backY, backWidth, backHeight := componentNamed(withBackComposition.Components, "back-button").Position(800, 480)
-	if homeX != 12 || homeY != 14 || homeWidth != 76 || homeHeight != 220 {
+	if homeX != 12 || homeY != 246 || homeWidth != 76 || homeHeight != 220 {
 		t.Fatalf("split Home rail slot = %v, %v, %v, %v", homeX, homeY, homeWidth, homeHeight)
 	}
-	if backX != 12 || backY != 246 || backWidth != 76 || backHeight != 220 {
+	if backX != 12 || backY != 14 || backWidth != 76 || backHeight != 220 {
 		t.Fatalf("split Back rail slot = %v, %v, %v, %v", backX, backY, backWidth, backHeight)
 	}
 }

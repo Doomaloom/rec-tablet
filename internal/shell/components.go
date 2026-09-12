@@ -143,7 +143,7 @@ func newBackButtonComponent(builder *componentBuilder) {
 	backButton.Fill = fill
 	backButton.Ink = ink
 	backButton.FontSize = fontSize
-	builder.addComponent("back-button", backButton, backRailSlot)
+	builder.addComponent("back-button", backButton, splitBackRailSlot)
 }
 
 func newHeaderComponents(builder *componentBuilder) {
