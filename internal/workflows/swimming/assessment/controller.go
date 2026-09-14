@@ -13,10 +13,14 @@ import (
 
 type Controller struct {
 	*navigation.Controller
-	Store          Repository
-	timedSelection []string
-	timedHeat      *timedHeatState
-	timedLapsInput string
+	Store             Repository
+	timedSelection    []string
+	timedHeat         *timedHeatState
+	timedLapsInput    string
+	multiSelection    []string
+	multiAttempts     []domain.MultiAttempt
+	multiMode         bool
+	multiSubskillPage int
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {
@@ -103,12 +107,13 @@ func (c *Controller) Build() (navigation.State, error) {
 				rows = append(rows, row)
 			}
 			if len(c.timedSelection) > 0 {
-				state.HomeRailAction = &shell.RailAction{Label: "✓", Run: c.ConfirmTimedSelection, Fill: ui.Green, Ink: ui.White, FontSize: 34}
-				state.BackRailAction = &shell.RailAction{Label: "✕", Run: c.DiscardTimedSelection, Fill: ui.Red, Ink: ui.White, FontSize: 34}
+				state.HomeRailAction = saveRailAction(c.ConfirmTimedSelection)
+				state.BackRailAction = discardRailAction(c.DiscardTimedSelection)
 			}
 			state.Empty = "No enrolled swimmers are assigned to this skill's level."
 			break
 		}
+		state.HeaderSwitch = c.skillModeSwitch(false)
 		for _, p := range roster {
 			if !p.Active || p.Level != f.Level {
 				continue
@@ -132,6 +137,52 @@ func (c *Controller) Build() (navigation.State, error) {
 		}
 		state.Empty = "No enrolled swimmers are assigned to this skill's level."
 
+	case navigation.MultiSelection:
+		if f.Version != "" {
+			version = f.Version
+		}
+		skill, e := s.Skill(version, f.Skill)
+		if e != nil {
+			return state, e
+		}
+		state.Title = "Choose Students"
+		state.Subtitle = skill.Name
+		state.Context += "\n" + skill.Name
+		state.HeaderSwitch = c.skillModeSwitch(true)
+		for _, p := range roster {
+			if !p.Active || p.Level != f.Level {
+				continue
+			}
+			progress, e := s.Progress(p.ID, skill.ID, version)
+			if e != nil {
+				return state, e
+			}
+			selected := containsString(c.multiSelection, p.ID)
+			row := navigation.Row{ID: p.ID, Label: p.Name, Detail: "", Selected: selected, ProgressSegments: min(3, max(0, progress.Successes)), Data: navigation.Parameters{Skill: skill.ID, Level: p.Level, Version: version}}
+			if selected {
+				row.Detail = "Selected"
+			}
+			if progress.Successes > 0 {
+				person, skillID, curriculumVersion := p.ID, skill.ID, version
+				row.OnHold = func() { _ = c.RemoveLatestSuccess(person, skillID, curriculumVersion) }
+				row.HoldDuration = 2 * time.Second
+			}
+			rows = append(rows, row)
+		}
+		if len(c.multiSelection) > 0 {
+			state.HomeRailAction = saveRailAction(c.ConfirmMultiSelection)
+		}
+		state.BackRailAction = discardRailAction(c.DiscardMultiSelection)
+		state.Empty = "No enrolled swimmers are assigned to this skill's level."
+
+	case navigation.MultiAssessment:
+		multiState, e := c.buildMultiAssessmentState(course, f)
+		if e != nil {
+			return state, e
+		}
+		state = multiState
+		rows = append(rows, multiState.Rows...)
+
 	case navigation.TimedLaps:
 		if f.Version != "" {
 			version = f.Version
@@ -148,8 +199,8 @@ func (c *Controller) Build() (navigation.State, error) {
 		state.Subtitle = skill.Name
 		state.Context += "\n" + benchmark.Description
 		state.Progress = c.timedHeatInput()
-		state.HomeRailAction = &shell.RailAction{Label: "✓", Run: c.ConfirmTimedLaps, Fill: ui.Green, Ink: ui.White, FontSize: 34}
-		state.BackRailAction = &shell.RailAction{Label: "✕", Run: c.DiscardTimedSelection, Fill: ui.Red, Ink: ui.White, FontSize: 34}
+		state.HomeRailAction = saveRailAction(c.ConfirmTimedLaps)
+		state.BackRailAction = discardRailAction(c.DiscardTimedSelection)
 
 	case navigation.TimedHeat:
 		if c.timedHeat == nil {
@@ -172,8 +223,8 @@ func (c *Controller) Build() (navigation.State, error) {
 			{Label: startLabel, Run: c.ToggleTimedTimer, Fill: ui.Green, Ink: ui.White, FontSize: 18},
 			{Label: "Reset", Run: c.ResetTimedHeat, Fill: ui.Rail, Ink: ui.Blue, FontSize: 18},
 		}
-		state.HomeRailAction = &shell.RailAction{Label: "✓", Run: c.SaveTimedHeat, Fill: ui.Green, Ink: ui.White, FontSize: 34}
-		state.BackRailAction = &shell.RailAction{Label: "✕", Run: c.DiscardTimedHeat, Fill: ui.Red, Ink: ui.White, FontSize: 34}
+		state.HomeRailAction = saveRailAction(c.SaveTimedHeat)
+		state.BackRailAction = discardRailAction(c.DiscardTimedHeat)
 		state.Progress = benchmark.Description
 		for i := range c.timedHeat.Participants {
 			participant := &c.timedHeat.Participants[i]
@@ -267,8 +318,8 @@ func (c *Controller) Build() (navigation.State, error) {
 			state.PageSize = 1
 			state.Progress = fmt.Sprintf("%d/%d assessed · %s", len(answers), len(rows), lesson.Date)
 		} else {
-			state.HomeRailAction = &shell.RailAction{Label: "✓", Run: c.SaveAttempt, Fill: ui.Green, Ink: ui.White, FontSize: 34}
-			state.BackRailAction = &shell.RailAction{Label: "✕", Run: c.DiscardAttempt, Fill: ui.Red, Ink: ui.White, FontSize: 34}
+			state.HomeRailAction = saveRailAction(c.SaveAttempt)
+			state.BackRailAction = discardRailAction(c.DiscardAttempt)
 			state.PageSize = 3
 			state.Progress = fmt.Sprintf("%d/%d complete · %s", successfulAnswers(answers), len(rows), lesson.Date)
 		}
@@ -605,6 +656,15 @@ func (c *Controller) Select(id string) error {
 			n.Level = f.Level
 			n.Version = version
 		})
+
+	case navigation.MultiSelection:
+		if containsString(c.multiSelection, id) {
+			c.multiSelection = removeString(c.multiSelection, id)
+		} else {
+			c.multiSelection = append(c.multiSelection, id)
+		}
+		c.Saved("")
+		return nil
 
 	case navigation.Attempts:
 		if e := c.Store.EditAttempt(id); e != nil {

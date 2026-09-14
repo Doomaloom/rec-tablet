@@ -87,6 +87,9 @@ func newHomeRailComponent(builder *componentBuilder) {
 	homeButton.FontSize = fontSize
 	if action == nil {
 		homeButton.Icon = homeIcon
+	} else if action.Icon != nil {
+		homeButton.Icon = action.Icon
+		homeButton.IconOnly = true
 	}
 	homePosition := homeRailSlot
 	if builder.state.CanBack || builder.state.BackRailAction != nil {
@@ -143,6 +146,10 @@ func newBackButtonComponent(builder *componentBuilder) {
 	backButton.Fill = fill
 	backButton.Ink = ink
 	backButton.FontSize = fontSize
+	if action != nil && action.Icon != nil {
+		backButton.Icon = action.Icon
+		backButton.IconOnly = true
+	}
 	builder.addComponent("back-button", backButton, splitBackRailSlot)
 }
 
@@ -182,6 +189,27 @@ func newHeaderComponents(builder *componentBuilder) {
 			return headerActionSlot(width, height, actionWidth)
 		}
 		builder.addComponent("header-action", headerAction, position)
+	}
+
+	if len(state.HeaderSwitch) > 0 {
+		const switchWidth float32 = 280
+		const optionGap float32 = 6
+		optionWidth := (switchWidth - optionGap) / 2
+		for i, option := range state.HeaderSwitch {
+			index, option := i, option
+			button := builder.newTouchButton(fmt.Sprintf("header-switch-%d", i), option.Label, func() { _ = option.Run() })
+			button.FontSize = 18
+			button.Fill, button.Ink = ui.White, ui.Navy
+			if option.Selected {
+				button.Fill, button.Ink = ui.Blue, ui.White
+				button.Selected = true
+			}
+			position := func(width, _ float32) (float32, float32, float32, float32) {
+				return (width-switchWidth)/2 + float32(index)*(optionWidth+optionGap), 14, optionWidth, 58
+			}
+			builder.addComponent(fmt.Sprintf("header-switch-%d", i), button, position)
+		}
+		return
 	}
 
 	left := float32(100)
@@ -231,6 +259,9 @@ func newBodyComponent(builder *componentBuilder) {
 
 func newFooterComponents(builder *componentBuilder) {
 	state := builder.state
+	if state.HideFooter {
+		return
+	}
 	progressText := state.Progress
 	if progressText != "" {
 		progressText += "\n"

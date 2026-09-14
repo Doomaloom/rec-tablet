@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/test"
 	"rectablet/internal/shared/ui"
 	"testing"
@@ -107,6 +108,56 @@ func TestComposeScreenSharesLeftRailBetweenHomeAndBack(t *testing.T) {
 	}
 	if backX != 12 || backY != 14 || backWidth != 76 || backHeight != 220 {
 		t.Fatalf("split Back rail slot = %v, %v, %v, %v", backX, backY, backWidth, backHeight)
+	}
+}
+
+func TestComposeScreenRendersHeaderModeSwitch(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("composition")
+	defer window.Close()
+	presenter := &compositionPresenter{state: State{
+		Title: "Choose a Swimmer",
+		HeaderSwitch: []HeaderSwitchOption{
+			{Label: "Single", Selected: true},
+			{Label: "Multi"},
+		},
+	}}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, presenter.state)
+	if !hasComponent(composition.Components, "header-switch-0") || !hasComponent(composition.Components, "header-switch-1") {
+		t.Fatal("mode switch buttons were not composed")
+	}
+	if hasComponent(composition.Components, "screen-title") {
+		t.Fatal("mode switch should replace the swimmer title")
+	}
+	if composition.Buttons["header-switch-0"].Fill != ui.Blue || composition.Buttons["header-switch-1"].Fill != ui.White {
+		t.Fatal("selected mode switch option styling is incorrect")
+	}
+}
+
+func TestComposeScreenSupportsIconRailActionsAndHiddenFooter(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("composition")
+	defer window.Close()
+	icon := fyne.NewStaticResource("action.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><path d="M1 5l3 3 5-7" fill="none" stroke="#fff"/></svg>`))
+	presenter := &compositionPresenter{state: State{
+		Title:          "Multi Mark",
+		CanBack:        true,
+		HideFooter:     true,
+		HomeRailAction: &RailAction{Label: "Save", Icon: icon},
+		BackRailAction: &RailAction{Label: "Discard", Icon: icon},
+	}}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, presenter.state)
+	if !composition.Buttons["home"].IconOnly || !composition.Buttons["back"].IconOnly {
+		t.Fatal("icon rail actions should hide their fallback text")
+	}
+	if hasComponent(composition.Components, "progress-footer") || hasComponent(composition.Components, "device-status") {
+		t.Fatal("hidden matrix footer was still composed")
 	}
 }
 

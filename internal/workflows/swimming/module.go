@@ -27,6 +27,8 @@ func New(s *repository.Store) *Controller {
 	assessmentFeature := assessment.New(nav, s)
 	nav.Features[navigation.Skills] = assessmentFeature
 	nav.Features[navigation.SkillSwimmers] = assessmentFeature
+	nav.Features[navigation.MultiSelection] = assessmentFeature
+	nav.Features[navigation.MultiAssessment] = assessmentFeature
 	nav.Features[navigation.TimedLaps] = assessmentFeature
 	nav.Features[navigation.TimedHeat] = assessmentFeature
 	nav.Features[navigation.Attempts] = assessmentFeature

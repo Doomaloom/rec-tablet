@@ -20,7 +20,7 @@ type Surface struct {
 }
 type Item struct {
 	ID, Label, Detail, Status    string
-	Disabled                     bool
+	Disabled, Selected           bool
 	Data                         any
 	Fill                         color.Color
 	ProgressSegments             int
@@ -35,6 +35,7 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 		b := surface.Button("row:"+row.ID, row.Label, func() { selectRow(row.ID) })
 		b.Detail = row.Detail
 		b.Disabled = row.Disabled
+		b.Selected = row.Selected
 		b.OnHold = row.OnHold
 		b.HoldDuration = row.HoldDuration
 		b.ProgressSegments = row.ProgressSegments

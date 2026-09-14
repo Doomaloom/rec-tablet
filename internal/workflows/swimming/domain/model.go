@@ -13,6 +13,14 @@ type Attempt struct {
 	SubmittedAt                                                             *string
 	Success, Editing                                                        bool
 }
+
+// MultiAttempt describes one attempt opened for a multi-student assessment.
+// OriginalAnswers is used to restore an existing unfinished draft on discard.
+type MultiAttempt struct {
+	AttemptID, PersonID, Name string
+	OriginalAnswers           map[string]string
+	Created                   bool
+}
 type Lesson struct{ ID, Date string }
 type Progress struct {
 	Assessed, Successes int

@@ -2,6 +2,7 @@
 package shell
 
 import (
+	"fyne.io/fyne/v2"
 	"image/color"
 	"rectablet/internal/shared/ui"
 )
@@ -16,6 +17,7 @@ type RailAction struct {
 	Fill     color.Color
 	Ink      color.Color
 	FontSize float32
+	Icon     fyne.Resource
 }
 
 // HeaderAction adds a feature-owned button beside the screen title.
@@ -26,6 +28,14 @@ type HeaderAction struct {
 	Ink      color.Color
 	FontSize float32
 }
+
+// HeaderSwitchOption is one choice in a compact header mode switch.
+type HeaderSwitchOption struct {
+	Label    string
+	Selected bool
+	Run      func() error
+}
+
 type State struct {
 	// OnLeave releases feature resources when the route changes or the view closes.
 	OnLeave                                                                               func()
@@ -40,7 +50,9 @@ type State struct {
 	HoldTitle                                                                             func()
 	HomeRailAction, BackRailAction                                                        *RailAction
 	HeaderActions                                                                         []HeaderAction
+	HeaderSwitch                                                                          []HeaderSwitchOption
 	HeaderTitleFontSize                                                                   float32
+	HideFooter                                                                            bool
 	ComposeBody                                                                           ui.BodyComposer
 }
 type Presenter interface {

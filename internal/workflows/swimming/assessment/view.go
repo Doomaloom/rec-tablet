@@ -19,6 +19,8 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 		} else {
 			state.ComposeBody = c.composeSwimmerListBody(*state)
 		}
+	case navigation.MultiSelection:
+		state.ComposeBody = c.composeMultiSelectionBody(*state)
 	case navigation.TimedLaps:
 		state.ComposeBody = c.composeTimedLapsBody(*state)
 	case navigation.TimedHeat:

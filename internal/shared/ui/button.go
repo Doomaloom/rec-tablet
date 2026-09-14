@@ -25,20 +25,20 @@ var (
 
 type TouchButton struct {
 	widget.BaseWidget
-	Text, Detail                 string
-	Fill, Ink                    color.Color
-	FontSize, ScaleFactor        float32
-	HoldDuration                 time.Duration
-	ProgressSegments             int
-	ProgressValue, ProgressTotal int
-	Disabled, Selected, focused  bool
-	OnTap, OnHold                func()
-	CanActivate                  func() bool
-	Icon                         fyne.Resource
-	IconOnly                     bool
-	timer                        *time.Timer
-	mu                           sync.Mutex
-	held, pressed                bool
+	Text, Detail                          string
+	Fill, Ink                             color.Color
+	FontSize, ScaleFactor                 float32
+	HoldDuration                          time.Duration
+	ProgressSegments                      int
+	ProgressValue, ProgressTotal          int
+	Disabled, Selected, Outlined, focused bool
+	OnTap, OnHold                         func()
+	CanActivate                           func() bool
+	Icon                                  fyne.Resource
+	IconOnly                              bool
+	timer                                 *time.Timer
+	mu                                    sync.Mutex
+	held, pressed                         bool
 }
 
 func NewButton(text string, fn func()) *TouchButton {
@@ -165,7 +165,7 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	r.bg.CornerRadius = 18 * s
 	r.bg.FillColor = b.Fill
 	r.bg.StrokeWidth = 0
-	if b.Selected || b.focused {
+	if b.Selected || b.Outlined || b.focused {
 		r.bg.StrokeWidth = 3 * s
 		r.bg.StrokeColor = Navy
 	}

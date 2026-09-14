@@ -154,6 +154,59 @@ func TestTimedHeatPersistsLapsAndElapsedResults(t *testing.T) {
 	}
 }
 
+func TestMultiAttemptsAreAtomicAndRestoreReusedDrafts(t *testing.T) {
+	f := setup(t)
+	roster := must(f.s.rosterRecords(f.course.String("id")))
+	people := []string{roster[0].String("id"), roster[1].String("id")}
+	lesson := f.course.String("lesson_id")
+	opened := must(f.s.OpenMultiAttempts(people, lesson, "Splash1:1"))
+	if len(opened) != 2 || !opened[0].Created || !opened[1].Created {
+		t.Fatalf("unexpected newly opened attempts: %+v", opened)
+	}
+
+	// Reopening an unfinished attempt reuses its draft and snapshots the
+	// current answers so discarding the session can restore them.
+	check(t, f.s.Mark(opened[0].AttemptID, "Splash1:1:1", "successful"))
+	reused := must(f.s.OpenMultiAttempts([]string{people[0]}, lesson, "Splash1:1"))
+	if len(reused) != 1 || reused[0].Created || reused[0].OriginalAnswers["Splash1:1:1"] != "successful" {
+		t.Fatalf("unfinished draft was not reused: %+v", reused)
+	}
+	check(t, f.s.Mark(reused[0].AttemptID, "Splash1:1:2", "successful"))
+	check(t, f.s.DiscardMultiAttempts(reused))
+	restored := must(f.s.Draft(opened[0].AttemptID))
+	if len(restored) != 1 || restored["Splash1:1:1"] != "successful" {
+		t.Fatalf("discard did not restore original draft: %+v", restored)
+	}
+	check(t, f.s.DiscardMultiAttempts(opened))
+	var remaining int
+	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts WHERE submitted_at IS NULL").Scan(&remaining))
+	if remaining != 0 {
+		t.Fatalf("discard left %d unfinished attempts", remaining)
+	}
+
+	opened = must(f.s.OpenMultiAttempts(people, lesson, "Splash1:1"))
+	check(t, f.s.Mark(opened[0].AttemptID, "Splash1:1:1", "successful"))
+	check(t, f.s.Mark(opened[0].AttemptID, "Splash1:1:2", "successful"))
+	check(t, f.s.Mark(opened[1].AttemptID, "Splash1:1:1", "successful"))
+	if err := f.s.SubmitAttempts([]string{opened[0].AttemptID, "missing-attempt"}); err == nil {
+		t.Fatal("batch save accepted a missing attempt")
+	}
+	for _, attempt := range opened {
+		var submitted any
+		check(t, f.s.DB.QueryRow("SELECT submitted_at FROM attempts WHERE id=?", attempt.AttemptID).Scan(&submitted))
+		if submitted != nil {
+			t.Fatal("failed batch save partially submitted an attempt")
+		}
+	}
+	check(t, f.s.SubmitAttempts([]string{opened[0].AttemptID, opened[1].AttemptID}))
+	if p := must(f.s.Progress(people[0], "Splash1:1", f.version)); p.Successes != 1 || p.Assessed != 1 {
+		t.Fatalf("complete multi attempt progress incorrect: %+v", p)
+	}
+	if p := must(f.s.Progress(people[1], "Splash1:1", f.version)); p.Successes != 0 || p.Assessed != 1 {
+		t.Fatalf("partial multi attempt progress incorrect: %+v", p)
+	}
+}
+
 func TestRemoveLatestSuccessDecrementsProgressAndRemovesAttempt(t *testing.T) {
 	f := setup(t)
 	first := f.attempt(t, true, "")

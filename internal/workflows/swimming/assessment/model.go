@@ -23,6 +23,9 @@ type Repository interface {
 	Submit(string) (bool, error)
 	DiscardAttempt(string) error
 	RemoveLatestSuccess(string, string, string) error
+	OpenMultiAttempts([]string, string, string) ([]domain.MultiAttempt, error)
+	SubmitAttempts([]string) error
+	DiscardMultiAttempts([]domain.MultiAttempt) error
 	NewTimedHeat([]string, string, string, int) ([]domain.TimedParticipant, error)
 	RecordTimedLap(string) (int, error)
 	ResetTimedHeat([]string) error

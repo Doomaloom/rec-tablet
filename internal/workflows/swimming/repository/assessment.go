@@ -53,6 +53,72 @@ func (s *Store) NewAttempt(person, lesson, skill string) (string, error) {
 	return id, err
 }
 
+// OpenMultiAttempts prepares one draft for every selected swimmer atomically.
+// Existing unfinished drafts are reused and returned with a copy of their
+// original answers so a later discard can restore them.
+func (s *Store) OpenMultiAttempts(people []string, lesson, skill string) ([]domain.MultiAttempt, error) {
+	if len(people) == 0 {
+		return nil, errors.New("select at least one swimmer")
+	}
+	opened := make([]domain.MultiAttempt, 0, len(people))
+	seen := map[string]bool{}
+	err := s.transaction(func(q queryer) error {
+		for _, person := range people {
+			if seen[person] {
+				return errors.New("a swimmer was selected more than once")
+			}
+			seen[person] = true
+			p, e := checkLesson(q, person, lesson)
+			if e != nil {
+				return e
+			}
+			catalog, e := s.catalog(q, p.String("curriculum_version"))
+			if e != nil {
+				return e
+			}
+			if e = domain.ValidateNewAttempt(catalog, p.String("level"), skill, p.Int("active") != 0); e != nil {
+				return e
+			}
+			attempt, e := one(q, `SELECT id FROM attempts WHERE enrollment_id=? AND lesson_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NULL`, person, lesson, skill, p.String("curriculum_version"))
+			created := false
+			attemptID := ""
+			answers := map[string]string{}
+			if e == nil {
+				attemptID = attempt.String("id")
+				answers, e = draft(q, attemptID)
+				if e != nil {
+					return e
+				}
+			} else if errors.Is(e, ErrNotFound) {
+				created = true
+				attemptID = ID()
+				if _, e = q.Exec("INSERT INTO attempts VALUES (?,?,?,?,?,?,NULL,0)", attemptID, person, lesson, skill, p.String("curriculum_version"), Now()); e != nil {
+					return e
+				}
+				if _, e = q.Exec("INSERT INTO drafts VALUES (?,?,?)", attemptID, "{}", Now()); e != nil {
+					return e
+				}
+			} else {
+				return e
+			}
+			opened = append(opened, domain.MultiAttempt{AttemptID: attemptID, PersonID: person, Name: p.String("name"), OriginalAnswers: cloneAnswers(answers), Created: created})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return opened, nil
+}
+
+func cloneAnswers(values map[string]string) map[string]string {
+	copyValues := map[string]string{}
+	for key, value := range values {
+		copyValues[key] = value
+	}
+	return copyValues
+}
+
 // NewTimedHeat creates one timed attempt per selected swimmer and initializes
 // the shared lap target. The whole heat is created atomically.
 func (s *Store) NewTimedHeat(people []string, lesson, skill string, laps int) ([]domain.TimedParticipant, error) {
@@ -268,77 +334,136 @@ func (s *Store) Mark(id, subskill, status string) error {
 		return e
 	})
 }
+func (s *Store) submitAttempt(q queryer, id string) (bool, error) {
+	a, e := one(q, "SELECT * FROM attempts WHERE id=?", id)
+	if e != nil {
+		return false, e
+	}
+	values, e := draft(q, id)
+	if errors.Is(e, ErrNotFound) {
+		return a.Int("success") == 1, nil
+	}
+	if e != nil {
+		return false, e
+	}
+	skill, e := s.skill(q, a.String("curriculum_version"), a.String("skill_id"))
+	if e != nil {
+		return false, e
+	}
+	normalized := map[string]string{}
+	for subskillID, value := range values {
+		if value == "" {
+			continue
+		}
+		if e = domain.ValidateMark(skill, subskillID, value); e != nil {
+			return false, e
+		}
+		normalized[subskillID] = value
+	}
+	success := true
+	for _, subskill := range skill.Subskills {
+		if normalized[subskill.ID] != "successful" {
+			success = false
+			if normalized[subskill.ID] == "" {
+				normalized[subskill.ID] = "not_yet"
+			}
+		}
+	}
+	if a["submitted_at"] != nil {
+		old, e := answers(q, id)
+		if e != nil {
+			return false, e
+		}
+		body, _ := json.Marshal(old)
+		if _, e = q.Exec("INSERT INTO revisions(attempt_id,answers,saved_at) VALUES (?,?,?)", id, string(body), Now()); e != nil {
+			return false, e
+		}
+	}
+	if _, e = q.Exec("DELETE FROM results WHERE attempt_id=?", id); e != nil {
+		return false, e
+	}
+	for _, subskill := range skill.Subskills {
+		if _, e = q.Exec("INSERT INTO results VALUES (?,?,?)", id, subskill.ID, normalized[subskill.ID]); e != nil {
+			return false, e
+		}
+	}
+	successValue := 0
+	if success {
+		successValue = 1
+	}
+	if _, e = q.Exec("UPDATE attempts SET success=?,submitted_at=? WHERE id=?", successValue, Now(), id); e != nil {
+		return false, e
+	}
+	if _, e = q.Exec("DELETE FROM drafts WHERE attempt_id=?", id); e != nil {
+		return false, e
+	}
+	return success, nil
+}
+
 func (s *Store) Submit(id string) (bool, error) {
-	success := false
+	var success bool
 	err := s.transaction(func(q queryer) error {
-		a, e := one(q, "SELECT * FROM attempts WHERE id=?", id)
-		if e != nil {
-			return e
-		}
-		values, e := draft(q, id)
-		if errors.Is(e, ErrNotFound) {
-			success = a.Int("success") == 1
-			return nil
-		}
-		if e != nil {
-			return e
-		}
-		skill, e := s.skill(q, a.String("curriculum_version"), a.String("skill_id"))
-		if e != nil {
-			return e
-		}
-		// Saving an attempt is allowed before every subskill is checked. Missing
-		// answers are stored as not_yet, while only an all-successful set earns
-		// progress.
-		normalized := map[string]string{}
-		for id, value := range values {
-			if value == "" {
-				continue
-			}
-			if e = domain.ValidateMark(skill, id, value); e != nil {
-				return e
-			}
-			normalized[id] = value
-		}
-		success = true
-		for _, subskill := range skill.Subskills {
-			if normalized[subskill.ID] != "successful" {
-				success = false
-				if normalized[subskill.ID] == "" {
-					normalized[subskill.ID] = "not_yet"
-				}
-			}
-		}
-		values = normalized
-		if a["submitted_at"] != nil {
-			old, e := answers(q, id)
-			if e != nil {
-				return e
-			}
-			body, _ := json.Marshal(old)
-			if _, e = q.Exec("INSERT INTO revisions(attempt_id,answers,saved_at) VALUES (?,?,?)", id, string(body), Now()); e != nil {
-				return e
-			}
-		}
-		if _, e = q.Exec("DELETE FROM results WHERE attempt_id=?", id); e != nil {
-			return e
-		}
-		for _, c := range skill.Subskills {
-			if _, e = q.Exec("INSERT INTO results VALUES (?,?,?)", id, c.ID, values[c.ID]); e != nil {
-				return e
-			}
-		}
-		value := 0
-		if success {
-			value = 1
-		}
-		if _, e = q.Exec("UPDATE attempts SET success=?,submitted_at=? WHERE id=?", value, Now(), id); e != nil {
-			return e
-		}
-		_, e = q.Exec("DELETE FROM drafts WHERE attempt_id=?", id)
+		var e error
+		success, e = s.submitAttempt(q, id)
 		return e
 	})
 	return success, err
+}
+
+// SubmitAttempts submits every attempt in one transaction.
+func (s *Store) SubmitAttempts(ids []string) error {
+	if len(ids) == 0 {
+		return errors.New("multi-student assessment has no attempts")
+	}
+	return s.transaction(func(q queryer) error {
+		seen := map[string]bool{}
+		for _, id := range ids {
+			if seen[id] {
+				return errors.New("an attempt was selected more than once")
+			}
+			seen[id] = true
+			if _, e := one(q, "SELECT id FROM attempts WHERE id=? AND submitted_at IS NULL", id); e != nil {
+				return e
+			}
+			if _, e := one(q, "SELECT attempt_id FROM drafts WHERE attempt_id=?", id); e != nil {
+				return e
+			}
+			if _, e := s.submitAttempt(q, id); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+}
+
+// DiscardMultiAttempts restores reused drafts and removes newly-created ones.
+func (s *Store) DiscardMultiAttempts(attempts []domain.MultiAttempt) error {
+	if len(attempts) == 0 {
+		return errors.New("multi-student assessment has no attempts")
+	}
+	return s.transaction(func(q queryer) error {
+		for _, attempt := range attempts {
+			if _, e := one(q, "SELECT id FROM attempts WHERE id=? AND submitted_at IS NULL", attempt.AttemptID); e != nil {
+				return e
+			}
+			if attempt.Created {
+				for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
+					if _, e := q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", attempt.AttemptID); e != nil {
+						return e
+					}
+				}
+				if _, e := q.Exec("DELETE FROM attempts WHERE id=?", attempt.AttemptID); e != nil {
+					return e
+				}
+				continue
+			}
+			body, _ := json.Marshal(attempt.OriginalAnswers)
+			if _, e := q.Exec("UPDATE drafts SET answers=?,updated_at=? WHERE attempt_id=?", string(body), Now(), attempt.AttemptID); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
 }
 
 // DiscardAttempt removes an unfinished skill observation and its draft.
