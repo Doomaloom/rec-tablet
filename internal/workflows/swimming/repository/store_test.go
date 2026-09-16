@@ -489,70 +489,58 @@ func TestAbruptExitPreservesDraft(t *testing.T) {
 		t.Fatal(integrity)
 	}
 }
-func TestCurriculumVersionPinned(t *testing.T) {
+func TestCurriculumChangeResetsMarkingAndMovesCourses(t *testing.T) {
 	f := setup(t)
 	f.attempt(t, true, "")
+	draft := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:1"))
+	check(t, f.s.Mark(draft, "Splash1:1:1", "successful"))
+	check(t, f.s.SetAttendance(f.person.String("id"), f.course.String("lesson_id"), "present"))
+	_, err := f.s.DB.Exec("INSERT INTO revisions(attempt_id,answers,saved_at) VALUES (?,?,?)", draft, "{}", Now())
+	check(t, err)
+	_, err = f.s.DB.Exec("INSERT INTO timed_attempts(attempt_id,laps_required,laps_completed,elapsed_ms) VALUES (?,?,?,?)", draft, 3, 1, 250)
+	check(t, err)
 	updated := curriculum.Bundled()
 	updated.Version = "future-version"
 	check(t, f.s.Close())
 	f.s = must(OpenWithCatalog(f.path, updated))
-	_ = must(f.s.Import(f.p))
-	if must(f.s.courseRecords("2026-09-04"))[0].String("curriculum_version") != f.version || f.progress().Successes != 1 {
-		t.Fatal("version changed")
+	course := must(f.s.courseRecords("2026-09-04"))[0]
+	if course.String("curriculum_version") != updated.Version {
+		t.Fatalf("course still uses old curriculum version: %s", course.String("curriculum_version"))
+	}
+	for _, table := range []string{"attempts", "results", "drafts", "revisions", "timed_attempts"} {
+		var count int
+		check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM "+table).Scan(&count))
+		if count != 0 {
+			t.Fatalf("catalog reset left %d rows in %s", count, table)
+		}
+	}
+	if status := must(f.s.Attendance(course.String("lesson_id")))[f.person.String("id")]; status != "present" {
+		t.Fatalf("catalog reset lost attendance: %q", status)
+	}
+	if progress := must(f.s.Progress(f.person.String("id"), "Splash1:1", updated.Version)); progress.Assessed != 0 || progress.Successes != 0 {
+		t.Fatalf("catalog reset left progress: %+v", progress)
 	}
 }
-func TestPythonDatabaseCompatibility(t *testing.T) {
+func TestPythonDatabaseCompatibilityAfterCatalogReset(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "python.sqlite3")
 	// Restore the exact Python-generated schema/data into an empty SQLite file.
 	db := must(OpenRawFixture(path))
 	check(t, db.Close())
 	s := must(Open(path))
 	defer s.Close()
-	var expected transfer.Snapshot
-	check(t, json.Unmarshal(must(os.ReadFile("testdata/python-v1-export.json")), &expected))
 	actual := must(s.Snapshot())
-	// Go JSON normalization makes integer representations and embedded JSON
-	// formatting comparable without weakening field/content compatibility.
-	normalize := func(snap transfer.Snapshot) map[string]any {
-		b := must(json.Marshal(snap.Tables))
-		var m map[string]any
-		check(t, json.Unmarshal(b, &m))
-		for _, table := range []string{"curricula", "drafts", "revisions"} {
-			key := "answers"
-			if table == "curricula" {
-				key = "body"
-			}
-			for _, row := range m[table].([]any) {
-				r := row.(map[string]any)
-				var value any
-				check(t, json.Unmarshal([]byte(r[key].(string)), &value))
-				r[key] = value
-			}
+	for _, table := range []string{"attempts", "results", "drafts", "revisions"} {
+		if len(actual.Tables[table]) != 0 {
+			t.Fatalf("Python database reset left rows in %s", table)
 		}
-		return m
 	}
-	if !reflect.DeepEqual(normalize(actual), normalize(expected)) {
-		t.Fatal("Go altered Python database or export semantics")
+	if len(actual.Tables["attendance"]) == 0 || len(actual.Tables["courses"]) == 0 || len(actual.Tables["enrollments"]) == 0 {
+		t.Fatal("catalog reset lost roster or attendance data")
 	}
-	var ids map[string]string
-	check(t, json.Unmarshal(must(os.ReadFile("testdata/identities.json")), &ids))
-	p := must(s.Progress(ids["person"], "Splash1:1", ids["version"]))
-	if p.Successes != 2 {
-		t.Fatal(p)
-	}
-	if must(s.Draft(ids["draft"]))["Splash1:3:1"] != "successful" {
-		t.Fatal("Python draft lost")
-	}
-	if must(s.Draft(ids["correction"]))["Splash1:1:2"] != "not_yet" {
-		t.Fatal("Python correction lost")
-	}
-	_ = must(s.Submit(ids["correction"]))
-	if must(s.Progress(ids["person"], "Splash1:1", ids["version"])).Successes != 1 {
-		t.Fatal("cannot correct Python attempt")
-	}
-	check(t, s.Mark(ids["draft"], "Splash1:3:2", "not_yet"))
-	if len(must(s.Draft(ids["draft"]))) != 2 {
-		t.Fatal("cannot continue Python draft")
+	for _, course := range actual.Tables["courses"] {
+		if course["curriculum_version"] != curriculum.Bundled().Version {
+			t.Fatalf("course was not moved to the bundled curriculum: %v", course["curriculum_version"])
+		}
 	}
 }
 func TestValidationEdgeCases(t *testing.T) {

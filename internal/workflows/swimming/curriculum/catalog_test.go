@@ -48,10 +48,99 @@ func TestBundledCatalog(t *testing.T) {
 			}
 		}
 	}
-	if skills != 271 || criteria != 919 {
+	if skills != 290 || criteria != 937 {
 		t.Fatalf("%d skills, %d criteria", skills, criteria)
 	}
 }
+
+var splitSkillBases = map[string][]string{
+	"Splash1:10":    {"front-crawl-wearing-pfd-5-m", "back-crawl-wearing-pfd-5-m"},
+	"Splash2A:8":    {"front-crawl", "back-crawl"},
+	"Splash2B:8":    {"front-crawl", "back-crawl"},
+	"Splash3:10":    {"front-crawl", "back-crawl"},
+	"Splash4:7":     {"front-crawl", "back-crawl"},
+	"Splash5:8":     {"front-crawl", "back-crawl"},
+	"Splash6:8":     {"front-crawl", "back-crawl"},
+	"Splash7:8":     {"front-crawl", "back-crawl", "breaststroke"},
+	"Splash8:7":     {"front-crawl", "back-crawl", "breaststroke"},
+	"Splash9:9":     {"front-crawl", "back-crawl", "breaststroke"},
+	"TeenAdult1:12": {"front-glide", "back-glide", "side-glide"},
+	"TeenAdult1:15": {"front-crawl", "back-crawl"},
+	"TeenAdult2:14": {"front-crawl", "back-crawl"},
+	"TeenAdult3:7":  {"eggbeater-kick", "scissor-kick"},
+	"TeenAdult3:9":  {"front-crawl", "back-crawl"},
+}
+
+func splitOverrideSkillID(id string) bool {
+	for base := range splitSkillBases {
+		if id == base {
+			return true
+		}
+		prefix := base + "-"
+		if !strings.HasPrefix(id, prefix) {
+			continue
+		}
+		// The source extractor already has a numeric duplicate-skill suffix
+		// such as Splash2B:8-2; that remains part of the source catalog.
+		suffix := strings.TrimPrefix(id, prefix)
+		if suffix != "2" && suffix != "3" {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSplitMultiSkills(t *testing.T) {
+	catalog := Bundled()
+	byID := map[string]Skill{}
+	for _, level := range catalog.Levels {
+		for _, skill := range level.Skills {
+			byID[skill.ID] = skill
+		}
+	}
+	for base, suffixes := range splitSkillBases {
+		if _, ok := byID[base]; ok {
+			t.Fatalf("combined skill %s was not replaced", base)
+		}
+		baseNumber := strings.TrimPrefix(base, strings.Split(base, ":")[0]+":")
+		for _, suffix := range suffixes {
+			id := base + "-" + suffix
+			skill, ok := byID[id]
+			if !ok {
+				t.Fatalf("split skill %s is missing", id)
+			}
+			if skill.Number != baseNumber {
+				t.Fatalf("split skill %s has number %q, want %q", id, skill.Number, baseNumber)
+			}
+			componentWords := strings.Fields(strings.ReplaceAll(suffix, "-", " "))
+			if len(componentWords) > 2 {
+				componentWords = componentWords[:2]
+			}
+			componentName := strings.Join(componentWords, " ")
+			if !strings.Contains(strings.ToLower(skill.Name), componentName) {
+				t.Fatalf("split skill %s does not identify its component: %q", id, skill.Name)
+			}
+		}
+	}
+	for _, id := range []string{"Splash2A:8-front-crawl", "Splash2A:8-back-crawl"} {
+		skill := byID[id]
+		found := false
+		for _, subskill := range skill.Subskills {
+			if subskill.Text == "Minimum distance completed (for both strokes)" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("shared criterion missing from %s", id)
+		}
+	}
+	for _, id := range []string{"Splash7:13", "Splash9:10"} {
+		if _, ok := byID[id]; !ok {
+			t.Fatalf("single-topic skill %s was unexpectedly split", id)
+		}
+	}
+}
+
 func TestExtractionParity(t *testing.T) {
 	dir := filepath.Join("..", "..", "..", "..", "..", "COB-Aquatics-SPA", "frontend/src/features/attendance-print/templates")
 	if _, e := os.Stat(dir); e != nil {
@@ -63,17 +152,29 @@ func TestExtractionParity(t *testing.T) {
 	}
 	expected := Bundled()
 	for i, l := range actual.Levels {
-		if !reflect.DeepEqual(l, expected.Levels[i]) {
-			a, _ := json.MarshalIndent(l, "", "  ")
-			b, _ := json.MarshalIndent(expected.Levels[i], "", "  ")
-			out := t.TempDir()
-			_ = os.WriteFile(filepath.Join(out, "actual.json"), a, 0600)
-			_ = os.WriteFile(filepath.Join(out, "expected.json"), b, 0600)
-			t.Fatalf("%s differs; actual %s", l.ID, string(a))
+		bundled := expected.Levels[i]
+		if len(l.Skills) == 0 {
+			if !reflect.DeepEqual(l, bundled) {
+				t.Fatalf("%s differs from extracted source", l.ID)
+			}
+			continue
 		}
-	}
-	if actual.Version != expected.Version {
-		t.Fatalf("version changed: %s != %s", actual.Version, expected.Version)
+		actualSkills := map[string]Skill{}
+		bundledSkills := map[string]Skill{}
+		for _, skill := range l.Skills {
+			if !splitOverrideSkillID(skill.ID) {
+				actualSkills[skill.ID] = skill
+			}
+		}
+		for _, skill := range bundled.Skills {
+			if !splitOverrideSkillID(skill.ID) {
+				bundledSkills[skill.ID] = skill
+			}
+		}
+		if !reflect.DeepEqual(actualSkills, bundledSkills) {
+			a, _ := json.MarshalIndent(actualSkills, "", "  ")
+			t.Fatalf("%s differs outside the intentional split override: %s", l.ID, string(a))
+		}
 	}
 }
 func TestExtractionExceptions(t *testing.T) {
@@ -111,6 +212,9 @@ func TestSourceWordsPreserved(t *testing.T) {
 	words := regexp.MustCompile(`[\pL\pN_]+`)
 	for _, l := range Bundled().Levels {
 		for _, s := range l.Skills {
+			if splitOverrideSkillID(s.ID) {
+				continue
+			}
 			target := map[string]bool{}
 			for _, c := range s.Subskills {
 				for _, w := range words.FindAllString(strings.ToLower(c.Text+" "+strings.Join(c.Group, " ")), -1) {

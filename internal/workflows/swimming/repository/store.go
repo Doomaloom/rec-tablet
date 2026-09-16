@@ -79,9 +79,39 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
 	if _, err = db.Exec("INSERT OR IGNORE INTO curricula VALUES (?,?)", c.Version, string(body)); err != nil {
 		return fail(err)
 	}
+	if err = s.resetMarkingDataForCatalogChange(c.Version); err != nil {
+		return fail(err)
+	}
 	return s, nil
 }
 func (s *Store) Close() error { return s.DB.Close() }
 func (s *Store) transaction(fn func(queryer) error) error {
 	return database.Transaction(s.DB, func(tx *sql.Tx) error { return fn(tx) })
+}
+
+// resetMarkingDataForCatalogChange handles the intentionally non-production
+// curriculum reset used when the bundled catalog changes shape. Courses keep
+// their roster and attendance data, while assessment rows are discarded and
+// all courses are pointed at the newly bundled curriculum version.
+func (s *Store) resetMarkingDataForCatalogChange(version string) error {
+	return s.transaction(func(q queryer) error {
+		oldCourses, err := one(q, "SELECT COUNT(*) AS count FROM courses WHERE curriculum_version<>?", version)
+		if err != nil {
+			return err
+		}
+		oldAttempts, err := one(q, "SELECT COUNT(*) AS count FROM attempts WHERE curriculum_version<>?", version)
+		if err != nil {
+			return err
+		}
+		if oldCourses.Int("count") == 0 && oldAttempts.Int("count") == 0 {
+			return nil
+		}
+		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts", "attempts"} {
+			if _, err = q.Exec("DELETE FROM " + table); err != nil {
+				return err
+			}
+		}
+		_, err = q.Exec("UPDATE courses SET curriculum_version=?", version)
+		return err
+	})
 }

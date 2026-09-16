@@ -34,13 +34,8 @@ type AngledLabel struct {
 func NewAngledLabel(text string, length, textSize, angle float64, fill, ink, border color.Color) *AngledLabel {
 	var cardHeight float64
 	face := newAngledLabelFace(textSize)
-	if len(text) > 44 {
-		cardHeight = textSize*2.8 + 8
-	} else {
-		cardHeight = (textSize*2.8 + 8) / 2
-	}
 	if face != nil {
-		if len(text) > 44 {
+		if len(text) > 35 {
 			cardHeight = float64(2*face.Metrics().Height.Ceil() + 2*angledLabelPadding(textSize))
 		} else {
 			cardHeight = float64(face.Metrics().Height.Ceil() + angledLabelPadding(textSize))

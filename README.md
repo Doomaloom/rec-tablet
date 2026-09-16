@@ -61,11 +61,11 @@ The same hidden screen provides **Export Data**. Select a folder, accept or edit
 - **Undo:** hold a student button for two seconds to remove that student's newest successful check for the selected skill. The associated observation is removed transactionally.
 - **Feedback:** shows skills assessed anywhere in the current enrollment that remain below three successes. It uses the latest saved attempt to identify unsuccessful criteria, or shows the additional successes needed. Unassessed and completed skills are excluded.
 
-Home and Back preserve drafts. Selecting a swimmer for a skill resumes an unfinished observation for that swimmer, skill, and lesson. Existing attempts remain reviewable through Feedback. Tap the title/subtitle to read the full lesson context. Former enrollments remain available in Feedback but cannot receive new checks.
+Home and Back preserve drafts. Selecting a swimmer for a skill resumes an unfinished observation for that swimmer, skill, and lesson. Existing attempts remain reviewable through Feedback until a curriculum reset. Tap the title/subtitle to read the full lesson context. Former enrollments remain available in Feedback but cannot receive new checks.
 
 ## Curriculum and transfer tools
 
-The embedded [curriculum JSON](internal/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 271 skills and 919 criteria. Unknown levels show Missing curriculum instead of using a fallback level. Existing courses keep their pinned curriculum version after software updates.
+The embedded [curriculum JSON](internal/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 290 skills and 937 criteria. Grouped multi-component skills are separate entries with the same skill number so each component can be marked independently. Unknown levels show Missing curriculum instead of using a fallback level. When the bundled curriculum version changes, assessment marking rows are reset and existing courses move to the new version while roster and attendance data are retained.
 
 Both development tools now run in Go. Flags come **before** positional arguments:
 
@@ -74,7 +74,7 @@ Both development tools now run in Go. Flags come **before** positional arguments
 ./dist/native/rec-tablet extract-curriculum --output /tmp/curriculum.json ../COB-Aquatics-SPA/frontend/src/features/attendance-print/templates
 ```
 
-The extractor preserves the previous JSON content, identifiers, and version hash. Compare a regenerated catalog before replacing the embedded file, then rebuild the app. The sister repository is read only.
+The extractor preserves the previous JSON content, identifiers, and version hash. Compare a regenerated catalog before replacing the embedded file, then rebuild the app. The bundled file also contains app-specific multi-component splits; regenerating it from the sister repository produces the unsplit source catalog and those overrides must be reapplied. The sister repository is read only.
 
 The sister app's **Device Exports** page now produces directly importable instructor packages from its selected, loaded session. Review lesson dates and levels there, download the class JSON, then import it on this device. Keep its export ID backup for repeat exports from another browser. Each session has its own dataset and currently requires a separate device database.
 

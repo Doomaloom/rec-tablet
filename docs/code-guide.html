@@ -120,7 +120,7 @@ internal/
         <p>The schema lives in <a href="../internal/workflows/swimming/repository/schema.sql">internal/workflows/swimming/repository/schema.sql</a> and uses <code>PRAGMA user_version = 1</code>. Foreign keys, WAL journaling, full synchronous writes, and a busy timeout protect local work.</p>
         <div class="table-wrap"><table><thead><tr><th>Table</th><th>Purpose</th><th>Relationship</th></tr></thead><tbody>
           <tr><td><code>meta</code></td><td>Dataset, instructor, last import</td><td>One value per key</td></tr>
-          <tr><td><code>curricula</code></td><td>Versioned catalog JSON</td><td>Courses and attempts pin a version</td></tr>
+          <tr><td><code>curricula</code></td><td>Versioned catalog JSON</td><td>Courses use the active catalog version</td></tr>
           <tr><td><code>courses</code></td><td>Imported class offerings</td><td>Unique source ID per dataset</td></tr>
           <tr><td><code>swimmers</code></td><td>Stable source people</td><td>Unique source ID per dataset</td></tr>
           <tr><td><code>enrollments</code></td><td>Swimmer in a course, level, active status</td><td>Course ↔ swimmer</td></tr>
@@ -140,7 +140,7 @@ internal/
           <article class="card"><h3>Drafts and saved attempts</h3><p>Every mark persists immediately. A partial draft survives navigation and restart. Saving an incomplete checklist records an unsuccessful attempt for feedback, but it does not add progress. Selecting the same lesson, swimmer, and skill resumes an unfinished draft.</p></article>
           <article class="card"><h3>Corrections</h3><p>Editing a submitted attempt creates a draft. Submission records old answers in <code>revisions</code>, replaces results, and recalculates success transactionally.</p></article>
           <article class="card"><h3>Feedback</h3><p>Feedback shows assessed, incomplete skills and uses the latest saved attempt to identify unsuccessful criteria or successes still needed.</p></article>
-          <article class="card rule"><h3>Version isolation</h3><p>Courses and attempts keep their curriculum version, so catalog updates cannot reinterpret historical work.</p></article>
+          <article class="card rule"><h3>Catalog updates</h3><p>When the bundled catalog version changes, assessment rows are cleared and existing courses move to the new version; roster and attendance data remain.</p></article>
         </div>
       </section>
       <section id="transfer">

@@ -26,7 +26,7 @@ const (
 	multiColumnWidth  float32 = 48
 	multiHeaderTop    float32 = 84
 	multiHeaderLength         = 350
-	multiHeaderFont           = 15
+	multiHeaderFont           = 18
 	multiHeaderGap    float32 = 4
 	multiRowGap       float32 = 3
 )

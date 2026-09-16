@@ -325,8 +325,8 @@ func TestMultiMatrixTextLayoutAndPaging(t *testing.T) {
 	}{
 		{"three-subskills", "Splash1:7", "", 3},
 		{"long-subskills", "Splash1:8", "", 4},
-		{"seven-subskills", "Splash1:10", "", 7},
-		{"seventeen-subskills", "Splash8:7", "Splash8", 17},
+		{"seven-subskills", "Splash5:8-front-crawl", "Splash5", 7},
+		{"twelve-subskills", "Splash8:14", "Splash8", 12},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			f := setupUI(t)
