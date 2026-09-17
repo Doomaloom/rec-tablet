@@ -12,6 +12,7 @@ type Row = ui.Item
 // RailAction customizes one of the persistent left-rail buttons for a screen.
 // Run is invoked after the button is pressed.
 type RailAction struct {
+	ID       string
 	Label    string
 	Run      func() error
 	Fill     color.Color
@@ -49,11 +50,15 @@ type State struct {
 	DetailsTitle                                                                          string
 	HoldTitle                                                                             func()
 	HomeRailAction, BackRailAction                                                        *RailAction
-	HeaderActions                                                                         []HeaderAction
-	HeaderSwitch                                                                          []HeaderSwitchOption
-	HeaderTitleFontSize                                                                   float32
-	HideFooter                                                                            bool
-	ComposeBody                                                                           ui.BodyComposer
+	// LeftRailActions overrides the home/back rail, in top-to-bottom order.
+	LeftRailActions     []RailAction
+	HeaderActions       []HeaderAction
+	HeaderSwitch        []HeaderSwitchOption
+	HeaderTitleFontSize float32
+	FitHeader           bool
+	HideContext         bool
+	HideFooter          bool
+	ComposeBody         ui.BodyComposer
 }
 type Presenter interface {
 	Snapshot() State

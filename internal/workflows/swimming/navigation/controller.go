@@ -20,6 +20,7 @@ const (
 	SkillSwimmers    Route = "skill_swimmers"
 	MultiSelection   Route = "multi_selection"
 	MultiAssessment  Route = "multi_assessment"
+	ClassAssessment  Route = "class_assessment"
 	TimedLaps        Route = "timed_laps"
 	TimedHeat        Route = "timed_heat"
 	Attempts         Route = "attempts"

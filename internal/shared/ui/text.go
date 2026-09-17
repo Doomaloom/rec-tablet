@@ -43,6 +43,13 @@ func (r *textRenderer) MinSize() fyne.Size           { return fyne.NewSize(1, 1)
 func (r *textRenderer) Objects() []fyne.CanvasObject { return r.objects }
 func (r *textRenderer) Destroy()                     {}
 func (r *textRenderer) Refresh()                     { r.Layout(r.t.Size()); canvas.Refresh(r.t) }
+
+// WrappedTextHeight measures the same wrapping and line spacing used by TextBlock.
+func WrappedTextHeight(text string, width, size float32, bold bool) float32 {
+	lines := wrap(text, max(1, width), size, bold, true)
+	return float32(len(lines)) * fyne.MeasureText("Ag", size, fyne.TextStyle{Bold: bold}).Height * 1.12
+}
+
 func wrap(text string, width, size float32, bold, wrapping bool) []string {
 	lines := []string{}
 	style := fyne.TextStyle{Bold: bold}

@@ -21,6 +21,7 @@ type Controller struct {
 	multiAttempts     []domain.MultiAttempt
 	multiMode         bool
 	multiSubskillPage int
+	classAttempts     []domain.MultiAttempt
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {
@@ -113,7 +114,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			state.Empty = "No enrolled swimmers are assigned to this skill's level."
 			break
 		}
-		state.HeaderSwitch = c.skillModeSwitch(false)
+		state.HeaderSwitch = c.skillModeSwitch(skill, false)
 		for _, p := range roster {
 			if !p.Active || p.Level != f.Level {
 				continue
@@ -148,7 +149,7 @@ func (c *Controller) Build() (navigation.State, error) {
 		state.Title = "Choose Students"
 		state.Subtitle = skill.Name
 		state.Context += "\n" + skill.Name
-		state.HeaderSwitch = c.skillModeSwitch(true)
+		state.HeaderSwitch = c.skillModeSwitch(skill, true)
 		for _, p := range roster {
 			if !p.Active || p.Level != f.Level {
 				continue
@@ -174,6 +175,9 @@ func (c *Controller) Build() (navigation.State, error) {
 		}
 		state.BackRailAction = discardRailAction(c.DiscardMultiSelection)
 		state.Empty = "No enrolled swimmers are assigned to this skill's level."
+
+	case navigation.ClassAssessment:
+		return c.buildClassAssessmentState(course, f)
 
 	case navigation.MultiAssessment:
 		multiState, e := c.buildMultiAssessmentState(course, f)
@@ -674,6 +678,9 @@ func (c *Controller) Select(id string) error {
 
 	case navigation.Assessment:
 		return c.toggleSubskill(id)
+
+	case navigation.ClassAssessment:
+		return c.toggleClassSubskill(id)
 
 	case navigation.TimedLaps:
 		if len(id) == len("timed-digit:")+1 && strings.HasPrefix(id, "timed-digit:") {

@@ -6,9 +6,13 @@ func ComposeScreen(view *View, state State) ScreenComposition {
 	builder := newComponentBuilder(view, state)
 
 	newBackgroundComponent(builder)
-	newHomeRailComponent(builder)
+	if len(state.LeftRailActions) > 0 {
+		newActionRailComponents(builder)
+	} else {
+		newHomeRailComponent(builder)
+		newBackButtonComponent(builder)
+	}
 	newPagingRailComponents(builder)
-	newBackButtonComponent(builder)
 	newHeaderComponents(builder)
 	newContextComponent(builder)
 	newBodyComponent(builder)

@@ -50,18 +50,19 @@ type multiAssessmentSnapshot struct {
 	Students []multiStudentSnapshot
 }
 
-func (c *Controller) skillModeSwitch(multi bool) []shell.HeaderSwitchOption {
-	return []shell.HeaderSwitchOption{
-		{Label: "Single", Selected: !multi, Run: c.EnterSingleMode},
-		{Label: "Multi", Selected: multi, Run: c.EnterMultiMode},
-	}
-}
-
 func (c *Controller) EnterMultiMode() error {
 	if c.Frame().Screen != navigation.SkillSwimmers {
 		return nil
 	}
 	return c.Run(func() error {
+		f := c.Frame()
+		skill, err := c.Store.Skill(f.Version, f.Skill)
+		if err != nil {
+			return err
+		}
+		if !allowsMultiMode(skill) {
+			return nil
+		}
 		c.multiMode = true
 		c.multiSelection = nil
 		c.Push(navigation.MultiSelection, nil)

@@ -121,12 +121,13 @@ func TestComposeScreenRendersHeaderModeSwitch(t *testing.T) {
 		HeaderSwitch: []HeaderSwitchOption{
 			{Label: "Single", Selected: true},
 			{Label: "Multi"},
+			{Label: "Class"},
 		},
 	}}
 	view := New(presenter, window)
 	defer view.Close()
 	composition := ComposeScreen(view, presenter.state)
-	if !hasComponent(composition.Components, "header-switch-0") || !hasComponent(composition.Components, "header-switch-1") {
+	if !hasComponent(composition.Components, "header-switch-0") || !hasComponent(composition.Components, "header-switch-1") || !hasComponent(composition.Components, "header-switch-2") {
 		t.Fatal("mode switch buttons were not composed")
 	}
 	if hasComponent(composition.Components, "screen-title") {
@@ -134,6 +135,38 @@ func TestComposeScreenRendersHeaderModeSwitch(t *testing.T) {
 	}
 	if composition.Buttons["header-switch-0"].Fill != ui.Blue || composition.Buttons["header-switch-1"].Fill != ui.White {
 		t.Fatal("selected mode switch option styling is incorrect")
+	}
+	lastRight := float32(100)
+	for _, id := range []string{"header-switch-0", "header-switch-1", "header-switch-2"} {
+		x, _, width, _ := componentNamed(composition.Components, id).Position(800, 480)
+		if x < lastRight || x+width > 700 {
+			t.Fatal("mode switch overlaps another option or rail")
+		}
+		lastRight = x + width
+	}
+}
+
+func TestComposeScreenOrdersFourRailActions(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("composition")
+	defer window.Close()
+	presenter := &compositionPresenter{state: State{CanBack: true, LeftRailActions: []RailAction{
+		{ID: "save-student"}, {ID: "discard-student"}, {ID: "discard-all"}, {ID: "save-all"},
+	}}}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, presenter.state)
+	if composition.Buttons["home"] != nil || composition.Buttons["back"] != nil {
+		t.Fatal("ordered rail must replace Home/Back")
+	}
+	bottom := float32(0)
+	for _, action := range presenter.state.LeftRailActions {
+		x, y, width, height := componentNamed(composition.Components, action.ID).Position(800, 480)
+		if x != 12 || width != 76 || y <= bottom || y+height > 466 {
+			t.Fatalf("rail action outside its slot: %s", action.ID)
+		}
+		bottom = y + height
 	}
 }
 

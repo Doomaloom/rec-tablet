@@ -61,6 +61,30 @@ func newBackgroundComponent(builder *componentBuilder) {
 	builder.addComponent("background", background, backgroundSlot)
 }
 
+func newActionRailComponents(builder *componentBuilder) {
+	count := len(builder.state.LeftRailActions)
+	for i, action := range builder.state.LeftRailActions {
+		index, action := i, action
+		button := builder.newTouchButton(action.ID, action.Label, func() { _ = action.Run() })
+		button.Fill, button.Ink, button.FontSize = action.Fill, action.Ink, action.FontSize
+		if button.Fill == nil {
+			button.Fill = ui.Rail
+		}
+		if button.Ink == nil {
+			button.Ink = ui.Blue
+		}
+		if button.FontSize <= 0 {
+			button.FontSize = 32
+		}
+		button.Icon, button.IconOnly = action.Icon, action.Icon != nil
+		builder.addComponent(action.ID, button, func(_, height float32) (float32, float32, float32, float32) {
+			const gap float32 = 10
+			h := (height - 28 - float32(count-1)*gap) / float32(count)
+			return 12, 14 + float32(index)*(h+gap), 76, h
+		})
+	}
+}
+
 func newHomeRailComponent(builder *componentBuilder) {
 	action := builder.state.HomeRailAction
 	label := "Home"
@@ -192,9 +216,9 @@ func newHeaderComponents(builder *componentBuilder) {
 	}
 
 	if len(state.HeaderSwitch) > 0 {
-		const switchWidth float32 = 280
+		switchWidth := float32(len(state.HeaderSwitch)) * 140
 		const optionGap float32 = 6
-		optionWidth := (switchWidth - optionGap) / 2
+		optionWidth := (switchWidth - float32(len(state.HeaderSwitch)-1)*optionGap) / float32(len(state.HeaderSwitch))
 		for i, option := range state.HeaderSwitch {
 			index, option := i, option
 			button := builder.newTouchButton(fmt.Sprintf("header-switch-%d", i), option.Label, func() { _ = option.Run() })
@@ -225,6 +249,11 @@ func newHeaderComponents(builder *componentBuilder) {
 		titleButton.FontSize = state.HeaderTitleFontSize
 	}
 	titleButton.OnHold = state.HoldTitle
+	if state.FitHeader {
+		titleButton.Compact = true
+		titleButton.MinimumFont = 10
+		titleButton.MaxLabelLines = -1
+	}
 	position := func(width, height float32) (float32, float32, float32, float32) {
 		return headerTitleSlot(width, height, left, actionWidth)
 	}
@@ -232,10 +261,18 @@ func newHeaderComponents(builder *componentBuilder) {
 }
 
 func newContextComponent(builder *componentBuilder) {
+	if builder.state.HideContext {
+		return
+	}
 	contextButton := builder.newTouchButton("context", builder.state.Subtitle, builder.view.details)
 	contextButton.Fill = ui.Background
 	contextButton.Ink = ui.Muted
 	contextButton.FontSize = 17
+	if builder.state.FitHeader {
+		contextButton.Compact = true
+		contextButton.MinimumFont = 12
+		contextButton.MaxLabelLines = -1
+	}
 	builder.addComponent("screen-context", contextButton, contextSlot)
 }
 

@@ -468,17 +468,27 @@ func (s *Store) DiscardMultiAttempts(attempts []domain.MultiAttempt) error {
 
 // DiscardAttempt removes an unfinished skill observation and its draft.
 func (s *Store) DiscardAttempt(id string) error {
+	return s.DiscardAttempts([]string{id})
+}
+
+// DiscardAttempts removes pending attempts atomically, never submitted results.
+func (s *Store) DiscardAttempts(ids []string) error {
 	return s.transaction(func(q queryer) error {
-		if _, e := one(q, "SELECT id FROM attempts WHERE id=? AND submitted_at IS NULL", id); e != nil {
-			return e
-		}
-		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
-			if _, e := q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
+		for _, id := range ids {
+			if _, e := one(q, "SELECT id FROM attempts WHERE id=? AND submitted_at IS NULL", id); e != nil {
 				return e
 			}
+			for _, table := range []string{"revisions", "results", "drafts", "timed_attempts", "attempts"} {
+				column := "attempt_id"
+				if table == "attempts" {
+					column = "id"
+				}
+				if _, e := q.Exec("DELETE FROM "+table+" WHERE "+column+"=?", id); e != nil {
+					return e
+				}
+			}
 		}
-		_, e := q.Exec("DELETE FROM attempts WHERE id=?", id)
-		return e
+		return nil
 	})
 }
 

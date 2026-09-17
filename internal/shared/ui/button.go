@@ -25,9 +25,13 @@ var (
 
 type TouchButton struct {
 	widget.BaseWidget
-	Text, Detail                          string
-	Fill, Ink                             color.Color
-	FontSize, ScaleFactor                 float32
+	Text, Detail          string
+	Fill, Ink             color.Color
+	FontSize, ScaleFactor float32
+	MinimumFont           float32
+	// Compact reduces vertical padding; negative MaxLabelLines allows unlimited wrapping.
+	Compact                               bool
+	MaxLabelLines                         int
 	HoldDuration                          time.Duration
 	ProgressSegments                      int
 	ProgressValue, ProgressTotal          int
@@ -178,13 +182,22 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	r.detail.Color = ink
 	r.label.FontSize = b.FontSize
 	r.label.MinimumFont = b.FontSize
+	if b.MinimumFont > 0 {
+		r.label.MinimumFont = b.MinimumFont
+	}
 	r.label.Text = b.Text
 	r.detail.Text = b.Detail
 	r.label.ScaleFactor = s
 	r.detail.ScaleFactor = s
 	x, pad := 12*s, 12*s
+	if b.Compact {
+		pad = 2 * s
+	}
 	available := max(1, size.Width-2*x)
 	r.label.MaxLines = 2
+	if b.MaxLabelLines != 0 {
+		r.label.MaxLines = b.MaxLabelLines
+	}
 	if r.icon != nil {
 		if b.IconOnly {
 			h := min(96*s, size.Height/2)
