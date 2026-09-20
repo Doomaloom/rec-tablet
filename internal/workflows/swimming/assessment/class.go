@@ -5,6 +5,7 @@ import (
 
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
+	"rectablet/internal/workflows/swimming/curriculum"
 	"rectablet/internal/workflows/swimming/domain"
 	"rectablet/internal/workflows/swimming/navigation"
 )
@@ -39,6 +40,7 @@ func (c *Controller) EnterClassMode() error {
 		}
 		c.multiSelection, c.multiMode = nil, false
 		c.classAttempts = attempts
+		c.classNames = abbreviateClassNames(attempts)
 		c.Push(navigation.ClassAssessment, nil)
 		return nil
 	})
@@ -62,9 +64,9 @@ func (c *Controller) buildClassAssessmentState(course domain.Course, f navigatio
 		return state, err
 	}
 	state.Title = fmt.Sprintf("%s · %d/%d · %s. %s", student.Name, state.Page+1, state.PageCount, skill.Number, skill.Name)
-	state.Context = course.Name + "\n" + skill.Name + "\n" + student.Name
-	state.HeaderTitleFontSize = 22
-	state.FitHeader, state.HideFooter = true, true
+	state.Context = fmt.Sprintf("%s\n%s. %s\n%s\nStudent %d of %d", course.Name, skill.Number, skill.Name, student.Name, state.Page+1, state.PageCount)
+	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: c.classNames[student.PersonID]}
+	state.HideFooter = true
 	state.HideContext = true
 	state.LeftRailActions = c.classRailActions()
 	for _, subskill := range skill.Subskills {
@@ -138,6 +140,7 @@ func (c *Controller) finishClassAttempts(all, save bool) error {
 			c.classAttempts = append(c.classAttempts[:index], c.classAttempts[index+1:]...)
 		}
 		if len(c.classAttempts) == 0 {
+			c.classNames = nil
 			c.Pop()
 		} else {
 			c.Frames[len(c.Frames)-1].Page = min(index, len(c.classAttempts)-1)
@@ -154,7 +157,7 @@ type checklistLayout struct {
 
 const (
 	classChecklistGap    float32 = 2
-	classChecklistTop    float32 = 82
+	classChecklistTop    float32 = 14 + shell.SplitHeaderHeight + 10
 	classChecklistBottom float32 = 14
 )
 

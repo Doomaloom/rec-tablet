@@ -4,6 +4,14 @@ package shell
 // scales these slots uniformly when the window is larger or smaller.
 type LayoutSlot func(width, height float32) (x, y, slotWidth, slotHeight float32)
 
+const SplitHeaderHeight float32 = 32
+
+func splitHeaderSlot(width float32, index int) (float32, float32, float32, float32) {
+	const gap float32 = 8
+	halfWidth := (width - 200 - gap) / 2
+	return 100 + float32(index)*(halfWidth+gap), 14, halfWidth, SplitHeaderHeight
+}
+
 func backgroundSlot(width, height float32) (float32, float32, float32, float32) {
 	return 0, 0, width, height
 }

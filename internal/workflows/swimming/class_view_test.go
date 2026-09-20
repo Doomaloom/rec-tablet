@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/test"
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
+	"rectablet/internal/workflows/swimming/curriculum"
 	"rectablet/internal/workflows/swimming/transfer"
 )
 
@@ -70,9 +71,13 @@ func TestClassAssessmentNavigationAndSaveActions(t *testing.T) {
 		f.tap(t, "row:"+row.ID)
 	}
 	firstHeader := f.c.State.Title
+	firstSkill, firstStudent := f.c.State.SplitHeader.Left, f.c.State.SplitHeader.Right
 	f.tap(t, "down")
 	if f.c.State.Title == firstHeader || f.c.State.Rows[0].Status == "successful" {
 		t.Fatal("student paging did not switch drafts/header")
+	}
+	if f.c.State.SplitHeader.Right == firstStudent || f.c.State.SplitHeader.Left != firstSkill {
+		t.Fatal("paging should change only the student half of the header")
 	}
 	f.tap(t, "up")
 	if f.c.State.Rows[0].Status != "successful" {
@@ -127,6 +132,37 @@ func TestClassDiscardAllKeepsSavedStudents(t *testing.T) {
 	check(t, f.s.DB.QueryRow("SELECT COUNT(*), COUNT(submitted_at) FROM attempts").Scan(&attempts, &submitted))
 	if f.c.State.Screen != "skill_swimmers" || attempts != 1 || submitted != 1 {
 		t.Fatalf("discard all affected a saved attempt or left drafts: %s, %d/%d", f.c.State.Screen, submitted, attempts)
+	}
+}
+
+func TestClassNamePrefixesStayStableAsQueueShrinks(t *testing.T) {
+	f := setupUI(t)
+	f.openClassSkill(t, "", "Splash1:1")
+	people := must(f.s.ListRoster(f.c.Frame().Course))
+	names := []string{"Sam Taylor", "Sam Turner", "Sam Tayler", "Solo"}
+	for i, person := range people {
+		_, err := f.s.DB.Exec("UPDATE swimmers SET name=? WHERE id=(SELECT swimmer_id FROM enrollments WHERE id=?)", names[i], person.ID)
+		check(t, err)
+	}
+	check(t, f.c.Refresh())
+	people = must(f.s.ListRoster(f.c.Frame().Course))
+	want := map[string]string{"Sam Taylor": "Sam Taylo.", "Sam Turner": "Sam Tu.", "Sam Tayler": "Sam Tayle.", "Solo": "Solo"}
+	f.enterClass(t)
+	for i, person := range people {
+		if got := f.view.Buttons["header-half-1"].Text; got != want[person.Name] {
+			t.Fatalf("name prefix changed as queue shrank: %s displayed as %s", person.Name, got)
+		}
+		action := "save-student"
+		if i%2 == 1 {
+			action = "discard-student"
+		}
+		f.tap(t, action)
+		if stored := must(f.s.GetEnrollment(person.ID)); stored.Name != person.Name {
+			t.Fatal("header abbreviation changed the stored student name")
+		}
+	}
+	if f.c.State.Screen != "skill_swimmers" || f.c.State.SplitHeader != nil {
+		t.Fatal("compact header should be limited to Class assessment")
 	}
 }
 
@@ -225,8 +261,19 @@ func TestClassChecklistLayoutAndModeRestrictions(t *testing.T) {
 			f.enterClass(t)
 			skill := must(f.s.Skill(f.c.Frame().Version, scenario.skill))
 			people := must(f.s.ListRoster(f.c.Frame().Course))
-			if !strings.Contains(f.view.Buttons["title"].Text, people[0].Name) || !strings.Contains(f.view.Buttons["title"].Text, skill.Name) || f.view.Buttons["context"] != nil {
-				t.Fatal("student and skill should share the main header without a separate context row")
+			if f.view.Buttons["header-half-0"].Text != skill.Number+". "+curriculum.CompactTitle(skill) || f.view.Buttons["header-half-1"].Text != "Alexandria M." || f.view.Buttons["context"] != nil || f.view.Buttons["title"] != nil {
+				t.Fatal("Class should use the compact student/skill header only")
+			}
+			if !strings.Contains(f.c.State.Context, people[0].Name) || !strings.Contains(f.c.State.Context, skill.Name) || !strings.Contains(f.c.State.Context, "Student 1 of 4") {
+				t.Fatal("full details should retain the original student, skill and position")
+			}
+			for _, id := range []string{"header-half-0", "header-half-1"} {
+				f.tap(t, id)
+				details := f.w.Canvas().Overlays().Top()
+				if details == nil {
+					t.Fatalf("%s did not open full details", id)
+				}
+				details.Hide()
 			}
 			if len(f.c.State.Rows) != scenario.count {
 				t.Fatalf("checklist paginated: got %d subskills, want %d", len(f.c.State.Rows), scenario.count)
@@ -267,16 +314,16 @@ func TestClassChecklistLayoutAndModeRestrictions(t *testing.T) {
 					} else if size != rowSize {
 						t.Fatalf("subskill buttons differ in size: %v and %v", rowSize, size)
 					}
-					if x < 100 || y < 82 || x+width > 700 || y+height > 466.01 {
+					if x < 100 || y < 56 || x+width > 700 || y+height > 466.01 {
 						t.Fatalf("subskill outside body: %s at %v", component.Name, []float32{x, y, width, height})
 					}
-					if component.Name == "feature-class-subskill-0" && y != 82 {
+					if component.Name == "feature-class-subskill-0" && y != 56 {
 						t.Fatal("checklist did not reclaim the removed header row")
 					}
 				}
 				var subskillFont float32
 				for id, button := range f.view.Buttons {
-					if !strings.HasPrefix(id, "row:") && id != "title" && id != "context" {
+					if !strings.HasPrefix(id, "row:") && !strings.HasPrefix(id, "header-half-") {
 						continue
 					}
 					if strings.HasPrefix(id, "row:") {
@@ -288,8 +335,13 @@ func TestClassChecklistLayoutAndModeRestrictions(t *testing.T) {
 					}
 					button.Refresh()
 					for _, object := range test.WidgetRenderer(button).Objects() {
-						if label, ok := object.(*ui.TextBlock); ok && label.Visible() && label.Truncated {
-							t.Fatalf("text clipped in %s at %v: %q", id, bounds, label.Text)
+						if label, ok := object.(*ui.TextBlock); ok && label.Visible() {
+							if label.Truncated {
+								t.Fatalf("text clipped in %s at %v: %q", id, bounds, label.Text)
+							}
+							if strings.HasPrefix(id, "header-half-") && (label.Wrap || label.MaxLines != 1 || label.FontSize != 18) {
+								t.Fatal("compact header must stay one line at 18pt")
+							}
 						}
 					}
 				}

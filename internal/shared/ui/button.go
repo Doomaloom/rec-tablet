@@ -31,6 +31,7 @@ type TouchButton struct {
 	MinimumFont           float32
 	// Compact reduces vertical padding; negative MaxLabelLines allows unlimited wrapping.
 	Compact                               bool
+	SingleLine                            bool
 	MaxLabelLines                         int
 	HoldDuration                          time.Duration
 	ProgressSegments                      int
@@ -197,6 +198,10 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	r.label.MaxLines = 2
 	if b.MaxLabelLines != 0 {
 		r.label.MaxLines = b.MaxLabelLines
+	}
+	r.label.Wrap = !b.SingleLine
+	if b.SingleLine {
+		r.label.MaxLines = 1
 	}
 	if r.icon != nil {
 		if b.IconOnly {

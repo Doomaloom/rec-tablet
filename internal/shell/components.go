@@ -179,6 +179,10 @@ func newBackButtonComponent(builder *componentBuilder) {
 
 func newHeaderComponents(builder *componentBuilder) {
 	state := builder.state
+	if state.SplitHeader != nil {
+		newSplitHeaderComponents(builder)
+		return
+	}
 	actionWidth := float32(0)
 	actions := state.HeaderActions
 	if len(actions) > 0 {
@@ -258,6 +262,24 @@ func newHeaderComponents(builder *componentBuilder) {
 		return headerTitleSlot(width, height, left, actionWidth)
 	}
 	builder.addComponent("screen-title", titleButton, position)
+}
+
+func newSplitHeaderComponents(builder *componentBuilder) {
+	header := builder.state.SplitHeader
+	for i, label := range []string{header.Left, header.Right} {
+		index := i
+		id := fmt.Sprintf("header-half-%d", index)
+		button := builder.newTouchButton(id, label, func() {
+			if builder.state.TitleDetails {
+				builder.view.details()
+			}
+		})
+		button.Fill, button.Ink, button.FontSize = ui.White, ui.Navy, 18
+		button.Compact, button.SingleLine = true, true
+		builder.addComponent(id, button, func(width, _ float32) (float32, float32, float32, float32) {
+			return splitHeaderSlot(width, index)
+		})
+	}
 }
 
 func newContextComponent(builder *componentBuilder) {

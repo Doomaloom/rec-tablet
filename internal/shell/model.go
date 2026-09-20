@@ -37,6 +37,12 @@ type HeaderSwitchOption struct {
 	Run      func() error
 }
 
+// SplitHeader replaces the normal title with two compact, single-line labels.
+// Both halves open the screen's full Context when TitleDetails is enabled.
+type SplitHeader struct {
+	Left, Right string
+}
+
 type State struct {
 	// OnLeave releases feature resources when the route changes or the view closes.
 	OnLeave                                                                               func()
@@ -55,6 +61,7 @@ type State struct {
 	HeaderActions       []HeaderAction
 	HeaderSwitch        []HeaderSwitchOption
 	HeaderTitleFontSize float32
+	SplitHeader         *SplitHeader
 	FitHeader           bool
 	HideContext         bool
 	HideFooter          bool

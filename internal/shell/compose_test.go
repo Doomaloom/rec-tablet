@@ -52,6 +52,33 @@ func TestComposeScreenUsesNamedCommonComponents(t *testing.T) {
 	}
 }
 
+func TestComposeScreenUsesCompactSplitHeader(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("split header")
+	defer window.Close()
+	presenter := &compositionPresenter{state: State{
+		Title: "Full student and skill", HideContext: true,
+		SplitHeader: &SplitHeader{Left: "8. Front crawl 50m", Right: "Alexandria M."},
+	}}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, presenter.state)
+	if hasComponent(composition.Components, "screen-title") || hasComponent(composition.Components, "screen-context") {
+		t.Fatal("split header should replace the normal title/context")
+	}
+	for i, id := range []string{"header-half-0", "header-half-1"} {
+		x, y, width, height := componentNamed(composition.Components, id).Position(800, 480)
+		if x != 100+float32(i)*304 || y != 14 || width != 296 || height != 32 {
+			t.Fatalf("incorrect split header slot: %s at %v", id, []float32{x, y, width, height})
+		}
+		button := composition.Buttons[id]
+		if !button.SingleLine || !button.Compact || button.FontSize != 18 {
+			t.Fatal("split header should use compact, single-line 18pt text")
+		}
+	}
+}
+
 func TestComposeScreenPreservesFeatureBodyWithoutPopupNotices(t *testing.T) {
 	app := test.NewApp()
 	defer app.Quit()

@@ -22,6 +22,7 @@ type Controller struct {
 	multiMode         bool
 	multiSubskillPage int
 	classAttempts     []domain.MultiAttempt
+	classNames        map[string]string
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {

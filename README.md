@@ -64,9 +64,13 @@ The same hidden screen provides **Export Data**. Select a folder, accept or edit
 
 Home and Back preserve drafts. Selecting a swimmer for a skill resumes an unfinished observation for that swimmer, skill, and lesson. Existing attempts remain reviewable through Feedback until a curriculum reset. Tap the title/subtitle to read the full lesson context. Former enrollments remain available in Feedback but cannot receive new checks.
 
+Class marking uses a single-line split header: abbreviated student name on the left and skill number/short title on the right. Names use the first name plus surname initial, extending the surname prefix when needed to distinguish students (for example, Sam Ta. and Sam Tu.). These abbreviations stay fixed throughout the session. Tap either half for the full names, original skill title, and student position. Subskill buttons remain equal-sized and use one shared font size.
+
 ## Curriculum and transfer tools
 
 The embedded [curriculum JSON](internal/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 290 skills and 937 criteria. Grouped multi-component skills are separate entries with the same skill number so each component can be marked independently. Unknown levels show Missing curriculum instead of using a fallback level. When the bundled curriculum version changes, assessment marking rows are reset and existing courses move to the new version while roster and attendance data are retained.
+
+Edit Class-mode short titles in [compact_titles.json](internal/workflows/swimming/curriculum/compact_titles.json), using the existing skill IDs as keys and omitting the skill number from the values. These are navigation labels, not replacements for the full assessment instructions. They are embedded display metadata, separate from the versioned curriculum: editing them requires a rebuild but does not reset markings, change exports, or need a curriculum version bump. Skills without an override use their original title; overflow ends with an ellipsis. Tests check that all bundled numbered titles fit a header half at 18-point text.
 
 Both development tools now run in Go. Flags come **before** positional arguments:
 
