@@ -12,6 +12,7 @@ import (
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
 	lesson "rectablet/internal/workflows/swimming"
+	"rectablet/internal/workflows/swimming/curriculum"
 	store "rectablet/internal/workflows/swimming/repository"
 	"rectablet/internal/workflows/swimming/transfer"
 	"strings"
@@ -251,6 +252,33 @@ func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
 	if count != 1 {
 		t.Fatal("removed check left more than the saved incomplete attempt")
+	}
+}
+
+func TestSkillsViewUsesCompactSkillTitles(t *testing.T) {
+	f := setupUI(t)
+	f.row(t, 0)
+	f.tap(t, "row:skills")
+	const skillID = "Splash1:10-front-crawl-wearing-pfd-5-m"
+	for {
+		for _, row := range f.c.State.Rows {
+			if row.ID != skillID {
+				continue
+			}
+			skill := must(curriculum.Bundled().Skill(skillID))
+			want := skill.Number + ". " + curriculum.CompactTitle(skill)
+			if row.Label != want {
+				t.Fatalf("Skills view label = %q, want compact title %q", row.Label, want)
+			}
+			if row.Label == skill.Number+". "+skill.Name {
+				t.Fatal("Skills view still uses the full curriculum title")
+			}
+			return
+		}
+		if f.view.Buttons["down"].Disabled {
+			t.Fatalf("skill %s was not found", skillID)
+		}
+		f.tap(t, "down")
 	}
 }
 

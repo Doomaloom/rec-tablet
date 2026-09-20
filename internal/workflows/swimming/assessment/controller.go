@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
+	"rectablet/internal/workflows/swimming/curriculum"
 	"rectablet/internal/workflows/swimming/domain"
 	"rectablet/internal/workflows/swimming/navigation"
 	"strings"
@@ -63,7 +64,7 @@ func (c *Controller) Build() (navigation.State, error) {
 				if benchmark, ok := benchmarkFor(skill.ID); ok {
 					detail += " · Timed heat · " + benchmark.Description
 				}
-				rows = append(rows, navigation.Row{ID: skill.ID, Label: skill.Number + ". " + skill.Name, Detail: detail, Data: navigation.Parameters{Level: p.Level, Version: version}})
+				rows = append(rows, navigation.Row{ID: skill.ID, Label: skill.Number + ". " + curriculum.CompactTitle(skill), Detail: detail, Data: navigation.Parameters{Level: p.Level, Version: version}})
 			}
 		}
 		state.Empty = "No enrolled swimmers with an assigned level."
