@@ -167,7 +167,7 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		segment.Hide()
 	}
 	r.bg.Resize(size)
-	r.bg.CornerRadius = 18 * s
+	r.bg.CornerRadius = 0
 	r.bg.FillColor = b.Fill
 	r.bg.StrokeWidth = 0
 	if b.Selected || b.Outlined || b.focused {
@@ -190,7 +190,7 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	r.detail.Text = b.Detail
 	r.label.ScaleFactor = s
 	r.detail.ScaleFactor = s
-	x, pad := 12*s, 12*s
+	x, pad := ButtonPadding*s, 4*s
 	if b.Compact {
 		pad = 2 * s
 	}
@@ -205,9 +205,10 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	}
 	if r.icon != nil {
 		if b.IconOnly {
-			h := min(96*s, size.Height/2)
-			r.icon.Move(fyne.NewPos((size.Width-48*s)/2, (size.Height-h)/2))
-			r.icon.Resize(fyne.NewSize(48*s, h))
+			h := min(32*s, min(size.Width-2*ButtonPadding*s, size.Height-4*s))
+			h = max(1, h)
+			r.icon.Move(fyne.NewPos((size.Width-h)/2, (size.Height-h)/2))
+			r.icon.Resize(fyne.NewSize(h, h))
 			r.label.Hide()
 			r.detail.Hide()
 			r.bg.Refresh()
@@ -222,15 +223,18 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		r.detail.Hide()
 	} else {
 		labelHeight := size.Height - 2*pad
+		labelTop := pad
 		if b.Detail != "" {
 			labelHeight -= 23 * s
+			labelHeight = min(labelHeight, WrappedTextHeight(b.Text, available, b.FontSize*s, true))
+			labelTop = max(pad, (size.Height-labelHeight-23*s)/2)
 			r.detail.Show()
-			r.detail.Move(fyne.NewPos(x, size.Height-pad-23*s))
+			r.detail.Move(fyne.NewPos(x, labelTop+labelHeight))
 			r.detail.Resize(fyne.NewSize(available, 23*s))
 		} else {
 			r.detail.Hide()
 		}
-		r.label.Move(fyne.NewPos(x, pad))
+		r.label.Move(fyne.NewPos(x, labelTop))
 		r.label.Resize(fyne.NewSize(available, max(1, labelHeight)))
 		segmentCount := min(3, max(0, b.ProgressSegments))
 		segmentInset := 2 * s
@@ -241,7 +245,7 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 			if width > 0 {
 				segment := r.progressSegments[0]
 				segment.FillColor = Green
-				segment.CornerRadius = 16 * s
+				segment.CornerRadius = 0
 				segment.Move(fyne.NewPos(0, segmentInset))
 				segment.Resize(fyne.NewSize(width, segmentHeight))
 				segment.Show()
@@ -254,7 +258,7 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 			for i := 0; i < segmentCount; i++ {
 				segment := r.progressSegments[i]
 				segment.FillColor = Green
-				segment.CornerRadius = 16 * s
+				segment.CornerRadius = 0
 				segment.Move(fyne.NewPos(startX+float32(i)*(segmentWidth+segmentGap), segmentInset))
 				segment.Resize(fyne.NewSize(segmentWidth, segmentHeight))
 				segment.Show()

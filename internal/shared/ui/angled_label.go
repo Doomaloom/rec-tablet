@@ -35,11 +35,8 @@ func NewAngledLabel(text string, length, textSize, angle float64, fill, ink, bor
 	var cardHeight float64
 	face := newAngledLabelFace(textSize)
 	if face != nil {
-		if len(text) > 35 {
-			cardHeight = float64(2*face.Metrics().Height.Ceil() + 2*angledLabelPadding(textSize))
-		} else {
-			cardHeight = float64(face.Metrics().Height.Ceil() + angledLabelPadding(textSize))
-		}
+		lines := wrapAngledText(text, face, max(1, int(math.Round(length))-20))
+		cardHeight = float64(min(2, len(lines))*face.Metrics().Height.Ceil() + 2*angledLabelPadding(textSize))
 		_ = face.Close()
 	}
 	radians := angle * math.Pi / 180
@@ -109,7 +106,7 @@ func renderAngledLabel(text string, length, cardHeight, textSize, radians, slotW
 	}
 
 	label := image.NewNRGBA(image.Rect(0, 0, labelWidth, labelHeight))
-	drawRoundedLabel(label, fill, border, scale)
+	drawLabel(label, fill, border, scale)
 	metrics := face.Metrics()
 	lineHeight := metrics.Height.Ceil()
 	baseline := (labelHeight-len(lines)*lineHeight)/2 + metrics.Ascent.Ceil()
@@ -187,43 +184,20 @@ func fitAngledEllipsis(text string, face font.Face, availableWidth int) string {
 	return string(runes) + "…"
 }
 
-func drawRoundedLabel(target *image.NRGBA, fill, border color.Color, scale float64) {
+func drawLabel(target *image.NRGBA, fill, border color.Color, scale float64) {
 	width, height := target.Bounds().Dx(), target.Bounds().Dy()
-	radius := max(1, int(math.Round(6*scale)))
 	borderWidth := max(1, int(math.Round(1.5*scale)))
 	fillColor := color.NRGBAModel.Convert(fill).(color.NRGBA)
 	borderColor := color.NRGBAModel.Convert(border).(color.NRGBA)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			if !insideRoundedRectangle(x, y, width, height, radius) {
-				continue
-			}
-			pixel := borderColor
-			if insideRoundedRectangle(x-borderWidth, y-borderWidth, width-2*borderWidth, height-2*borderWidth, max(1, radius-borderWidth)) {
-				pixel = fillColor
+			pixel := fillColor
+			if x < borderWidth || y < borderWidth || x >= width-borderWidth || y >= height-borderWidth {
+				pixel = borderColor
 			}
 			target.SetNRGBA(x, y, pixel)
 		}
 	}
-}
-
-func insideRoundedRectangle(x, y, width, height, radius int) bool {
-	if width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height {
-		return false
-	}
-	if x >= radius && x < width-radius || y >= radius && y < height-radius {
-		return true
-	}
-	cx := radius
-	if x >= width-radius {
-		cx = width - radius - 1
-	}
-	cy := radius
-	if y >= height-radius {
-		cy = height - radius - 1
-	}
-	dx, dy := x-cx, y-cy
-	return dx*dx+dy*dy <= radius*radius
 }
 
 func rotateInto(destination *image.NRGBA, source *image.NRGBA, radians float64) {

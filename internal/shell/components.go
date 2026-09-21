@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/theme"
 	"image/color"
 	"rectablet/internal/shared/ui"
 )
@@ -78,9 +79,7 @@ func newActionRailComponents(builder *componentBuilder) {
 		}
 		button.Icon, button.IconOnly = action.Icon, action.Icon != nil
 		builder.addComponent(action.ID, button, func(_, height float32) (float32, float32, float32, float32) {
-			const gap float32 = 10
-			h := (height - 28 - float32(count-1)*gap) / float32(count)
-			return 12, 14 + float32(index)*(h+gap), 76, h
+			return railSlot(height, index, count)
 		})
 	}
 }
@@ -110,7 +109,8 @@ func newHomeRailComponent(builder *componentBuilder) {
 	homeButton.Ink = ink
 	homeButton.FontSize = fontSize
 	if action == nil {
-		homeButton.Icon = homeIcon
+		homeButton.Icon = theme.NewPrimaryThemedResource(theme.HomeIcon())
+		homeButton.IconOnly = true
 	} else if action.Icon != nil {
 		homeButton.Icon = action.Icon
 		homeButton.IconOnly = true
@@ -130,7 +130,7 @@ func newPagingRailComponents(builder *componentBuilder) {
 	previousButton.FontSize = 58
 	previousButton.Disabled = state.Page == 0
 	previousButton.IconOnly = true
-	previousButton.Icon = arrowIcon(true, previousButton.Disabled)
+	previousButton.Icon = chevronIcon("up", previousButton.Disabled)
 	builder.addComponent("previous-page", previousButton, previousPageSlot)
 
 	nextButton := builder.newTouchButton("down", "↓", func() { _ = builder.controller.Page(1) })
@@ -139,7 +139,7 @@ func newPagingRailComponents(builder *componentBuilder) {
 	nextButton.FontSize = 58
 	nextButton.Disabled = state.Page+1 >= state.PageCount
 	nextButton.IconOnly = true
-	nextButton.Icon = arrowIcon(false, nextButton.Disabled)
+	nextButton.Icon = chevronIcon("down", nextButton.Disabled)
 	builder.addComponent("next-page", nextButton, nextPageSlot)
 }
 
@@ -170,6 +170,10 @@ func newBackButtonComponent(builder *componentBuilder) {
 	backButton.Fill = fill
 	backButton.Ink = ink
 	backButton.FontSize = fontSize
+	if action == nil {
+		backButton.Icon = chevronIcon("left", false)
+		backButton.IconOnly = true
+	}
 	if action != nil && action.Icon != nil {
 		backButton.Icon = action.Icon
 		backButton.IconOnly = true
@@ -186,7 +190,7 @@ func newHeaderComponents(builder *componentBuilder) {
 	actionWidth := float32(0)
 	actions := state.HeaderActions
 	if len(actions) > 0 {
-		actionWidth = float32(len(actions))*98 + float32(len(actions)-1)*8
+		actionWidth = float32(len(actions))*98 + float32(len(actions)-1)*ui.Gap
 		for i, action := range actions {
 			index, action := i, action
 			button := builder.newTouchButton(fmt.Sprintf("header-action-%d", i), action.Label, func() { _ = action.Run() })
@@ -201,8 +205,8 @@ func newHeaderComponents(builder *componentBuilder) {
 				button.FontSize = 18
 			}
 			position := func(width, height float32) (float32, float32, float32, float32) {
-				x := width - 100 - actionWidth + float32(index)*106
-				return x, 14, 98, 58
+				x := width - ui.ContentInset - actionWidth + float32(index)*(98+ui.Gap)
+				return x, ui.OuterMargin, 98, headerHeight(state)
 			}
 			builder.addComponent(fmt.Sprintf("header-action-%d", i), button, position)
 		}
@@ -221,7 +225,7 @@ func newHeaderComponents(builder *componentBuilder) {
 
 	if len(state.HeaderSwitch) > 0 {
 		switchWidth := float32(len(state.HeaderSwitch)) * 140
-		const optionGap float32 = 6
+		const optionGap = ui.Gap
 		optionWidth := (switchWidth - float32(len(state.HeaderSwitch)-1)*optionGap) / float32(len(state.HeaderSwitch))
 		for i, option := range state.HeaderSwitch {
 			index, option := i, option
@@ -233,14 +237,14 @@ func newHeaderComponents(builder *componentBuilder) {
 				button.Selected = true
 			}
 			position := func(width, _ float32) (float32, float32, float32, float32) {
-				return (width-switchWidth)/2 + float32(index)*(optionWidth+optionGap), 14, optionWidth, 58
+				return (width-switchWidth)/2 + float32(index)*(optionWidth+optionGap), ui.OuterMargin, optionWidth, ui.HeaderHeight
 			}
 			builder.addComponent(fmt.Sprintf("header-switch-%d", i), button, position)
 		}
 		return
 	}
 
-	left := float32(100)
+	left := ui.ContentInset
 	titleButton := builder.newTouchButton("title", state.Title, func() {
 		if state.TitleDetails {
 			builder.view.details()
@@ -259,7 +263,8 @@ func newHeaderComponents(builder *componentBuilder) {
 		titleButton.MaxLabelLines = -1
 	}
 	position := func(width, height float32) (float32, float32, float32, float32) {
-		return headerTitleSlot(width, height, left, actionWidth)
+		x, y, w, _ := headerTitleSlot(width, height, left, actionWidth)
+		return x, y, w, headerHeight(state)
 	}
 	builder.addComponent("screen-title", titleButton, position)
 }
@@ -283,7 +288,7 @@ func newSplitHeaderComponents(builder *componentBuilder) {
 }
 
 func newContextComponent(builder *componentBuilder) {
-	if builder.state.HideContext {
+	if !hasContext(builder.state) {
 		return
 	}
 	contextButton := builder.newTouchButton("context", builder.state.Subtitle, builder.view.details)
@@ -295,7 +300,9 @@ func newContextComponent(builder *componentBuilder) {
 		contextButton.MinimumFont = 12
 		contextButton.MaxLabelLines = -1
 	}
-	builder.addComponent("screen-context", contextButton, contextSlot)
+	builder.addComponent("screen-context", contextButton, func(width, _ float32) (float32, float32, float32, float32) {
+		return ui.ContentInset, ui.OuterMargin + headerHeight(builder.state) + ui.Gap, width - 2*ui.ContentInset, ui.ContextHeight
+	})
 }
 
 func newBodyComponent(builder *componentBuilder) {
@@ -304,6 +311,7 @@ func newBodyComponent(builder *componentBuilder) {
 	}
 	surface := &ui.Surface{
 		Window: builder.view.Window,
+		Bounds: bodySlot(builder.state),
 		Add: func(object fyne.CanvasObject, position func(float32, float32) (float32, float32, float32, float32)) {
 			builder.addBodyComponent(object, position)
 		},
@@ -321,28 +329,24 @@ func newFooterComponents(builder *componentBuilder) {
 	if state.HideFooter {
 		return
 	}
-	progressText := state.Progress
-	if progressText != "" {
-		progressText += "\n"
-	}
-	progressText += formatPageIndicator(state.Page, state.PageCount)
-	progress := ui.NewText(progressText, 16, ui.Muted)
-	builder.addComponent("progress-footer", progress, progressFooterSlot)
-
+	progress := ui.NewText(state.Progress, 16, ui.Muted)
+	builder.addComponent("progress-footer", progress, func(width, height float32) (float32, float32, float32, float32) {
+		return ui.ContentInset, height - ui.OuterMargin - footerHeight(state) + ui.Gap, width - 2*ui.ContentInset - 84 - ui.Gap, ui.StatusHeight
+	})
+	page := ui.NewText(formatPageIndicator(state.Page, state.PageCount), 16, ui.Muted)
+	page.Center = true
+	builder.addComponent("page-status", page, func(width, height float32) (float32, float32, float32, float32) {
+		return width - ui.ContentInset - 84, height - ui.OuterMargin - footerHeight(state) + ui.Gap, 84, ui.StatusHeight
+	})
 	if state.FooterAction != "" {
 		submitButton := builder.newTouchButton("submit", state.FooterAction, func() { _ = builder.controller.Submit() })
 		submitButton.Disabled = !state.CanSubmit
 		submitButton.Fill = ui.Navy
 		submitButton.FontSize = 20
 		builder.addComponent("submit-footer", submitButton, submitFooterSlot)
-		return
 	}
-
-	deviceStatus := ui.NewText("ON DEVICE", 12, ui.Green)
-	deviceStatus.Center = true
-	builder.addComponent("device-status", deviceStatus, deviceStatusSlot)
 }
 
 func formatPageIndicator(page, pageCount int) string {
-	return fmt.Sprintf("Page %d of %d", page+1, pageCount)
+	return fmt.Sprintf("%d / %d", page+1, pageCount)
 }

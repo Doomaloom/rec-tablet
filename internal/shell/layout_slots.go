@@ -1,65 +1,83 @@
 package shell
 
-// Layout slots describe the logical 800x480 design surface. The root layout
-// scales these slots uniformly when the window is larger or smaller.
+import "rectablet/internal/shared/ui"
+
+// Layout slots use the logical 800x480 surface, scaled uniformly by the root.
 type LayoutSlot func(width, height float32) (x, y, slotWidth, slotHeight float32)
 
 const SplitHeaderHeight float32 = 32
 
 func splitHeaderSlot(width float32, index int) (float32, float32, float32, float32) {
-	const gap float32 = 8
-	halfWidth := (width - 200 - gap) / 2
-	return 100 + float32(index)*(halfWidth+gap), 14, halfWidth, SplitHeaderHeight
+	halfWidth := (width - 2*ui.ContentInset - ui.Gap) / 2
+	return ui.ContentInset + float32(index)*(halfWidth+ui.Gap), ui.OuterMargin, halfWidth, SplitHeaderHeight
 }
 
 func backgroundSlot(width, height float32) (float32, float32, float32, float32) {
 	return 0, 0, width, height
 }
 
+func railSlot(height float32, index, count int) (float32, float32, float32, float32) {
+	slotHeight := (height - 2*ui.OuterMargin - float32(count-1)*ui.Gap) / float32(count)
+	return ui.OuterMargin, ui.OuterMargin + float32(index)*(slotHeight+ui.Gap), ui.RailWidth, slotHeight
+}
+
 func homeRailSlot(_, height float32) (float32, float32, float32, float32) {
-	return 12, 14, 76, height - 28
+	return railSlot(height, 0, 1)
 }
-
 func splitHomeRailSlot(_, height float32) (float32, float32, float32, float32) {
-	return 12, 26 + (height-40)/2, 76, (height - 40) / 2
+	return railSlot(height, 1, 2)
 }
-
 func splitBackRailSlot(_, height float32) (float32, float32, float32, float32) {
-	return 12, 14, 76, (height - 40) / 2
+	return railSlot(height, 0, 2)
 }
-
 func previousPageSlot(width, height float32) (float32, float32, float32, float32) {
-	return width - 88, 14, 76, (height - 40) / 2
+	_, y, w, h := railSlot(height, 0, 2)
+	return width - ui.OuterMargin - ui.RailWidth, y, w, h
 }
-
 func nextPageSlot(width, height float32) (float32, float32, float32, float32) {
-	return width - 88, 26 + (height-40)/2, 76, (height - 40) / 2
+	_, y, w, h := railSlot(height, 1, 2)
+	return width - ui.OuterMargin - ui.RailWidth, y, w, h
 }
-
 func headerActionSlot(width, _ float32, actionWidth float32) (float32, float32, float32, float32) {
-	return width - 100 - actionWidth, 14, actionWidth, 58
+	return width - ui.ContentInset - actionWidth, ui.OuterMargin, actionWidth, ui.HeaderHeight
 }
-
 func headerTitleSlot(width, _ float32, left, actionWidth float32) (float32, float32, float32, float32) {
 	gap := float32(0)
 	if actionWidth > 0 {
-		gap = 8
+		gap = ui.Gap
 	}
-	return left, 14, width - 100 - left - actionWidth - gap, 58
+	return left, ui.OuterMargin, width - ui.ContentInset - left - actionWidth - gap, ui.HeaderHeight
 }
 
-func contextSlot(width, _ float32) (float32, float32, float32, float32) {
-	return 100, 75, width - 200, 36
+func headerHeight(state State) float32 {
+	if state.SplitHeader != nil {
+		return SplitHeaderHeight
+	}
+	if state.HeaderTitleFontSize > 25 {
+		return 56
+	}
+	return ui.HeaderHeight
 }
-
-func progressFooterSlot(width, height float32) (float32, float32, float32, float32) {
-	return 100, height - 71, width - 424, 57
+func hasContext(state State) bool { return !state.HideContext && state.Subtitle != "" }
+func footerHeight(state State) float32 {
+	if state.HideFooter {
+		return 0
+	}
+	height := ui.StatusHeight + ui.Gap
+	if state.FooterAction != "" {
+		height += ui.HeaderHeight + ui.Gap
+	}
+	return height
 }
-
+func bodySlot(state State) ui.Bounds {
+	return func(width, height float32) (float32, float32, float32, float32) {
+		top := ui.OuterMargin + headerHeight(state) + ui.Gap
+		if hasContext(state) {
+			top += ui.ContextHeight + ui.Gap
+		}
+		return ui.ContentInset, top, width - 2*ui.ContentInset, height - top - ui.OuterMargin - footerHeight(state)
+	}
+}
 func submitFooterSlot(width, height float32) (float32, float32, float32, float32) {
-	return width - 308, height - 71, 208, 57
-}
-
-func deviceStatusSlot(width, height float32) (float32, float32, float32, float32) {
-	return width - 230, height - 71, 130, 57
+	return width - ui.ContentInset - 208, height - ui.OuterMargin - ui.HeaderHeight, 208, ui.HeaderHeight
 }

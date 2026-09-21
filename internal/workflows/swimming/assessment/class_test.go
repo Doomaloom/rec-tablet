@@ -52,10 +52,10 @@ func TestClassChecklistFitsEntireCatalog(t *testing.T) {
 				rows = append(rows, navigation.Row{Label: subskill.Text})
 			}
 			availableHeight := 480 - classChecklistTop - classChecklistBottom
-			layout := fitClassChecklist(rows, 600, availableHeight)
+			layout := fitClassChecklist(rows, 680, availableHeight)
 			total := float32(len(rows))*layout.height + float32(max(0, len(rows)-1))*classChecklistGap
 			for i, row := range rows {
-				needed := ui.WrappedTextHeight(row.Label, 576, layout.font, true)
+				needed := ui.WrappedTextHeight(row.Label, 680-2*ui.ButtonPadding, layout.font, true)
 				if needed > layout.height-4 {
 					t.Fatalf("%s criterion %d clips: needs %v, has %v", skill.ID, i, needed, layout.height-4)
 				}
@@ -90,7 +90,7 @@ func TestClassChecklistUsesSharedFontToFitLongestLabel(t *testing.T) {
 		t.Fatal("shared font did not shrink to accommodate the longest label")
 	}
 	for _, row := range rows {
-		if ui.WrappedTextHeight(row.Label, 576, layout.font, true) > layout.height-4 {
+		if ui.WrappedTextHeight(row.Label, 600-2*ui.ButtonPadding, layout.font, true) > layout.height-4 {
 			t.Fatal("label does not fit using the shared font size")
 		}
 	}

@@ -17,6 +17,7 @@ type Surface struct {
 	AddNamed  NamedComponentAdder
 	Button    func(string, string, func()) *TouchButton
 	Criterion *TextBlock
+	Bounds    Bounds
 }
 type Item struct {
 	ID, Label, Detail, Status    string
@@ -33,6 +34,7 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 	for i, row := range rows {
 		i, row := i, row
 		b := surface.Button("row:"+row.ID, row.Label, func() { selectRow(row.ID) })
+		b.MaxLabelLines = -1
 		b.Detail = row.Detail
 		b.Disabled = row.Disabled
 		b.Selected = row.Selected
@@ -45,8 +47,9 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 			b.Fill = row.Fill
 		}
 		rowPosition := func(w, h float32) (float32, float32, float32, float32) {
-			height := (h - 200) / 3
-			return 100, 118 + float32(i)*(height+10), w - 200, height
+			x, y, width, availableHeight := surface.BodyBounds(w, h)
+			height := (availableHeight - 2*Gap) / 3
+			return x, y + float32(i)*(height+Gap), width, height
 		}
 		if surface.AddNamed != nil {
 			surface.AddNamed("list-row-"+row.ID, b, rowPosition)
@@ -58,5 +61,8 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 func Empty(surface *Surface, message string) {
 	empty := NewText(message, 24, Muted)
 	empty.Center = true
-	surface.Add(empty, func(w, h float32) (float32, float32, float32, float32) { return 124, 134, w - 248, h - 230 })
+	surface.Add(empty, func(w, h float32) (float32, float32, float32, float32) {
+		x, y, width, height := surface.BodyBounds(w, h)
+		return x + ButtonPadding, y, width - 2*ButtonPadding, height
+	})
 }

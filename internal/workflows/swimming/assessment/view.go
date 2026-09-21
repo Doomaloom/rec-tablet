@@ -55,7 +55,8 @@ func (c *Controller) composeTimedSelectionBody(state shell.State) ui.BodyCompose
 		for i := range rows {
 			if rows[i].Status == "selected" {
 				rows[i].Fill = ui.Green
-				rows[i].Detail = "Selected for heat"
+				rows[i].Detail = ""
+				rows[i].Selected = true
 			}
 		}
 		ui.List(surface, rows, func(id string) { _ = c.Controller.Select(id) })
@@ -68,21 +69,29 @@ func (c *Controller) composeTimedLapsBody(state shell.State) ui.BodyComposer {
 		display := ui.NewText(snapshot.Progress, 28, ui.Navy)
 		display.Bold = true
 		display.Center = true
-		surface.AddNamed("timed-laps-display", display, func(w, h float32) (float32, float32, float32, float32) { return 100, 110, w - 200, 58 })
+		surface.AddNamed("timed-laps-display", display, func(w, h float32) (float32, float32, float32, float32) {
+			x, y, width, _ := surface.BodyBounds(w, h)
+			return x, y, width, 58
+		})
 		digits := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
 		for i, digit := range digits {
 			digit, column, row := digit, i%5, i/5
 			button := surface.Button("timed-digit:"+digit, digit, func() { _ = c.Controller.Select("timed-digit:" + digit) })
 			button.FontSize = 26
 			surface.AddNamed("timed-digit-"+digit, button, func(w, h float32) (float32, float32, float32, float32) {
-				return 100 + float32(column)*((w-220)/5+10), 180 + float32(row)*68, (w - 260) / 5, 58
+				x, y, width, _ := surface.BodyBounds(w, h)
+				digitWidth := (width - 4*ui.Gap) / 5
+				return x + float32(column)*(digitWidth+ui.Gap), y + 58 + ui.Gap + float32(row)*(58+ui.Gap), digitWidth, 58
 			})
 		}
 		clear := surface.Button("timed-clear", "Clear", func() { _ = c.Controller.Select("timed-clear") })
 		clear.Fill = ui.Rail
 		clear.Ink = ui.Blue
 		clear.FontSize = 18
-		surface.AddNamed("timed-clear", clear, func(w, h float32) (float32, float32, float32, float32) { return 100, 322, w - 200, 52 })
+		surface.AddNamed("timed-clear", clear, func(w, h float32) (float32, float32, float32, float32) {
+			x, y, width, _ := surface.BodyBounds(w, h)
+			return x, y + 3*(58+ui.Gap), width, ui.HeaderHeight
+		})
 	}
 }
 
@@ -127,11 +136,7 @@ func (c *Controller) composeSubskillChecklistBody(state shell.State) ui.BodyComp
 		for i := range rows {
 			if rows[i].Status == "successful" {
 				rows[i].Fill = ui.Green
-				if rows[i].Detail == "" {
-					rows[i].Detail = "Complete"
-				} else {
-					rows[i].Detail = "Complete · " + rows[i].Detail
-				}
+				rows[i].Selected = true
 			}
 		}
 		ui.List(surface, rows, func(id string) { _ = c.Controller.Select(id) })

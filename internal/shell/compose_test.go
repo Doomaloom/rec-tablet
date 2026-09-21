@@ -31,7 +31,7 @@ func TestComposeScreenUsesNamedCommonComponents(t *testing.T) {
 	defer view.Close()
 	composition := ComposeScreen(view, presenter.state)
 
-	wanted := []string{"background", "home-rail", "previous-page", "next-page", "screen-title", "screen-context", "progress-footer", "device-status"}
+	wanted := []string{"background", "home-rail", "previous-page", "next-page", "screen-title", "screen-context", "progress-footer", "page-status"}
 	seen := map[string]bool{}
 	for _, component := range composition.Components {
 		if component.Name == "" || component.Object == nil || component.Position == nil {
@@ -69,7 +69,7 @@ func TestComposeScreenUsesCompactSplitHeader(t *testing.T) {
 	}
 	for i, id := range []string{"header-half-0", "header-half-1"} {
 		x, y, width, height := componentNamed(composition.Components, id).Position(800, 480)
-		if x != 100+float32(i)*304 || y != 14 || width != 296 || height != 32 {
+		if x != 60+float32(i)*342 || y != 4 || width != 338 || height != 32 {
 			t.Fatalf("incorrect split header slot: %s at %v", id, []float32{x, y, width, height})
 		}
 		button := composition.Buttons[id]
@@ -88,7 +88,7 @@ func TestComposeScreenPreservesFeatureBodyWithoutPopupNotices(t *testing.T) {
 	defer view.Close()
 	presenter.state.ComposeBody = func(surface *ui.Surface) {
 		text := ui.NewText("Feature content", 20, ui.White)
-		surface.Add(text, func(float32, float32) (float32, float32, float32, float32) { return 100, 118, 500, 100 })
+		surface.AddNamed("fixture", text, surface.BodyBounds)
 	}
 	composition := ComposeScreen(view, presenter.state)
 	seen := map[string]bool{}
@@ -98,7 +98,7 @@ func TestComposeScreenPreservesFeatureBodyWithoutPopupNotices(t *testing.T) {
 	if seen["notice-background"] || seen["notice-message"] || seen["notice-dismiss"] {
 		t.Fatal("transient notice popup components were composed")
 	}
-	if !seen["feature-body-element-6"] {
+	if !seen["feature-fixture"] {
 		t.Fatalf("feature body was not named: %v", seen)
 	}
 }
@@ -116,7 +116,7 @@ func TestComposeScreenSharesLeftRailBetweenHomeAndBack(t *testing.T) {
 
 	fullHome := componentNamed(withoutBackComposition.Components, "home-rail")
 	x, y, width, height := fullHome.Position(800, 480)
-	if x != 12 || y != 14 || width != 76 || height != 452 {
+	if x != 4 || y != 4 || width != 52 || height != 472 {
 		t.Fatalf("full Home rail slot = %v, %v, %v, %v", x, y, width, height)
 	}
 	if hasComponent(withoutBackComposition.Components, "back-button") {
@@ -130,10 +130,10 @@ func TestComposeScreenSharesLeftRailBetweenHomeAndBack(t *testing.T) {
 
 	homeX, homeY, homeWidth, homeHeight := componentNamed(withBackComposition.Components, "home-rail").Position(800, 480)
 	backX, backY, backWidth, backHeight := componentNamed(withBackComposition.Components, "back-button").Position(800, 480)
-	if homeX != 12 || homeY != 246 || homeWidth != 76 || homeHeight != 220 {
+	if homeX != 4 || homeY != 242 || homeWidth != 52 || homeHeight != 234 {
 		t.Fatalf("split Home rail slot = %v, %v, %v, %v", homeX, homeY, homeWidth, homeHeight)
 	}
-	if backX != 12 || backY != 14 || backWidth != 76 || backHeight != 220 {
+	if backX != 4 || backY != 4 || backWidth != 52 || backHeight != 234 {
 		t.Fatalf("split Back rail slot = %v, %v, %v, %v", backX, backY, backWidth, backHeight)
 	}
 }
@@ -163,10 +163,10 @@ func TestComposeScreenRendersHeaderModeSwitch(t *testing.T) {
 	if composition.Buttons["header-switch-0"].Fill != ui.Blue || composition.Buttons["header-switch-1"].Fill != ui.White {
 		t.Fatal("selected mode switch option styling is incorrect")
 	}
-	lastRight := float32(100)
+	lastRight := ui.ContentInset
 	for _, id := range []string{"header-switch-0", "header-switch-1", "header-switch-2"} {
 		x, _, width, _ := componentNamed(composition.Components, id).Position(800, 480)
-		if x < lastRight || x+width > 700 {
+		if x < lastRight || x+width > 800-ui.ContentInset {
 			t.Fatal("mode switch overlaps another option or rail")
 		}
 		lastRight = x + width
@@ -190,7 +190,7 @@ func TestComposeScreenOrdersFourRailActions(t *testing.T) {
 	bottom := float32(0)
 	for _, action := range presenter.state.LeftRailActions {
 		x, y, width, height := componentNamed(composition.Components, action.ID).Position(800, 480)
-		if x != 12 || width != 76 || y <= bottom || y+height > 466 {
+		if x != 4 || width != 52 || y <= bottom || y+height > 476 {
 			t.Fatalf("rail action outside its slot: %s", action.ID)
 		}
 		bottom = y + height
@@ -216,7 +216,7 @@ func TestComposeScreenSupportsIconRailActionsAndHiddenFooter(t *testing.T) {
 	if !composition.Buttons["home"].IconOnly || !composition.Buttons["back"].IconOnly {
 		t.Fatal("icon rail actions should hide their fallback text")
 	}
-	if hasComponent(composition.Components, "progress-footer") || hasComponent(composition.Components, "device-status") {
+	if hasComponent(composition.Components, "progress-footer") || hasComponent(composition.Components, "page-status") {
 		t.Fatal("hidden matrix footer was still composed")
 	}
 }

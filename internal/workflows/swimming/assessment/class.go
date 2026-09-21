@@ -157,8 +157,8 @@ type checklistLayout struct {
 
 const (
 	classChecklistGap    float32 = 2
-	classChecklistTop    float32 = 14 + shell.SplitHeaderHeight + 10
-	classChecklistBottom float32 = 14
+	classChecklistTop    float32 = ui.OuterMargin + shell.SplitHeaderHeight + ui.Gap
+	classChecklistBottom float32 = ui.OuterMargin
 )
 
 // Divide the page into equal rows and use the largest shared font that fits every label.
@@ -170,7 +170,7 @@ func fitClassChecklist(rows []navigation.Row, width, height float32) checklistLa
 	layout := checklistLayout{height: available / float32(len(rows)), font: 22}
 	for _, row := range rows {
 		// Allow compact button padding plus one pixel for fractional-scale rounding.
-		for layout.font > 1 && ui.WrappedTextHeight(row.Label, width-24, layout.font, true)+5 > layout.height {
+		for layout.font > 1 && ui.WrappedTextHeight(row.Label, width-2*ui.ButtonPadding, layout.font, true)+5 > layout.height {
 			layout.font--
 		}
 	}
@@ -192,13 +192,14 @@ func (c *Controller) composeClassChecklist(rows []navigation.Row) ui.BodyCompose
 				button.Fill = ui.Green
 			}
 			surface.AddNamed(fmt.Sprintf("class-subskill-%d", index), button, func(width, height float32) (float32, float32, float32, float32) {
+				x, top, bodyWidth, bodyHeight := surface.BodyBounds(width, height)
 				if width != lastWidth || height != lastHeight {
-					layout = fitClassChecklist(rows, width-200, height-classChecklistTop-classChecklistBottom)
+					layout = fitClassChecklist(rows, bodyWidth, bodyHeight)
 					lastWidth, lastHeight = width, height
 				}
 				button.FontSize = layout.font
-				y := classChecklistTop + float32(index)*(layout.height+classChecklistGap)
-				return 100, y, width - 200, layout.height
+				y := top + float32(index)*(layout.height+classChecklistGap)
+				return x, y, bodyWidth, layout.height
 			})
 		}
 	}

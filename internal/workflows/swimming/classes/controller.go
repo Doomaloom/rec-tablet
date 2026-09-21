@@ -52,11 +52,7 @@ func (c *Controller) Build() (navigation.State, error) {
 		}
 		for _, d := range dates {
 			t, _ := time.Parse("2006-01-02", d)
-			detail := ""
-			if d == c.Date {
-				detail = "Selected"
-			}
-			rows = append(rows, navigation.Row{ID: d, Label: t.Format("Monday, Jan 02, 2006"), Detail: detail})
+			rows = append(rows, navigation.Row{ID: d, Label: t.Format("Monday, Jan 02, 2006"), Selected: d == c.Date})
 		}
 		state.Empty = "Import a class package to add lesson dates."
 
@@ -66,7 +62,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, e
 		}
 		state.Title = "This Lesson"
-		rows = []navigation.Row{{ID: "attendance", Label: "Attendance", Detail: "Who's here today?"}, {ID: "skills", Label: "Skills", Detail: "Choose a skill, then a swimmer"}, {ID: "feedback_swimmers", Label: "Feedback", Detail: "Assessed skills still in progress"}}
+		rows = []navigation.Row{{ID: "attendance", Label: "Attendance"}, {ID: "skills", Label: "Skills"}, {ID: "feedback_swimmers", Label: "Feedback"}}
 
 	}
 	c.Paginate(&state, rows)

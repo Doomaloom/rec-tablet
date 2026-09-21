@@ -298,7 +298,7 @@ func TestClassChecklistLayoutAndModeRestrictions(t *testing.T) {
 			f.row(t, 0)
 			f.w.Resize(fyne.NewSize(800, 480))
 			f.shot(t, fmt.Sprintf("class-%d-subskills", scenario.count))
-			for _, bounds := range []fyne.Size{fyne.NewSize(800, 480), fyne.NewSize(1200, 720)} {
+			for _, bounds := range []fyne.Size{fyne.NewSize(800, 480), fyne.NewSize(1200, 720), fyne.NewSize(1280, 800)} {
 				f.w.Resize(bounds)
 				f.w.Canvas().Capture()
 				composition := shell.ComposeScreen(f.view, f.c.Snapshot())
@@ -314,10 +314,10 @@ func TestClassChecklistLayoutAndModeRestrictions(t *testing.T) {
 					} else if size != rowSize {
 						t.Fatalf("subskill buttons differ in size: %v and %v", rowSize, size)
 					}
-					if x < 100 || y < 56 || x+width > 700 || y+height > 466.01 {
+					if x < 60 || y < 40 || x+width > 740 || y+height > 476.01 {
 						t.Fatalf("subskill outside body: %s at %v", component.Name, []float32{x, y, width, height})
 					}
-					if component.Name == "feature-class-subskill-0" && y != 56 {
+					if component.Name == "feature-class-subskill-0" && y != 40 {
 						t.Fatal("checklist did not reclaim the removed header row")
 					}
 				}

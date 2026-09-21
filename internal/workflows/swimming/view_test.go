@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/test"
 	"image/png"
@@ -386,7 +387,7 @@ func TestMultiMatrixTextLayoutAndPaging(t *testing.T) {
 			f.tap(t, "home")
 			firstCell := "multi-cell:" + people[0] + ":" + scenario.skill + ":1"
 			f.tap(t, firstCell)
-			f.shot(t, "multi-"+scenario.name)
+			f.compactLayout(t, "multi-"+scenario.name)
 			if scenario.name == "long-subskills" {
 				test.TapCanvas(f.w.Canvas(), fyne.NewPos(430, 130))
 				details := f.w.Canvas().Overlays().Top()
@@ -402,7 +403,7 @@ func TestMultiMatrixTextLayoutAndPaging(t *testing.T) {
 			for _, component := range composition.Components {
 				x, y, width, height := component.Position(800, 480)
 				if _, ok := component.Object.(*ui.AngledLabel); ok {
-					if x < 80 || y < 80 || x+width > 700 {
+					if x < ui.ContentInset || y < 52 || x+width > 800-ui.ContentInset {
 						t.Fatalf("header intrudes into the title/rails: %s at %v", component.Name, []float32{x, y, width, height})
 					}
 					if headerCount > 0 {
@@ -511,14 +512,17 @@ func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
 		t.Fatal("timed selection did not open lap setup")
 	}
 	f.tap(t, "timed-digit:3")
+	f.compactLayout(t, "timed-laps")
 	f.tap(t, "home")
 	if f.c.State.Screen != "timed_heat" || f.view.Buttons["header-action-0"] == nil || f.view.Buttons["header-action-1"] == nil {
 		t.Fatal("lap setup did not open the timed heat")
 	}
+	f.compactLayout(t, "timed-heat")
 	f.tap(t, "header-action-0")
 	for i := 0; i < 3; i++ {
 		f.tap(t, "row:timed-lap:"+people[0])
 	}
+	f.compactLayout(t, "timed-heat-completed")
 	if f.c.State.Screen != "timed_heat" || f.c.State.Rows[0].ProgressValue != 3 || f.c.State.Rows[0].ProgressTotal != 3 {
 		t.Fatal("lap taps did not complete the swimmer")
 	}
@@ -658,5 +662,87 @@ func TestFailedImportAndExportSurfaceErrors(t *testing.T) {
 	f.c.Fail(errors.New("test"))
 	if !f.c.State.Error {
 		t.Fatal("error state missing")
+	}
+}
+
+// Check the actual rendered objects as well as the feature placement contracts.
+func (f *uiFixture) compactLayout(t *testing.T, name string) {
+	t.Helper()
+	original := f.w.Canvas().Size()
+	defer f.w.Resize(original)
+	for _, size := range []fyne.Size{fyne.NewSize(800, 480), fyne.NewSize(1200, 720), fyne.NewSize(1280, 800)} {
+		f.w.Resize(size)
+		f.w.Canvas().Capture()
+		scale := min(size.Width/800, size.Height/480)
+		composition := shell.ComposeScreen(f.view, f.c.Snapshot())
+		for _, component := range composition.Components {
+			x, y, width, height := component.Position(size.Width/scale, size.Height/scale)
+			if x < 0 || y < 0 || width <= 0 || height <= 0 || x+width > size.Width/scale+0.01 || y+height > size.Height/scale+0.01 {
+				t.Fatalf("%s outside %v: %s at %v", name, size, component.Name, []float32{x, y, width, height})
+			}
+			if strings.HasPrefix(component.Name, "feature-") && (x < ui.ContentInset || x+width > size.Width/scale-ui.ContentInset+0.01) {
+				t.Fatalf("%s overlaps a rail: %s", name, component.Name)
+			}
+		}
+		for id, button := range f.view.Buttons {
+			for _, object := range test.WidgetRenderer(button).Objects() {
+				if !object.Visible() {
+					continue
+				}
+				if _, ok := object.(*canvas.Image); ok {
+					position, bounds := object.Position(), object.Size()
+					if position.X < 0 || position.Y < 0 || position.X+bounds.Width > button.Size().Width+0.01 || position.Y+bounds.Height > button.Size().Height+0.01 {
+						t.Fatalf("%s icon escapes %s at %v", name, id, size)
+					}
+				}
+			}
+		}
+		f.shot(t, fmt.Sprintf("%s-%dx%d", name, int(size.Width), int(size.Height)))
+	}
+}
+
+func TestCompactFeedbackCorrectionAndDateLayouts(t *testing.T) {
+	f := setupUI(t)
+	f.compactLayout(t, "classes")
+	f.tap(t, "header")
+	selected := f.view.Buttons["row:2026-09-04"]
+	if selected == nil || !selected.Selected || selected.Detail != "" {
+		t.Fatal("date selection must remain visible without its old caption")
+	}
+	f.compactLayout(t, "dates")
+	f.tap(t, "row:2026-09-04")
+	f.row(t, 0)
+	f.compactLayout(t, "lesson-menu")
+	for _, row := range f.c.State.Rows {
+		if f.view.Buttons["row:"+row.ID].Detail != "" {
+			t.Fatal("lesson menu retained instructional subtext")
+		}
+	}
+	f.tap(t, "row:skills")
+	f.row(t, 0)
+	f.rowLabel(t, "Harrold")
+	f.row(t, 0)
+	f.tap(t, "home") // Save an incomplete attempt for feedback and correction.
+	f.tap(t, "back")
+	f.tap(t, "back")
+	f.tap(t, "row:feedback_swimmers")
+	f.compactLayout(t, "feedback-swimmers")
+	f.rowLabel(t, "Harrold")
+	f.compactLayout(t, "feedback-skills")
+	f.row(t, 0)
+	f.compactLayout(t, "feedback-detail")
+	f.tap(t, "header")
+	f.compactLayout(t, "attempts")
+	f.row(t, 0)
+	if f.view.Buttons["submit"] == nil {
+		t.Fatal("correction action missing")
+	}
+	f.compactLayout(t, "correction")
+	f.tap(t, "successful")
+	f.tap(t, "down")
+	f.tap(t, "not_yet")
+	f.tap(t, "submit")
+	if f.c.State.Screen != "attempts" {
+		t.Fatal("correction did not return to attempts")
 	}
 }

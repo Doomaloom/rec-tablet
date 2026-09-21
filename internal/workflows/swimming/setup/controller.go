@@ -22,7 +22,7 @@ func (c *Controller) Build() (navigation.State, error) {
 	case navigation.Maintenance:
 		state.Title = "Device Setup"
 		state.Subtitle = "Temporary file transfer · Works offline"
-		rows = []navigation.Row{{ID: "import", Label: "Import Class Data", Detail: "Choose a class package (.json)"}, {ID: "export", Label: "Export Data", Detail: "Save all attendance, attempts, and drafts"}}
+		rows = []navigation.Row{{ID: "import", Label: "Import Class Data", Detail: "Class package (.json)"}, {ID: "export", Label: "Export Data", Detail: "Attendance, attempts, and drafts"}}
 		last, e := s.Meta("last_import")
 		if e != nil {
 			return state, e

@@ -13,18 +13,19 @@ import (
 	"rectablet/internal/shared/ui"
 )
 
-var homeIcon = fyne.NewStaticResource("home.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><path fill="#315daf" d="M3 29L32 3l29 26H51v32H13V29z"/><path fill="#e1e9f4" d="M27 41h11v20H27z"/></svg>`))
-
-func arrowIcon(up, disabled bool) fyne.Resource {
-	fill := "#315daf"
+func chevronIcon(direction string, disabled bool) fyne.Resource {
+	ink := "#315daf"
 	if disabled {
-		fill = "#9aacc5"
+		ink = "#9aacc5"
 	}
-	transform := ""
-	if !up {
-		transform = ` transform="rotate(180 32 48)"`
+	path := "M12 24L32 44L52 24"
+	switch direction {
+	case "up":
+		path = "M12 40L32 20L52 40"
+	case "left":
+		path = "M40 12L20 32L40 52"
 	}
-	return fyne.NewStaticResource(fmt.Sprintf("arrow-%t-%t.svg", up, disabled), []byte(fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="96" viewBox="0 0 64 96"><path fill="%s"%s d="M32 2L2 34H20V94H44V34H62Z"/></svg>`, fill, transform)))
+	return fyne.NewStaticResource(fmt.Sprintf("chevron-%s-%t.svg", direction, disabled), []byte(fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><path d="%s" fill="none" stroke="%s" stroke-width="7"/></svg>`, path, ink)))
 }
 
 type View struct {

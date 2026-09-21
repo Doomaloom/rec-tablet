@@ -22,10 +22,9 @@ import (
 const multiSubskillsPerPage = 5
 
 const (
-	multiMatrixLeft   float32 = 100
+	multiMatrixLeft   float32 = ui.ContentInset
 	multiColumnWidth  float32 = 48
-	multiHeaderTop    float32 = 84
-	multiHeaderLength         = 350
+	multiHeaderLength         = 430
 	multiHeaderFont           = 18
 	multiHeaderGap    float32 = 4
 	multiRowGap       float32 = 3
@@ -289,19 +288,21 @@ func multiSubskillPage(subskills []curriculum.Subskill, page int) ([]curriculum.
 	return subskills[start:end], start, end
 }
 
-func multiMatrixWidth(width float32) float32 { return width - 200 }
+func multiMatrixWidth(width float32) float32 { return width - 2*ui.ContentInset }
 
-func addMultiHeaders(surface *ui.Surface, headers []multiHeaderPlacement, rowTop float32, matrixLeft, columnWidth float32, nameWidth func(float32) float32) {
+func addMultiHeaders(surface *ui.Surface, headers []multiHeaderPlacement, rowLayout multiRowLayout, matrixLeft, columnWidth float32, nameWidth func(float32) float32) {
 	for index, placement := range headers {
 		index, placement := index, placement
 		if placement.Offset > 0 {
 			connector := canvas.NewRectangle(ui.Muted)
 			surface.AddNamed(fmt.Sprintf("multi-header-connector-%d", index), connector, func(w, h float32) (float32, float32, float32, float32) {
+				rowTop, _ := rowLayout(w, h)
 				columnRight := matrixLeft + nameWidth(w) + float32(index+1)*columnWidth
 				return columnRight - 2, rowTop - placement.Offset, 1.5, placement.Offset
 			})
 		}
 		surface.AddNamed(fmt.Sprintf("multi-header-%d", index), placement.Header, func(w, h float32) (float32, float32, float32, float32) {
+			rowTop, _ := rowLayout(w, h)
 			columnRight := matrixLeft + nameWidth(w) + float32(index+1)*columnWidth
 			return columnRight - placement.Width, rowTop - placement.Offset - placement.Height, placement.Width, placement.Height
 		})
@@ -329,14 +330,20 @@ func multiMaxHeaderStackHeight(subskills []curriculum.Subskill) float32 {
 	return maximum
 }
 
-func addMultiStudentRows(surface *ui.Surface, students []multiStudentSnapshot, studentStart int, subskills []curriculum.Subskill, rowTop, rowHeight, rowGap, matrixLeft, columnWidth float32, matrixWidth, nameWidth func(float32) float32, toggleCell func(string, string)) {
+type multiRowLayout func(width, height float32) (top, rowHeight float32)
+
+func addMultiStudentRows(surface *ui.Surface, students []multiStudentSnapshot, studentStart int, subskills []curriculum.Subskill, rowLayout multiRowLayout, rowGap, matrixLeft, columnWidth float32, matrixWidth, nameWidth func(float32) float32, toggleCell func(string, string)) {
 	for rowIndex, student := range students {
 		student, rowIndex := student, rowIndex
-		rowY := rowTop + float32(rowIndex)*(rowHeight+rowGap)
+		rowBounds := func(w, h float32) (float32, float32) {
+			top, height := rowLayout(w, h)
+			return top + float32(rowIndex)*(height+rowGap), height
+		}
 		rowColor := multiRowColors[(studentStart+rowIndex)%len(multiRowColors)]
 		background := canvas.NewRectangle(rowColor)
-		background.CornerRadius = 12
+		background.CornerRadius = 0
 		surface.AddNamed("multi-row-bg:"+student.PersonID, background, func(w, h float32) (float32, float32, float32, float32) {
+			rowY, rowHeight := rowBounds(w, h)
 			return matrixLeft, rowY, matrixWidth(w), rowHeight
 		})
 
@@ -346,7 +353,8 @@ func addMultiStudentRows(surface *ui.Surface, students []multiStudentSnapshot, s
 		name.Center = false
 		name.MaxLines = 2
 		surface.AddNamed("multi-row-name:"+student.PersonID, name, func(w, h float32) (float32, float32, float32, float32) {
-			return matrixLeft + 12, rowY, nameWidth(w) - 24, rowHeight
+			rowY, rowHeight := rowBounds(w, h)
+			return matrixLeft + ui.ButtonPadding, rowY, nameWidth(w) - 2*ui.ButtonPadding, rowHeight
 		})
 
 		for columnIndex, subskill := range subskills {
@@ -365,6 +373,7 @@ func addMultiStudentRows(surface *ui.Surface, students []multiStudentSnapshot, s
 				cell.IconOnly = true
 			}
 			surface.AddNamed(fmt.Sprintf("multi-cell:%s:%s", student.PersonID, subskill.ID), cell, func(w, h float32) (float32, float32, float32, float32) {
+				rowY, rowHeight := rowBounds(w, h)
 				return matrixLeft + nameWidth(w) + float32(columnIndex)*columnWidth + 1, rowY + 1, columnWidth - 2, rowHeight - 2
 			})
 		}
@@ -377,7 +386,8 @@ func addMultiSubskillPager(surface *ui.Surface, controller *Controller, subskill
 	}
 	hint := ui.NewText("Tap a subskill for full text", 14, ui.Muted)
 	surface.AddNamed("multi-subskill-hint", hint, func(w, h float32) (float32, float32, float32, float32) {
-		return multiMatrixLeft + 12, 422, w - 512, 44
+		x, y, width, height := surface.BodyBounds(w, h)
+		return x + ui.ButtonPadding, y + height - ui.HeaderHeight, width - 300 - ui.ButtonPadding, ui.HeaderHeight
 	})
 
 	previous := surface.Button("multi-subskills-previous", "‹", func() { _ = controller.pageMultiSubskills(-1, subskillCount) })
@@ -388,13 +398,15 @@ func addMultiSubskillPager(surface *ui.Surface, controller *Controller, subskill
 		previous.Icon = theme.NewDisabledResource(theme.NavigateBackIcon())
 	}
 	surface.AddNamed("multi-subskills-previous", previous, func(w, h float32) (float32, float32, float32, float32) {
-		return w - 388, 422, 56, 44
+		x, y, width, height := surface.BodyBounds(w, h)
+		return x + width - 288, y + height - ui.HeaderHeight, 56, ui.HeaderHeight
 	})
 
 	progress := ui.NewText(fmt.Sprintf("Subskills %d–%d of %d", subskillStart+1, subskillEnd, subskillCount), 16, ui.Navy)
 	progress.Center = true
 	surface.AddNamed("multi-subskills-progress", progress, func(w, h float32) (float32, float32, float32, float32) {
-		return w - 328, 422, 168, 44
+		x, y, width, height := surface.BodyBounds(w, h)
+		return x + width - 228, y + height - ui.HeaderHeight, 168, ui.HeaderHeight
 	})
 
 	next := surface.Button("multi-subskills-next", "›", func() { _ = controller.pageMultiSubskills(1, subskillCount) })
@@ -405,7 +417,8 @@ func addMultiSubskillPager(surface *ui.Surface, controller *Controller, subskill
 		next.Icon = theme.NewDisabledResource(theme.NavigateNextIcon())
 	}
 	surface.AddNamed("multi-subskills-next", next, func(w, h float32) (float32, float32, float32, float32) {
-		return w - 156, 422, 56, 44
+		x, y, width, height := surface.BodyBounds(w, h)
+		return x + width - 56, y + height - ui.HeaderHeight, 56, ui.HeaderHeight
 	})
 }
 
@@ -444,15 +457,18 @@ func (c *Controller) composeMultiAssessmentBody(snapshot multiAssessmentSnapshot
 		headers := newMultiHeaders(subskills, subskillStart, showDetails)
 		placements, _ := multiHeaderPlacements(headers, multiHeaderGap)
 		headerStackHeight := multiMaxHeaderStackHeight(snapshot.Skill.Subskills)
-		rowTop := multiHeaderTop + headerStackHeight
-		rowBottom := float32(466)
-		if subskillCount > multiSubskillsPerPage {
-			rowBottom = 414
+		rowLayout := func(w, h float32) (float32, float32) {
+			_, top, _, height := surface.BodyBounds(w, h)
+			rowTop := top + headerStackHeight
+			rowBottom := top + height
+			if subskillCount > multiSubskillsPerPage {
+				rowBottom -= ui.HeaderHeight + ui.Gap
+			}
+			return rowTop, min(float32(56), (rowBottom-rowTop-float32(pageSize-1)*multiRowGap)/float32(pageSize))
 		}
-		rowHeight := min(float32(56), (rowBottom-rowTop-float32(pageSize-1)*multiRowGap)/float32(pageSize))
 
-		addMultiHeaders(surface, placements, rowTop, multiMatrixLeft, multiColumnWidth, nameWidth)
-		addMultiStudentRows(surface, students, studentStart, subskills, rowTop, rowHeight, multiRowGap, multiMatrixLeft, multiColumnWidth, matrixWidth, nameWidth, func(personID, subskillID string) {
+		addMultiHeaders(surface, placements, rowLayout, multiMatrixLeft, multiColumnWidth, nameWidth)
+		addMultiStudentRows(surface, students, studentStart, subskills, rowLayout, multiRowGap, multiMatrixLeft, multiColumnWidth, matrixWidth, nameWidth, func(personID, subskillID string) {
 			_ = c.ToggleMultiCell(personID, subskillID)
 		})
 		addMultiSubskillPager(surface, c, subskillCount, subskillStart, subskillEnd)

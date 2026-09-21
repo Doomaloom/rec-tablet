@@ -93,13 +93,10 @@ func (c *Controller) Build() (navigation.State, error) {
 					return state, e
 				}
 				selected := containsString(c.timedSelection, p.ID)
-				detail := ""
-				if selected {
-					detail = "Selected for heat"
-				}
-				row := navigation.Row{ID: p.ID, Label: p.Name, Detail: detail, Status: "unselected", ProgressSegments: min(3, max(0, progress.Successes)), Data: navigation.Parameters{Skill: skill.ID, Level: p.Level, Version: version}}
+				row := navigation.Row{ID: p.ID, Label: p.Name, Status: "unselected", ProgressSegments: min(3, max(0, progress.Successes)), Data: navigation.Parameters{Skill: skill.ID, Level: p.Level, Version: version}}
 				if selected {
 					row.Status = "selected"
+					row.Selected = true
 					row.Fill = ui.Green
 				}
 				if progress.Successes > 0 {
@@ -162,9 +159,6 @@ func (c *Controller) Build() (navigation.State, error) {
 			}
 			selected := containsString(c.multiSelection, p.ID)
 			row := navigation.Row{ID: p.ID, Label: p.Name, Detail: "", Selected: selected, ProgressSegments: min(3, max(0, progress.Successes)), Data: navigation.Parameters{Skill: skill.ID, Level: p.Level, Version: version}}
-			if selected {
-				row.Detail = "Selected"
-			}
 			if progress.Successes > 0 {
 				person, skillID, curriculumVersion := p.ID, skill.ID, version
 				row.OnHold = func() { _ = c.RemoveLatestSuccess(person, skillID, curriculumVersion) }
@@ -283,7 +277,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			if len(created) >= 19 {
 				clock = created[11:19]
 			}
-			rows = append(rows, navigation.Row{ID: a.ID, Label: label, Detail: a.Date + " · " + clock + " UTC · Tap to review / correct"})
+			rows = append(rows, navigation.Row{ID: a.ID, Label: label, Detail: a.Date + " · " + clock + " UTC"})
 		}
 		state.Empty = "No attempts recorded for this skill."
 
