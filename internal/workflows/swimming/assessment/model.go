@@ -9,6 +9,8 @@ import (
 // Repository lists only the data operations this feature consumes.
 type Repository interface {
 	navigation.LessonReader
+	Attendance(string) (map[string]string, error)
+	ReplaceDraftAnswers(string, map[string]string) error
 	GetEnrollment(string) (domain.Enrollment, error)
 	CatalogFor(string) (curriculum.Catalog, error)
 	Skill(string, string) (curriculum.Skill, error)

@@ -14,16 +14,14 @@ import (
 
 type Controller struct {
 	*navigation.Controller
-	Store             Repository
-	timedSelection    []string
-	timedHeat         *timedHeatState
-	timedLapsInput    string
-	multiSelection    []string
-	multiAttempts     []domain.MultiAttempt
-	multiMode         bool
-	multiSubskillPage int
-	classAttempts     []domain.MultiAttempt
-	classNames        map[string]string
+	Store          Repository
+	timedSelection []string
+	timedHeat      *timedHeatState
+	timedLapsInput string
+	multi          *multiSession
+	multiEdit      *multiStudentEdit
+	classAttempts  []domain.MultiAttempt
+	classNames     map[string]string
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {
@@ -137,51 +135,16 @@ func (c *Controller) Build() (navigation.State, error) {
 		}
 		state.Empty = "No enrolled swimmers are assigned to this skill's level."
 
+	case navigation.MultiGroupCount:
+		return c.buildMultiGroupCountState()
 	case navigation.MultiSelection:
-		if f.Version != "" {
-			version = f.Version
-		}
-		skill, e := s.Skill(version, f.Skill)
-		if e != nil {
-			return state, e
-		}
-		state.Title = "Choose Students"
-		state.Subtitle = skill.Name
-		state.Context += "\n" + skill.Name
-		state.HeaderSwitch = c.skillModeSwitch(skill, true)
-		for _, p := range roster {
-			if !p.Active || p.Level != f.Level {
-				continue
-			}
-			progress, e := s.Progress(p.ID, skill.ID, version)
-			if e != nil {
-				return state, e
-			}
-			selected := containsString(c.multiSelection, p.ID)
-			row := navigation.Row{ID: p.ID, Label: p.Name, Detail: "", Selected: selected, ProgressSegments: min(3, max(0, progress.Successes)), Data: navigation.Parameters{Skill: skill.ID, Level: p.Level, Version: version}}
-			if progress.Successes > 0 {
-				person, skillID, curriculumVersion := p.ID, skill.ID, version
-				row.OnHold = func() { _ = c.RemoveLatestSuccess(person, skillID, curriculumVersion) }
-				row.HoldDuration = 2 * time.Second
-			}
-			rows = append(rows, row)
-		}
-		if len(c.multiSelection) > 0 {
-			state.HomeRailAction = saveRailAction(c.ConfirmMultiSelection)
-		}
-		state.BackRailAction = discardRailAction(c.DiscardMultiSelection)
-		state.Empty = "No enrolled swimmers are assigned to this skill's level."
-
+		return c.buildMultiSelectionState()
+	case navigation.MultiAssessment:
+		return c.buildMultiAssessmentState(course, f)
+	case navigation.MultiStudent:
+		return c.buildMultiStudentState(course, f)
 	case navigation.ClassAssessment:
 		return c.buildClassAssessmentState(course, f)
-
-	case navigation.MultiAssessment:
-		multiState, e := c.buildMultiAssessmentState(course, f)
-		if e != nil {
-			return state, e
-		}
-		state = multiState
-		rows = append(rows, multiState.Rows...)
 
 	case navigation.TimedLaps:
 		if f.Version != "" {
@@ -658,13 +621,9 @@ func (c *Controller) Select(id string) error {
 		})
 
 	case navigation.MultiSelection:
-		if containsString(c.multiSelection, id) {
-			c.multiSelection = removeString(c.multiSelection, id)
-		} else {
-			c.multiSelection = append(c.multiSelection, id)
-		}
-		c.Saved("")
-		return nil
+		return c.toggleMultiMember(id)
+	case navigation.MultiStudent:
+		return c.toggleMultiSubskill(id)
 
 	case navigation.Attempts:
 		if e := c.Store.EditAttempt(id); e != nil {
@@ -770,6 +729,12 @@ func (c *Controller) Mark(status string) error {
 }
 
 func (c *Controller) Submit() error {
+	if c.Frame().Screen == navigation.MultiGroupCount {
+		return c.chooseMultiGroupCount()
+	}
+	if c.Frame().Screen == navigation.MultiSelection {
+		return c.ConfirmMultiSelection()
+	}
 	if c.Frame().Screen != navigation.Assessment {
 		return nil
 	}

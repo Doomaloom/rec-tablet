@@ -290,6 +290,40 @@ func draft(q queryer, id string) (map[string]string, error) {
 	return out, e
 }
 func (s *Store) Draft(id string) (map[string]string, error) { return draft(s.DB, id) }
+
+// ReplaceDraftAnswers updates a pending student's entire assessment atomically.
+// It is deliberately separate from correction editing of submitted attempts.
+func (s *Store) ReplaceDraftAnswers(id string, values map[string]string) error {
+	return s.transaction(func(q queryer) error {
+		a, err := one(q, "SELECT * FROM attempts WHERE id=? AND submitted_at IS NULL", id)
+		if err != nil {
+			return err
+		}
+		skill, err := s.skill(q, a.String("curriculum_version"), a.String("skill_id"))
+		if err != nil {
+			return err
+		}
+		answers := make(map[string]string, len(values))
+		for criterion, status := range values {
+			if err := domain.ValidateMark(skill, criterion, status); err != nil {
+				return err
+			}
+			if status != "unmarked" {
+				answers[criterion] = status
+			}
+		}
+		if _, err := draft(q, id); err != nil {
+			return err
+		}
+		body, err := json.Marshal(answers)
+		if err != nil {
+			return err
+		}
+		_, err = q.Exec("UPDATE drafts SET answers=?,updated_at=? WHERE attempt_id=?", string(body), Now(), id)
+		return err
+	})
+}
+
 func (s *Store) EditAttempt(id string) error {
 	return s.transaction(func(q queryer) error {
 		if _, e := one(q, "SELECT id FROM attempts WHERE id=?", id); e != nil {

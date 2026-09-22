@@ -13,7 +13,7 @@ import (
 // EnterClassMode opens one pending attempt for every active student at this level.
 // Existing drafts are reused, just as they are when entering Multi mode.
 func (c *Controller) EnterClassMode() error {
-	if c.Frame().Screen != navigation.SkillSwimmers && c.Frame().Screen != navigation.MultiSelection {
+	if c.Frame().Screen != navigation.SkillSwimmers && c.Frame().Screen != navigation.MultiSelection && c.Frame().Screen != navigation.MultiGroupCount {
 		return nil
 	}
 	return c.Run(func() error {
@@ -35,10 +35,8 @@ func (c *Controller) EnterClassMode() error {
 		if err != nil {
 			return err
 		}
-		if f.Screen == navigation.MultiSelection {
-			c.Pop()
-		}
-		c.multiSelection, c.multiMode = nil, false
+		c.leaveMultiSetup()
+		c.multi, c.multiEdit = nil, nil
 		c.classAttempts = attempts
 		c.classNames = abbreviateClassNames(attempts)
 		c.Push(navigation.ClassAssessment, nil)

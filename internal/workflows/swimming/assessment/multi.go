@@ -2,51 +2,37 @@ package assessment
 
 import (
 	"fmt"
-	"image/color"
-	"strings"
 
-	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/curriculum"
 	"rectablet/internal/workflows/swimming/domain"
 	"rectablet/internal/workflows/swimming/navigation"
-
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 )
 
-const multiSubskillsPerPage = 5
+type multiGroup struct {
+	Number, Capacity int
+	Members          []string
+	Attempts         []domain.MultiAttempt
+}
 
-const (
-	multiMatrixLeft   float32 = ui.ContentInset
-	multiColumnWidth  float32 = 48
-	multiHeaderLength         = 430
-	multiHeaderFont           = 18
-	multiHeaderGap    float32 = 4
-	multiRowGap       float32 = 3
-)
+type multiSession struct {
+	Roster             []domain.Enrollment
+	Skill              curriculum.Skill
+	Groups             []multiGroup
+	AssignmentGroup    int
+	GroupCount         int
+	ProposedGroupCount int
+	Names              map[string]string
+}
 
-var multiRowColors = []color.Color{
-	color.NRGBA{R: 190, G: 224, B: 250, A: 255},
-	color.NRGBA{R: 185, G: 237, B: 193, A: 255},
-	color.NRGBA{R: 255, G: 235, B: 157, A: 255},
-	color.NRGBA{R: 255, G: 194, B: 194, A: 255},
+type multiStudentEdit struct {
+	Attempt domain.MultiAttempt
+	Answers map[string]string
 }
 
 type multiStudentSnapshot struct {
-	AttemptID string
-	PersonID  string
-	Name      string
-	Answers   map[string]string
-}
-
-type multiAssessmentSnapshot struct {
-	Skill    curriculum.Skill
-	Students []multiStudentSnapshot
+	PersonID, Name, ShortName, Status string
+	Passed, Total                     int
 }
 
 func (c *Controller) EnterMultiMode() error {
@@ -62,415 +48,293 @@ func (c *Controller) EnterMultiMode() error {
 		if !allowsMultiMode(skill) {
 			return nil
 		}
-		c.multiMode = true
-		c.multiSelection = nil
-		c.Push(navigation.MultiSelection, nil)
+		roster, err := c.Store.ListRoster(f.Course)
+		if err != nil {
+			return err
+		}
+		attendance, err := c.Store.Attendance(f.Lesson)
+		if err != nil {
+			return err
+		}
+		session := &multiSession{Skill: skill}
+		for _, student := range roster {
+			if student.Active && student.Level == f.Level && attendance[student.ID] == "present" {
+				session.Roster = append(session.Roster, student)
+			}
+		}
+		if len(session.Roster) > 0 {
+			session.ProposedGroupCount = 1
+		}
+		c.multi, c.multiEdit = session, nil
+		c.Push(navigation.MultiGroupCount, nil)
 		return nil
 	})
 }
 
+func (c *Controller) leaveMultiSetup() {
+	for c.Frame().Screen == navigation.MultiSelection || c.Frame().Screen == navigation.MultiGroupCount {
+		c.Pop()
+	}
+}
+
 func (c *Controller) EnterSingleMode() error {
-	if c.Frame().Screen != navigation.MultiSelection {
+	if c.Frame().Screen != navigation.MultiSelection && c.Frame().Screen != navigation.MultiGroupCount {
 		return nil
 	}
 	return c.Run(func() error {
-		c.multiMode = false
-		c.multiSelection = nil
-		c.Pop()
+		c.leaveMultiSetup()
+		c.multi, c.multiEdit = nil, nil
 		return nil
 	})
 }
 
 func (c *Controller) ConfirmMultiSelection() error {
-	if c.Frame().Screen != navigation.MultiSelection || len(c.multiSelection) == 0 {
+	if c.Frame().Screen != navigation.MultiSelection || !c.multiReady() {
 		return nil
 	}
 	return c.Run(func() error {
-		f := c.Frame()
-		attempts, e := c.Store.OpenMultiAttempts(c.multiSelection, f.Lesson, f.Skill)
-		if e != nil {
-			return nil
+		people := make([]string, 0, len(c.multi.Roster))
+		for _, group := range c.multi.Groups {
+			people = append(people, group.Members...)
 		}
-		c.multiAttempts = attempts
-		c.multiSubskillPage = 0
+		f := c.Frame()
+		attempts, err := c.Store.OpenMultiAttempts(people, f.Lesson, f.Skill)
+		if err != nil {
+			return err
+		}
+		byPerson := make(map[string]domain.MultiAttempt, len(attempts))
+		for _, attempt := range attempts {
+			byPerson[attempt.PersonID] = attempt
+		}
+		for i := range c.multi.Groups {
+			group := &c.multi.Groups[i]
+			group.Attempts = nil
+			// Keep each group's display order consistent with the roster, not tap order.
+			for _, student := range c.multi.Roster {
+				if containsString(group.Members, student.ID) {
+					group.Attempts = append(group.Attempts, byPerson[student.ID])
+				}
+			}
+		}
+		c.multi.Names = abbreviateClassNames(attempts)
+		c.leaveMultiSetup()
 		c.Push(navigation.MultiAssessment, nil)
 		return nil
 	})
 }
 
-func (c *Controller) DiscardMultiSelection() error {
-	if c.Frame().Screen != navigation.MultiSelection {
-		return nil
-	}
-	return c.Run(func() error {
-		c.multiMode = false
-		c.multiSelection = nil
-		c.Pop()
-		return nil
-	})
-}
-
-func (c *Controller) buildMultiAssessmentState(course domain.Course, frame navigation.Frame) (navigation.State, error) {
+func (c *Controller) buildMultiAssessmentState(course domain.Course, f navigation.Frame) (navigation.State, error) {
 	state := c.InitialState()
-	state.Title = "Multi Mark"
-	state.Subtitle = ""
-	state.Context = course.Name + " · " + frame.Lesson
-	state.HomeRailAction = saveRailAction(c.SaveMultiAssessment)
-	state.BackRailAction = discardRailAction(c.DiscardMultiAssessment)
-	state.HideFooter = true
-	state.Empty = "No students selected."
-
-	skill, e := c.Store.Skill(frame.Version, frame.Skill)
-	if e != nil {
-		return state, e
+	if c.multi == nil || len(c.multi.Groups) == 0 {
+		return state, fmt.Errorf("no pending groups")
 	}
-	state.Title = skill.Number + ". " + skill.Name
-	state.Context += "\n" + skill.Name
-	state.Progress = fmt.Sprintf("%d students · %d subskills", len(c.multiAttempts), len(skill.Subskills))
-	state.PageSize = multiStudentPageSize(len(c.multiAttempts), len(skill.Subskills))
-
-	snapshot := multiAssessmentSnapshot{Skill: skill, Students: make([]multiStudentSnapshot, 0, len(c.multiAttempts))}
-	for _, attempt := range c.multiAttempts {
-		answers, e := c.Store.Draft(attempt.AttemptID)
-		if e != nil {
-			// A missing or unreadable local draft should not strand the
-			// instructor in an error screen. Keep the matrix usable and let the
-			// eventual batch save apply the normal silent-failure behavior.
-			answers = map[string]string{}
+	state.PageCount = len(c.multi.Groups)
+	state.Page = max(0, min(f.Page, state.PageCount-1))
+	c.Frames[len(c.Frames)-1].Page = state.Page
+	group, skill := c.multi.Groups[state.Page], c.multi.Skill
+	label := fmt.Sprintf("Group %d of %d", group.Number, c.multi.GroupCount)
+	state.Title = label
+	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: label}
+	state.Context = fmt.Sprintf("%s\n%s. %s\n%s · %d students", course.Name, skill.Number, skill.Name, label, len(group.Attempts))
+	state.HideFooter, state.HideContext = true, true
+	state.LeftRailActions = c.multiRailActions()
+	students := make([]multiStudentSnapshot, 0, len(group.Attempts))
+	for _, attempt := range group.Attempts {
+		answers, err := c.Store.Draft(attempt.AttemptID)
+		if err != nil {
+			return state, err
 		}
-		snapshot.Students = append(snapshot.Students, multiStudentSnapshot{AttemptID: attempt.AttemptID, PersonID: attempt.PersonID, Name: attempt.Name, Answers: answers})
-		state.Rows = append(state.Rows, navigation.Row{ID: attempt.PersonID, Label: attempt.Name})
+		student := multiStudentSnapshot{PersonID: attempt.PersonID, Name: attempt.Name, ShortName: c.multi.Names[attempt.PersonID], Status: "unmarked", Total: len(skill.Subskills)}
+		for _, subskill := range skill.Subskills {
+			if answers[subskill.ID] == "successful" {
+				student.Passed++
+			}
+		}
+		if len(answers) > 0 {
+			student.Status = "not_yet"
+		}
+		if student.Total > 0 && student.Passed == student.Total {
+			student.Status = "successful"
+		}
+		students = append(students, student)
+		state.Rows = append(state.Rows, navigation.Row{ID: student.PersonID, Label: student.Name, Status: student.Status})
 	}
-	state.ComposeBody = c.composeMultiAssessmentBody(snapshot)
+	state.RowCount, state.PageSize = len(students), len(students)
+	state.ComposeBody = c.composeMultiAssessmentBody(students)
 	return state, nil
 }
 
-func (c *Controller) ToggleMultiCell(personID, subskillID string) error {
-	if c.Frame().Screen != navigation.MultiAssessment {
+func (c *Controller) multiRailActions() []shell.RailAction {
+	save, discard := *saveRailAction(c.SaveMultiGroup), *discardRailAction(c.DiscardMultiGroup)
+	save.ID, save.Label = "save-group", "Save group"
+	discard.ID, discard.Label = "discard-group", "Discard group"
+	discardAll, saveAll := *discardRailAction(c.DiscardMultiAssessment), *saveRailAction(c.SaveMultiAssessment)
+	discardAll.ID, discardAll.Label, discardAll.Icon = "discard-all", "Discard all pending groups", discardAllActionIcon
+	saveAll.ID, saveAll.Label, saveAll.Icon = "save-all", "Save all pending groups", saveAllActionIcon
+	return []shell.RailAction{save, discard, discardAll, saveAll}
+}
+
+func (c *Controller) currentMultiStudent(person string) (domain.MultiAttempt, bool) {
+	if c.Frame().Screen != navigation.MultiAssessment || c.multi == nil {
+		return domain.MultiAttempt{}, false
+	}
+	page := c.Frame().Page
+	if page < 0 || page >= len(c.multi.Groups) {
+		return domain.MultiAttempt{}, false
+	}
+	for _, attempt := range c.multi.Groups[page].Attempts {
+		if attempt.PersonID == person {
+			return attempt, true
+		}
+	}
+	return domain.MultiAttempt{}, false
+}
+
+func (c *Controller) PassMultiStudent(person string) error {
+	attempt, ok := c.currentMultiStudent(person)
+	if !ok {
 		return nil
 	}
 	return c.Run(func() error {
-		for _, attempt := range c.multiAttempts {
-			if attempt.PersonID != personID {
-				continue
-			}
-			answers, e := c.Store.Draft(attempt.AttemptID)
-			if e != nil {
-				return nil
-			}
-			status := "successful"
-			if answers[subskillID] == "successful" {
-				status = "unmarked"
-			}
-			if e = c.Store.Mark(attempt.AttemptID, subskillID, status); e != nil {
-				return nil
-			}
-			c.Saved("")
-			return nil
+		answers := make(map[string]string, len(c.multi.Skill.Subskills))
+		for _, subskill := range c.multi.Skill.Subskills {
+			answers[subskill.ID] = "successful"
 		}
+		if err := c.Store.ReplaceDraftAnswers(attempt.AttemptID, answers); err != nil {
+			return err
+		}
+		c.Saved("")
 		return nil
 	})
 }
 
-func (c *Controller) SaveMultiAssessment() error {
-	if c.Frame().Screen != navigation.MultiAssessment || len(c.multiAttempts) == 0 {
+func (c *Controller) EditMultiStudent(person string) error {
+	attempt, ok := c.currentMultiStudent(person)
+	if !ok {
 		return nil
 	}
 	return c.Run(func() error {
-		ids := make([]string, 0, len(c.multiAttempts))
-		for _, attempt := range c.multiAttempts {
-			ids = append(ids, attempt.AttemptID)
+		answers, err := c.Store.Draft(attempt.AttemptID)
+		if err != nil {
+			return err
 		}
-		if e := c.Store.SubmitAttempts(ids); e != nil {
-			return nil
-		}
-		c.multiAttempts = nil
-		c.multiSelection = nil
-		c.multiMode = false
-		c.Pop()
-		c.Pop()
+		c.multiEdit = &multiStudentEdit{Attempt: attempt, Answers: answers}
+		c.Push(navigation.MultiStudent, func(f *navigation.Frame) { f.Person, f.Attempt = person, attempt.AttemptID })
 		return nil
 	})
 }
 
-func (c *Controller) DiscardMultiAssessment() error {
-	if c.Frame().Screen != navigation.MultiAssessment || len(c.multiAttempts) == 0 {
+func (c *Controller) buildMultiStudentState(course domain.Course, f navigation.Frame) (navigation.State, error) {
+	state := c.InitialState()
+	if c.multi == nil || c.multiEdit == nil || c.multiEdit.Attempt.AttemptID != f.Attempt {
+		return state, fmt.Errorf("no student selected")
+	}
+	skill, edit := c.multi.Skill, c.multiEdit
+	state.Title = edit.Attempt.Name
+	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: c.multi.Names[edit.Attempt.PersonID]}
+	state.Context = course.Name + "\n" + skill.Number + ". " + skill.Name + "\n" + edit.Attempt.Name
+	state.HideContext, state.HideFooter = true, true
+	state.HomeRailAction = saveRailAction(c.SaveMultiStudent)
+	state.BackRailAction = discardRailAction(c.DiscardMultiStudent)
+	// Checklist edits stay local until Save; leaving via Escape also abandons them.
+	state.OnLeave = func() { c.multiEdit = nil }
+	for _, subskill := range skill.Subskills {
+		state.Rows = append(state.Rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Status: edit.Answers[subskill.ID]})
+	}
+	state.RowCount, state.PageSize = len(state.Rows), len(state.Rows)
+	state.ComposeBody = c.composeClassChecklist(state.Rows)
+	return state, nil
+}
+
+func (c *Controller) toggleMultiSubskill(id string) error {
+	if c.multiEdit == nil {
+		return nil
+	}
+	for _, subskill := range c.multi.Skill.Subskills {
+		if subskill.ID == id {
+			if c.multiEdit.Answers[id] == "successful" {
+				delete(c.multiEdit.Answers, id)
+			} else {
+				c.multiEdit.Answers[id] = "successful"
+			}
+			break
+		}
+	}
+	return nil
+}
+
+func (c *Controller) SaveMultiStudent() error {
+	if c.Frame().Screen != navigation.MultiStudent || c.multiEdit == nil {
 		return nil
 	}
 	return c.Run(func() error {
-		if e := c.Store.DiscardMultiAttempts(c.multiAttempts); e != nil {
-			return nil
+		answers := make(map[string]string, len(c.multi.Skill.Subskills))
+		for _, subskill := range c.multi.Skill.Subskills {
+			answers[subskill.ID] = "not_yet"
+			if c.multiEdit.Answers[subskill.ID] == "successful" {
+				answers[subskill.ID] = "successful"
+			}
 		}
-		c.multiAttempts = nil
-		c.multiSelection = nil
-		c.multiMode = false
+		if err := c.Store.ReplaceDraftAnswers(c.multiEdit.Attempt.AttemptID, answers); err != nil {
+			return err
+		}
 		c.Pop()
-		c.Pop()
+		c.Saved("")
 		return nil
 	})
 }
 
-func (c *Controller) composeMultiSelectionBody(state shell.State) ui.BodyComposer {
-	snapshot := state
-	return func(surface *ui.Surface) {
-		if snapshot.RowCount == 0 {
-			ui.Empty(surface, snapshot.Empty)
-			return
-		}
-		ui.List(surface, snapshot.Rows, func(id string) { _ = c.Controller.Select(id) })
+func (c *Controller) DiscardMultiStudent() error {
+	if c.Frame().Screen != navigation.MultiStudent {
+		return nil
 	}
+	return c.Run(func() error { c.Pop(); return nil })
 }
 
-func multiHeaderText(_ int, text string) string {
-	return strings.Join(strings.Fields(text), " ")
-}
+func (c *Controller) SaveMultiGroup() error         { return c.finishMultiGroups(false, true) }
+func (c *Controller) DiscardMultiGroup() error      { return c.finishMultiGroups(false, false) }
+func (c *Controller) SaveMultiAssessment() error    { return c.finishMultiGroups(true, true) }
+func (c *Controller) DiscardMultiAssessment() error { return c.finishMultiGroups(true, false) }
 
-func multiStudentPageSize(students, subskills int) int {
-	limit := 4
-	if subskills > multiSubskillsPerPage {
-		limit = 3
-	}
-	return max(1, min(students, limit))
-}
-
-func (c *Controller) pageMultiSubskills(direction, count int) error {
-	if c.Frame().Screen != navigation.MultiAssessment {
+func (c *Controller) finishMultiGroups(all, save bool) error {
+	if c.Frame().Screen != navigation.MultiAssessment || c.multi == nil || len(c.multi.Groups) == 0 {
 		return nil
 	}
 	return c.Run(func() error {
-		lastPage := (count - 1) / multiSubskillsPerPage
-		c.multiSubskillPage = max(0, min(c.multiSubskillPage+direction, lastPage))
+		index := c.Frame().Page
+		groups := c.multi.Groups
+		if !all {
+			groups = groups[index : index+1]
+		}
+		var attempts []domain.MultiAttempt
+		var ids []string
+		for _, group := range groups {
+			attempts = append(attempts, group.Attempts...)
+			for _, attempt := range group.Attempts {
+				ids = append(ids, attempt.AttemptID)
+			}
+		}
+		var err error
+		if save {
+			err = c.Store.SubmitAttempts(ids)
+		} else {
+			err = c.Store.DiscardMultiAttempts(attempts)
+		}
+		if err != nil {
+			return err
+		}
+		if all {
+			c.multi.Groups = nil
+		} else {
+			c.multi.Groups = append(c.multi.Groups[:index], c.multi.Groups[index+1:]...)
+		}
+		if len(c.multi.Groups) == 0 {
+			c.multi, c.multiEdit = nil, nil
+			c.Pop()
+		} else {
+			c.Frames[len(c.Frames)-1].Page = min(index, len(c.multi.Groups)-1)
+		}
+		c.Saved("")
 		return nil
 	})
-}
-
-type multiHeaderPlacement struct {
-	Header *ui.AngledLabel
-	Width  float32
-	Height float32
-	Offset float32
-}
-
-func multiHeaderPlacements(headers []*ui.AngledLabel, gap float32) ([]multiHeaderPlacement, float32) {
-	placements := make([]multiHeaderPlacement, 0, len(headers))
-	totalHeight := float32(0)
-	for index, header := range headers {
-		size := header.MinSize()
-		placements = append(placements, multiHeaderPlacement{
-			Header: header,
-			Width:  size.Width,
-			Height: size.Height,
-			Offset: totalHeight,
-		})
-		totalHeight += size.Height
-		if index < len(headers)-1 {
-			totalHeight += gap
-		}
-	}
-	return placements, totalHeight
-}
-
-func multiStudentPage(students []multiStudentSnapshot, page, pageSize int) ([]multiStudentSnapshot, int) {
-	start := page * pageSize
-	if start >= len(students) {
-		start = 0
-	}
-	end := min(len(students), start+pageSize)
-	return students[start:end], start
-}
-
-func multiSubskillPage(subskills []curriculum.Subskill, page int) ([]curriculum.Subskill, int, int) {
-	if len(subskills) == 0 {
-		return nil, 0, 0
-	}
-	start := min(page*multiSubskillsPerPage, (len(subskills)-1)/multiSubskillsPerPage*multiSubskillsPerPage)
-	end := min(len(subskills), start+multiSubskillsPerPage)
-	return subskills[start:end], start, end
-}
-
-func multiMatrixWidth(width float32) float32 { return width - 2*ui.ContentInset }
-
-func addMultiHeaders(surface *ui.Surface, headers []multiHeaderPlacement, rowLayout multiRowLayout, matrixLeft, columnWidth float32, nameWidth func(float32) float32) {
-	for index, placement := range headers {
-		index, placement := index, placement
-		if placement.Offset > 0 {
-			connector := canvas.NewRectangle(ui.Muted)
-			surface.AddNamed(fmt.Sprintf("multi-header-connector-%d", index), connector, func(w, h float32) (float32, float32, float32, float32) {
-				rowTop, _ := rowLayout(w, h)
-				columnRight := matrixLeft + nameWidth(w) + float32(index+1)*columnWidth
-				return columnRight - 2, rowTop - placement.Offset, 1.5, placement.Offset
-			})
-		}
-		surface.AddNamed(fmt.Sprintf("multi-header-%d", index), placement.Header, func(w, h float32) (float32, float32, float32, float32) {
-			rowTop, _ := rowLayout(w, h)
-			columnRight := matrixLeft + nameWidth(w) + float32(index+1)*columnWidth
-			return columnRight - placement.Width, rowTop - placement.Offset - placement.Height, placement.Width, placement.Height
-		})
-	}
-}
-
-func newMultiHeaders(subskills []curriculum.Subskill, start int, showDetails func()) []*ui.AngledLabel {
-	headers := make([]*ui.AngledLabel, 0, len(subskills))
-	for index, subskill := range subskills {
-		header := ui.NewAngledLabel(multiHeaderText(start+index, subskill.Text), multiHeaderLength, multiHeaderFont, 0, ui.White, ui.Navy, ui.Navy)
-		header.OnTap = showDetails
-		headers = append(headers, header)
-	}
-	return headers
-}
-
-func multiMaxHeaderStackHeight(subskills []curriculum.Subskill) float32 {
-	maximum := float32(0)
-	for start := 0; start < len(subskills); start += multiSubskillsPerPage {
-		end := min(len(subskills), start+multiSubskillsPerPage)
-		pageHeaders := newMultiHeaders(subskills[start:end], start, nil)
-		_, height := multiHeaderPlacements(pageHeaders, multiHeaderGap)
-		maximum = max(maximum, height)
-	}
-	return maximum
-}
-
-type multiRowLayout func(width, height float32) (top, rowHeight float32)
-
-func addMultiStudentRows(surface *ui.Surface, students []multiStudentSnapshot, studentStart int, subskills []curriculum.Subskill, rowLayout multiRowLayout, rowGap, matrixLeft, columnWidth float32, matrixWidth, nameWidth func(float32) float32, toggleCell func(string, string)) {
-	for rowIndex, student := range students {
-		student, rowIndex := student, rowIndex
-		rowBounds := func(w, h float32) (float32, float32) {
-			top, height := rowLayout(w, h)
-			return top + float32(rowIndex)*(height+rowGap), height
-		}
-		rowColor := multiRowColors[(studentStart+rowIndex)%len(multiRowColors)]
-		background := canvas.NewRectangle(rowColor)
-		background.CornerRadius = 0
-		surface.AddNamed("multi-row-bg:"+student.PersonID, background, func(w, h float32) (float32, float32, float32, float32) {
-			rowY, rowHeight := rowBounds(w, h)
-			return matrixLeft, rowY, matrixWidth(w), rowHeight
-		})
-
-		name := ui.NewText(student.Name, 18, ui.Navy)
-		name.MinimumFont = 15
-		name.Bold = true
-		name.Center = false
-		name.MaxLines = 2
-		surface.AddNamed("multi-row-name:"+student.PersonID, name, func(w, h float32) (float32, float32, float32, float32) {
-			rowY, rowHeight := rowBounds(w, h)
-			return matrixLeft + ui.ButtonPadding, rowY, nameWidth(w) - 2*ui.ButtonPadding, rowHeight
-		})
-
-		for columnIndex, subskill := range subskills {
-			columnIndex, subskill := columnIndex, subskill
-			complete := student.Answers[subskill.ID] == "successful"
-			fill, ink := rowColor, ui.Navy
-			if complete {
-				fill, ink = ui.Green, ui.White
-			}
-			cell := surface.Button(fmt.Sprintf("multi-cell:%s:%s", student.PersonID, subskill.ID), "", func() { toggleCell(student.PersonID, subskill.ID) })
-			cell.Fill, cell.Ink, cell.FontSize = fill, ink, 22
-			cell.Selected = complete
-			cell.Outlined = true
-			if complete {
-				cell.Icon = saveActionIcon
-				cell.IconOnly = true
-			}
-			surface.AddNamed(fmt.Sprintf("multi-cell:%s:%s", student.PersonID, subskill.ID), cell, func(w, h float32) (float32, float32, float32, float32) {
-				rowY, rowHeight := rowBounds(w, h)
-				return matrixLeft + nameWidth(w) + float32(columnIndex)*columnWidth + 1, rowY + 1, columnWidth - 2, rowHeight - 2
-			})
-		}
-	}
-}
-
-func addMultiSubskillPager(surface *ui.Surface, controller *Controller, subskillCount, subskillStart, subskillEnd int) {
-	if subskillCount <= multiSubskillsPerPage {
-		return
-	}
-	hint := ui.NewText("Tap a subskill for full text", 14, ui.Muted)
-	surface.AddNamed("multi-subskill-hint", hint, func(w, h float32) (float32, float32, float32, float32) {
-		x, y, width, height := surface.BodyBounds(w, h)
-		return x + ui.ButtonPadding, y + height - ui.HeaderHeight, width - 300 - ui.ButtonPadding, ui.HeaderHeight
-	})
-
-	previous := surface.Button("multi-subskills-previous", "‹", func() { _ = controller.pageMultiSubskills(-1, subskillCount) })
-	previous.Fill, previous.Ink, previous.FontSize = ui.Rail, ui.Blue, 30
-	previous.Disabled = subskillStart == 0
-	previous.Icon, previous.IconOnly = theme.NewPrimaryThemedResource(theme.NavigateBackIcon()), true
-	if previous.Disabled {
-		previous.Icon = theme.NewDisabledResource(theme.NavigateBackIcon())
-	}
-	surface.AddNamed("multi-subskills-previous", previous, func(w, h float32) (float32, float32, float32, float32) {
-		x, y, width, height := surface.BodyBounds(w, h)
-		return x + width - 288, y + height - ui.HeaderHeight, 56, ui.HeaderHeight
-	})
-
-	progress := ui.NewText(fmt.Sprintf("Subskills %d–%d of %d", subskillStart+1, subskillEnd, subskillCount), 16, ui.Navy)
-	progress.Center = true
-	surface.AddNamed("multi-subskills-progress", progress, func(w, h float32) (float32, float32, float32, float32) {
-		x, y, width, height := surface.BodyBounds(w, h)
-		return x + width - 228, y + height - ui.HeaderHeight, 168, ui.HeaderHeight
-	})
-
-	next := surface.Button("multi-subskills-next", "›", func() { _ = controller.pageMultiSubskills(1, subskillCount) })
-	next.Fill, next.Ink, next.FontSize = ui.Rail, ui.Blue, 30
-	next.Disabled = subskillEnd == subskillCount
-	next.Icon, next.IconOnly = theme.NewPrimaryThemedResource(theme.NavigateNextIcon()), true
-	if next.Disabled {
-		next.Icon = theme.NewDisabledResource(theme.NavigateNextIcon())
-	}
-	surface.AddNamed("multi-subskills-next", next, func(w, h float32) (float32, float32, float32, float32) {
-		x, y, width, height := surface.BodyBounds(w, h)
-		return x + width - 56, y + height - ui.HeaderHeight, 56, ui.HeaderHeight
-	})
-}
-
-func showMultiSubskills(window fyne.Window, texts []string) {
-	label := widget.NewLabel(strings.Join(texts, "\n\n"))
-	label.Wrapping = fyne.TextWrapWord
-	details := dialog.NewCustom("Subskills", "Close", container.NewVScroll(label), window)
-	details.Resize(fyne.NewSize(620, 360))
-	details.Show()
-}
-
-func (c *Controller) composeMultiAssessmentBody(snapshot multiAssessmentSnapshot) ui.BodyComposer {
-	return func(surface *ui.Surface) {
-		if len(snapshot.Students) == 0 || len(snapshot.Skill.Subskills) == 0 {
-			ui.Empty(surface, "No students selected.")
-			return
-		}
-
-		subskillCount := len(snapshot.Skill.Subskills)
-		pageSize := multiStudentPageSize(len(snapshot.Students), subskillCount)
-		students, studentStart := multiStudentPage(snapshot.Students, c.Frame().Page, pageSize)
-		subskills, subskillStart, subskillEnd := multiSubskillPage(snapshot.Skill.Subskills, c.multiSubskillPage)
-		// Reserve the full page width even on the final subskill page so the
-		// student-name column and existing marks do not move when paging.
-		columnCount := min(subskillCount, multiSubskillsPerPage)
-
-		matrixWidth := multiMatrixWidth
-		nameWidth := func(width float32) float32 {
-			return matrixWidth(width) - float32(columnCount)*multiColumnWidth
-		}
-		allSubskillTexts := make([]string, 0, subskillCount)
-		for index, subskill := range snapshot.Skill.Subskills {
-			allSubskillTexts = append(allSubskillTexts, multiHeaderText(index, subskill.Text))
-		}
-		showDetails := func() { showMultiSubskills(surface.Window, allSubskillTexts) }
-		headers := newMultiHeaders(subskills, subskillStart, showDetails)
-		placements, _ := multiHeaderPlacements(headers, multiHeaderGap)
-		headerStackHeight := multiMaxHeaderStackHeight(snapshot.Skill.Subskills)
-		rowLayout := func(w, h float32) (float32, float32) {
-			_, top, _, height := surface.BodyBounds(w, h)
-			rowTop := top + headerStackHeight
-			rowBottom := top + height
-			if subskillCount > multiSubskillsPerPage {
-				rowBottom -= ui.HeaderHeight + ui.Gap
-			}
-			return rowTop, min(float32(56), (rowBottom-rowTop-float32(pageSize-1)*multiRowGap)/float32(pageSize))
-		}
-
-		addMultiHeaders(surface, placements, rowLayout, multiMatrixLeft, multiColumnWidth, nameWidth)
-		addMultiStudentRows(surface, students, studentStart, subskills, rowLayout, multiRowGap, multiMatrixLeft, multiColumnWidth, matrixWidth, nameWidth, func(personID, subskillID string) {
-			_ = c.ToggleMultiCell(personID, subskillID)
-		})
-		addMultiSubskillPager(surface, c, subskillCount, subskillStart, subskillEnd)
-	}
 }

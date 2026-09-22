@@ -18,6 +18,8 @@ const (
 	Attendance       Route = "attendance"
 	Skills           Route = "skills"
 	SkillSwimmers    Route = "skill_swimmers"
+	MultiGroupCount  Route = "multi_group_count"
+	MultiStudent     Route = "multi_student"
 	MultiSelection   Route = "multi_selection"
 	MultiAssessment  Route = "multi_assessment"
 	ClassAssessment  Route = "class_assessment"

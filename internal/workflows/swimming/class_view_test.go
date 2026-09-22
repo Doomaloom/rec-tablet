@@ -179,7 +179,7 @@ func TestClassResumesDraftsAndFiltersRosterWhenSwitchingFromMulti(t *testing.T) 
 	check(t, f.s.Mark(existing, "Splash1:1:1", "successful"))
 	check(t, f.c.Refresh())
 	f.tap(t, "header-switch-1")
-	f.row(t, 0) // Class should include every eligible student, not only this selection.
+	// Class still includes all active students, even when Multi has none present.
 	f.enterClass(t)
 	if f.c.State.PageCount != 2 || f.c.State.Rows[0].Status != "successful" {
 		t.Fatal("Class lost an existing draft or included inactive/other-level students")
