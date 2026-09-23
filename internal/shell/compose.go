@@ -13,6 +13,7 @@ func ComposeScreen(view *View, state State) ScreenComposition {
 		newBackButtonComponent(builder)
 	}
 	newPagingRailComponents(builder)
+	newPagePositionIndicatorComponents(builder)
 	newHeaderComponents(builder)
 	newPrimaryInfoComponent(builder)
 	newBodyComponent(builder)

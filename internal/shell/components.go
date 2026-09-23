@@ -143,6 +143,23 @@ func newPagingRailComponents(builder *componentBuilder) {
 	builder.addComponent("next-page", nextButton, nextPageSlot)
 }
 
+func newPagePositionIndicatorComponents(builder *componentBuilder) {
+	if builder.state.PageCount <= 1 {
+		return
+	}
+	track := canvas.NewRectangle(ui.Rail)
+	track.CornerRadius = pagePositionTrackWidth / 2
+	track.StrokeColor = ui.Muted
+	track.StrokeWidth = 1
+	builder.addComponent("page-position-track", track, pagePositionTrackSlot(builder.state))
+
+	thumb := canvas.NewRectangle(ui.Blue)
+	thumb.CornerRadius = pagePositionTrackWidth / 2
+	thumb.StrokeColor = ui.Navy
+	thumb.StrokeWidth = 1
+	builder.addComponent("page-position-thumb", thumb, pagePositionThumbSlot(builder.state))
+}
+
 func newBackButtonComponent(builder *componentBuilder) {
 	if !builder.state.CanBack && builder.state.BackRailAction == nil {
 		return

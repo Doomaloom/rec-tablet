@@ -2,6 +2,7 @@ package shell
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/test"
 	"rectablet/internal/shared/ui"
 	"testing"
@@ -49,6 +50,114 @@ func TestComposeScreenUsesNamedCommonComponents(t *testing.T) {
 	}
 	if len(composition.Buttons) != 3 {
 		t.Fatalf("got %d registered buttons", len(composition.Buttons))
+	}
+}
+
+func TestPagePositionIndicatorTracksTheCurrentPage(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("page position")
+	defer window.Close()
+	presenter := &compositionPresenter{state: State{Page: 1, PageCount: 4}}
+	view := New(presenter, window)
+	defer view.Close()
+
+	composition := ComposeScreen(view, presenter.state)
+	track := componentNamed(composition.Components, "page-position-track")
+	thumb := componentNamed(composition.Components, "page-position-thumb")
+	tx, ty, tw, th := track.Position(800, 480)
+	if tx != 724 || ty != 52 || tw != 12 || th != 424 {
+		t.Fatalf("unexpected page track bounds: %v", []float32{tx, ty, tw, th})
+	}
+	thumbX, thumbY, thumbWidth, thumbHeight := thumb.Position(800, 480)
+	if thumbX != tx || thumbY != 158 || thumbWidth != tw || thumbHeight != 106 {
+		t.Fatalf("unexpected page 2 of 4 thumb bounds: %v", []float32{thumbX, thumbY, thumbWidth, thumbHeight})
+	}
+	if hasComponent(composition.Components, "page-position-label") || composition.Buttons["page-position"] != nil {
+		t.Fatal("the page indicator should not add a label or interactive control")
+	}
+	trackRect, ok := track.Object.(*canvas.Rectangle)
+	if !ok || trackRect.FillColor != ui.Rail || trackRect.StrokeColor != ui.Muted {
+		t.Fatal("page track should have a clearly visible neutral fill and outline")
+	}
+	thumbRect, ok := thumb.Object.(*canvas.Rectangle)
+	if !ok || thumbRect.FillColor != ui.Blue || thumbRect.StrokeColor != ui.Navy {
+		t.Fatal("current page thumb should use the high-contrast blue treatment")
+	}
+	if x, _, width, _ := bodySlot(presenter.state)(800, 480); x+width != 716 {
+		t.Fatalf("paged body should reserve the indicator lane; bounds end at %v", x+width)
+	}
+
+	for _, size := range []fyne.Size{fyne.NewSize(800, 480), fyne.NewSize(1200, 720), fyne.NewSize(1280, 800)} {
+		scale := min(size.Width/800, size.Height/480)
+		logicalWidth, logicalHeight := size.Width/scale, size.Height/scale
+		bodyX, bodyY, bodyWidth, bodyHeight := bodySlot(presenter.state)(logicalWidth, logicalHeight)
+		trackX, trackY, trackWidth, trackHeight := pagePositionTrackSlot(presenter.state)(logicalWidth, logicalHeight)
+		railX, _, _, _ := previousPageSlot(logicalWidth, logicalHeight)
+		if trackX-(bodyX+bodyWidth) != pagePositionGutter || railX-(trackX+trackWidth) != pagePositionGutter || trackY != bodyY || trackHeight != bodyHeight {
+			t.Fatalf("indicator lane does not fit %v: body %v, track %v, rail x %v", size,
+				[]float32{bodyX, bodyY, bodyWidth, bodyHeight}, []float32{trackX, trackY, trackWidth, trackHeight}, railX)
+		}
+		if (trackX+trackWidth)*scale > size.Width || (trackY+trackHeight)*scale > size.Height {
+			t.Fatalf("indicator extends outside %v", size)
+		}
+	}
+}
+
+func TestPagePositionIndicatorHandlesEndpointsAndSinglePage(t *testing.T) {
+	for _, testCase := range []struct {
+		name  string
+		page  int
+		wantY float32
+	}{
+		{name: "first", page: 0, wantY: 52},
+		{name: "second", page: 1, wantY: 158},
+		{name: "last", page: 3, wantY: 370},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, y, _, _ := pagePositionThumbSlot(State{Page: testCase.page, PageCount: 4})(800, 480)
+			if y != testCase.wantY {
+				t.Fatalf("thumb y = %v, want %v", y, testCase.wantY)
+			}
+		})
+	}
+
+	single := State{Page: 0, PageCount: 1}
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("single page")
+	defer window.Close()
+	presenter := &compositionPresenter{state: single}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, single)
+	if !hasComponent(composition.Components, "previous-page") {
+		t.Fatal("single-page screens should retain their existing paging controls")
+	}
+	if hasComponent(composition.Components, "page-position-track") || hasComponent(composition.Components, "page-position-thumb") {
+		t.Fatal("single-page screens should not show a position indicator")
+	}
+	if x, _, width, _ := bodySlot(single)(800, 480); x+width != 740 {
+		t.Fatalf("single-page body should not reserve an indicator lane; bounds end at %v", x+width)
+	}
+}
+
+func TestPagePositionThumbHeightIsOnePageOfTheTrack(t *testing.T) {
+	_, _, _, trackHeight := pagePositionTrackSlot(State{Page: 0, PageCount: 2})(800, 480)
+	for _, pageCount := range []int{2, 4} {
+		for _, page := range []int{0, pageCount - 1} {
+			_, y, _, thumbHeight := pagePositionThumbSlot(State{Page: page, PageCount: pageCount})(800, 480)
+			if thumbHeight*float32(pageCount) != trackHeight {
+				t.Fatalf("%d page thumb height %v is not one page of track height %v", pageCount, thumbHeight, trackHeight)
+			}
+			wantY := float32(52)
+			if page == pageCount-1 {
+				wantY += trackHeight - thumbHeight
+			}
+			if y != wantY {
+				t.Fatalf("page %d of %d thumb y = %v, want %v", page+1, pageCount, y, wantY)
+			}
+		}
 	}
 }
 
