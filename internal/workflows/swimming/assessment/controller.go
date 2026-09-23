@@ -21,7 +21,6 @@ type Controller struct {
 	multi          *multiSession
 	multiEdit      *multiStudentEdit
 	classAttempts  []domain.MultiAttempt
-	classNames     map[string]string
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {
@@ -33,7 +32,7 @@ func (c *Controller) Build() (navigation.State, error) {
 	state := c.InitialState()
 	rows := []navigation.Row{}
 	s := c.Store
-	course, roster, e := navigation.LessonContext(s, f, c.Date, &state)
+	course, roster, e := navigation.LessonContext(s, f, &state)
 	if e != nil {
 		return state, e
 	}
@@ -42,6 +41,7 @@ func (c *Controller) Build() (navigation.State, error) {
 	switch f.Screen {
 	case navigation.Skills:
 		state.Title = "Choose a Skill"
+		state.PrimaryInfo = ""
 		catalog, e := s.CatalogFor(version)
 		if e != nil {
 			return state, e
@@ -54,20 +54,21 @@ func (c *Controller) Build() (navigation.State, error) {
 			seenLevels[p.Level] = true
 			level, ok := catalog.Level(p.Level)
 			if !ok || len(level.Skills) == 0 {
-				rows = append(rows, navigation.Row{ID: p.Level, Label: p.Level, Detail: "Missing curriculum · update swimmer level", Disabled: true})
+				rows = append(rows, navigation.Row{ID: p.Level, Label: p.Level + " · Missing curriculum · update swimmer level", Disabled: true})
 				continue
 			}
 			for _, skill := range level.Skills {
-				detail := level.Name
+				label := skill.Number + ". " + curriculum.CompactTitle(skill)
 				if benchmark, ok := benchmarkFor(skill.ID); ok {
-					detail += " · Timed heat · " + benchmark.Description
+					label += " · Timed heat · " + benchmark.Description
 				}
-				rows = append(rows, navigation.Row{ID: skill.ID, Label: skill.Number + ". " + curriculum.CompactTitle(skill), Detail: detail, Data: navigation.Parameters{Level: p.Level, Version: version}})
+				rows = append(rows, navigation.Row{ID: skill.ID, Label: label, Data: navigation.Parameters{Level: p.Level, Version: version}})
 			}
 		}
 		state.Empty = "No enrolled swimmers with an assigned level."
 
 	case navigation.SkillSwimmers:
+		state.PrimaryInfo = ""
 		if f.Version != "" {
 			version = f.Version
 		}
@@ -76,12 +77,10 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, e
 		}
 		state.Title = "Choose a Swimmer"
-		state.Subtitle = skill.Name
-		state.Context += "\n" + skill.Name
 		benchmark, timed := benchmarkFor(skill.ID)
 		if timed {
 			state.Title = "Select Swimmers"
-			state.Context += "\n" + benchmark.Description
+			navigation.AppendPrimaryInfo(&state, benchmark.Description)
 			for _, p := range roster {
 				if !p.Active || p.Level != f.Level {
 					continue
@@ -140,9 +139,9 @@ func (c *Controller) Build() (navigation.State, error) {
 	case navigation.MultiSelection:
 		return c.buildMultiSelectionState()
 	case navigation.MultiAssessment:
-		return c.buildMultiAssessmentState(course, f)
+		return c.buildMultiAssessmentState(f)
 	case navigation.MultiStudent:
-		return c.buildMultiStudentState(course, f)
+		return c.buildMultiStudentState(f)
 	case navigation.ClassAssessment:
 		return c.buildClassAssessmentState(course, f)
 
@@ -159,9 +158,9 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, fmt.Errorf("skill is not a timed benchmark")
 		}
 		state.Title = "Laps Needed"
-		state.Subtitle = skill.Name
-		state.Context += "\n" + benchmark.Description
+		navigation.AppendPrimaryInfo(&state, skill.Name+" · "+benchmark.Description)
 		state.Progress = c.timedHeatInput()
+		state.ProgressInBody = true
 		state.HomeRailAction = saveRailAction(c.ConfirmTimedLaps)
 		state.BackRailAction = discardRailAction(c.DiscardTimedSelection)
 
@@ -175,8 +174,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, fmt.Errorf("skill is not a timed benchmark")
 		}
 		state.Title = formatHeatElapsed(c.timedHeatElapsed())
-		state.Subtitle = benchmark.Description
-		state.Context += "\n" + benchmark.Description
+		navigation.AppendPrimaryInfo(&state, benchmark.Description)
 		state.HeaderTitleFontSize = 34
 		startLabel := "Start"
 		if c.timedHeat.Running {
@@ -188,16 +186,15 @@ func (c *Controller) Build() (navigation.State, error) {
 		}
 		state.HomeRailAction = saveRailAction(c.SaveTimedHeat)
 		state.BackRailAction = discardRailAction(c.DiscardTimedHeat)
-		state.Progress = benchmark.Description
 		for i := range c.timedHeat.Participants {
 			participant := &c.timedHeat.Participants[i]
-			detail := fmt.Sprintf("%d/%d laps", participant.participant.LapsCompleted, participant.participant.LapsRequired)
+			lapSummary := fmt.Sprintf("%d/%d laps", participant.participant.LapsCompleted, participant.participant.LapsRequired)
 			status := "in_progress"
 			if participant.completed {
-				detail += " · " + formatHeatElapsed(participant.completedAt)
+				lapSummary += " · " + formatHeatElapsed(participant.completedAt)
 				status = "successful"
 			}
-			rows = append(rows, navigation.Row{ID: "timed-lap:" + participant.participant.PersonID, Label: participant.participant.Name, Detail: detail, Status: status, ProgressValue: participant.participant.LapsCompleted, ProgressTotal: participant.participant.LapsRequired})
+			rows = append(rows, navigation.Row{ID: "timed-lap:" + participant.participant.PersonID, Label: participant.participant.Name + " · " + lapSummary, Status: status, ProgressValue: participant.participant.LapsCompleted, ProgressTotal: participant.participant.LapsRequired})
 		}
 		state.Empty = "No swimmers in this heat."
 
@@ -214,8 +211,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, e
 		}
 		state.Title = p.Name
-		state.Subtitle = skill.Name
-		state.Context += "\n" + state.Title + "\n" + skill.Name
+		navigation.AppendPrimaryInfo(&state, skill.Name)
 		progress, e := s.Progress(f.Person, skill.ID, version)
 		if e != nil {
 			return state, e
@@ -240,7 +236,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			if len(created) >= 19 {
 				clock = created[11:19]
 			}
-			rows = append(rows, navigation.Row{ID: a.ID, Label: label, Detail: a.Date + " · " + clock + " UTC"})
+			rows = append(rows, navigation.Row{ID: a.ID, Label: label + " · " + clock + " UTC"})
 		}
 		state.Empty = "No attempts recorded for this skill."
 
@@ -261,46 +257,31 @@ func (c *Controller) Build() (navigation.State, error) {
 		if e != nil {
 			return state, e
 		}
-		lesson, e := s.GetLesson(a.LessonID)
-		if e != nil {
-			return state, e
-		}
 		state.Title = p.Name
-		state.Subtitle = skill.Name
-		state.Context = course.Name + " · " + lesson.Date + "\n" + state.Title + "\n" + skill.Name
+		state.SplitHeader = &shell.SplitHeader{Left: p.Name, Right: skill.Name}
+		state.PrimaryInfo = ""
+		state.Progress = ""
 		for _, subskill := range skill.Subskills {
 			status := answers[subskill.ID]
 			if status == "" {
 				status = "unmarked"
 			}
-			rows = append(rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Detail: strings.Join(subskill.Group, " › "), Status: status})
+			rows = append(rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Status: status})
 		}
 		if f.Review {
 			state.FooterAction = "Save correction"
 			state.CanSubmit = len(answers) == len(rows)
 			state.PageSize = 1
-			state.Progress = fmt.Sprintf("%d/%d assessed · %s", len(answers), len(rows), lesson.Date)
 		} else {
 			state.HomeRailAction = saveRailAction(c.SaveAttempt)
 			state.BackRailAction = discardRailAction(c.DiscardAttempt)
 			state.PageSize = 3
-			state.Progress = fmt.Sprintf("%d/%d complete · %s", successfulAnswers(answers), len(rows), lesson.Date)
 		}
 	}
 
 	c.Paginate(&state, rows)
 	c.composeFeatureBody(&state)
 	return state, nil
-}
-
-func successfulAnswers(answers map[string]string) int {
-	count := 0
-	for _, status := range answers {
-		if status == "successful" {
-			count++
-		}
-	}
-	return count
 }
 
 func containsString(values []string, target string) bool {

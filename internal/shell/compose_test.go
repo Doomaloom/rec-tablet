@@ -26,12 +26,12 @@ func TestComposeScreenUsesNamedCommonComponents(t *testing.T) {
 	app := test.NewApp()
 	defer app.Quit()
 	window := app.NewWindow("composition")
-	presenter := &compositionPresenter{state: State{Screen: "classes", Title: "My Classes", Subtitle: "Instructor", PageCount: 2, TitleDetails: true}}
+	presenter := &compositionPresenter{state: State{Screen: "classes", Title: "My Classes", PrimaryInfo: "Instructor", PageCount: 2}}
 	view := New(presenter, window)
 	defer view.Close()
 	composition := ComposeScreen(view, presenter.state)
 
-	wanted := []string{"background", "home-rail", "previous-page", "next-page", "screen-title", "screen-context", "progress-footer", "page-status"}
+	wanted := []string{"background", "home-rail", "previous-page", "next-page", "screen-title", "primary-info"}
 	seen := map[string]bool{}
 	for _, component := range composition.Components {
 		if component.Name == "" || component.Object == nil || component.Position == nil {
@@ -47,34 +47,35 @@ func TestComposeScreenUsesNamedCommonComponents(t *testing.T) {
 			t.Fatalf("missing named component: %s", name)
 		}
 	}
-	if len(composition.Buttons) != 5 {
+	if len(composition.Buttons) != 3 {
 		t.Fatalf("got %d registered buttons", len(composition.Buttons))
 	}
 }
 
-func TestComposeScreenUsesCompactSplitHeader(t *testing.T) {
+func TestComposeScreenUsesProminentSplitHeader(t *testing.T) {
 	app := test.NewApp()
 	defer app.Quit()
 	window := app.NewWindow("split header")
 	defer window.Close()
 	presenter := &compositionPresenter{state: State{
-		Title: "Full student and skill", HideContext: true,
+		Title:       "Full student and skill",
 		SplitHeader: &SplitHeader{Left: "8. Front crawl 50m", Right: "Alexandria M."},
 	}}
 	view := New(presenter, window)
 	defer view.Close()
 	composition := ComposeScreen(view, presenter.state)
-	if hasComponent(composition.Components, "screen-title") || hasComponent(composition.Components, "screen-context") {
-		t.Fatal("split header should replace the normal title/context")
+	if hasComponent(composition.Components, "screen-title") || hasComponent(composition.Components, "primary-info") {
+		t.Fatal("split header should replace the normal title and omit empty information")
 	}
 	for i, id := range []string{"header-half-0", "header-half-1"} {
-		x, y, width, height := componentNamed(composition.Components, id).Position(800, 480)
-		if x != 60+float32(i)*342 || y != 4 || width != 338 || height != 32 {
+		component := componentNamed(composition.Components, id)
+		x, y, width, height := component.Position(800, 480)
+		if x != 60+float32(i)*342 || y != 4 || width != 338 || height != SplitHeaderHeight {
 			t.Fatalf("incorrect split header slot: %s at %v", id, []float32{x, y, width, height})
 		}
-		button := composition.Buttons[id]
-		if !button.SingleLine || !button.Compact || button.FontSize != 18 {
-			t.Fatal("split header should use compact, single-line 18pt text")
+		label, ok := component.Object.(*ui.TextBlock)
+		if !ok || !label.Wrap || label.FontSize != 22 || label.MaxLines != -1 || label.MinimumFont != 16 || composition.Buttons[id] != nil {
+			t.Fatal("split header should use prominent wrapping text")
 		}
 	}
 }
@@ -157,8 +158,8 @@ func TestComposeScreenRendersHeaderModeSwitch(t *testing.T) {
 	if !hasComponent(composition.Components, "header-switch-0") || !hasComponent(composition.Components, "header-switch-1") || !hasComponent(composition.Components, "header-switch-2") {
 		t.Fatal("mode switch buttons were not composed")
 	}
-	if hasComponent(composition.Components, "screen-title") {
-		t.Fatal("mode switch should replace the swimmer title")
+	if !hasComponent(composition.Components, "screen-title") {
+		t.Fatal("mode switch should keep the screen title visible")
 	}
 	if composition.Buttons["header-switch-0"].Fill != ui.Blue || composition.Buttons["header-switch-1"].Fill != ui.White {
 		t.Fatal("selected mode switch option styling is incorrect")
@@ -216,7 +217,7 @@ func TestComposeScreenSupportsIconRailActionsAndHiddenFooter(t *testing.T) {
 	if !composition.Buttons["home"].IconOnly || !composition.Buttons["back"].IconOnly {
 		t.Fatal("icon rail actions should hide their fallback text")
 	}
-	if hasComponent(composition.Components, "progress-footer") || hasComponent(composition.Components, "page-status") {
+	if hasComponent(composition.Components, "primary-info") {
 		t.Fatal("hidden matrix footer was still composed")
 	}
 }

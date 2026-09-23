@@ -174,7 +174,19 @@ func (c *Controller) Refresh() error {
 	return nil
 }
 func (c *Controller) InitialState() State {
-	return State{Screen: string(c.Frame().Screen), Title: "My Classes", TitleDetails: true, DetailsTitle: "Lesson details", CanBack: len(c.Frames) > 1, PageCount: 1, PageSize: 3, Rows: []Row{}}
+	return State{Screen: string(c.Frame().Screen), Title: "My Classes", CanBack: len(c.Frames) > 1, PageCount: 1, PageSize: 3, Rows: []Row{}}
+}
+
+func AppendPrimaryInfo(state *State, text string) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
+	if state.PrimaryInfo == "" {
+		state.PrimaryInfo = text
+		return
+	}
+	state.PrimaryInfo += " · " + text
 }
 func (c *Controller) Paginate(state *State, rows []Row) {
 	size := max(1, state.PageSize)
@@ -201,7 +213,7 @@ type LessonReader interface {
 	ListRoster(string) ([]domain.Enrollment, error)
 }
 
-func LessonContext(s LessonReader, f Frame, date string, state *State) (domain.Course, []domain.Enrollment, error) {
+func LessonContext(s LessonReader, f Frame, state *State) (domain.Course, []domain.Enrollment, error) {
 	course, e := s.GetCourse(f.Course)
 	if e != nil {
 		return course, nil, e
@@ -210,7 +222,6 @@ func LessonContext(s LessonReader, f Frame, date string, state *State) (domain.C
 	if e != nil {
 		return course, nil, e
 	}
-	state.Subtitle = course.Name + " · " + course.Time + " · " + date
-	state.Context = state.Subtitle
+	state.PrimaryInfo = course.Name + " · " + course.Time
 	return course, roster, nil
 }

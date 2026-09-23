@@ -25,7 +25,7 @@ var (
 
 type TouchButton struct {
 	widget.BaseWidget
-	Text, Detail          string
+	Text                  string
 	Fill, Ink             color.Color
 	FontSize, ScaleFactor float32
 	MinimumFont           float32
@@ -126,12 +126,9 @@ func (b *TouchButton) TypedKey(e *fyne.KeyEvent) {
 	}
 }
 func (b *TouchButton) CreateRenderer() fyne.WidgetRenderer {
-	r := &buttonRenderer{b: b, bg: canvas.NewRectangle(b.Fill), label: NewText(b.Text, b.FontSize, b.Ink), detail: NewText(b.Detail, 15, b.Ink)}
+	r := &buttonRenderer{b: b, bg: canvas.NewRectangle(b.Fill), label: NewText(b.Text, b.FontSize, b.Ink)}
 	r.label.Bold = true
 	r.label.Center = true
-	r.detail.Center = true
-	r.detail.Wrap = false
-	r.detail.MaxLines = 1
 	r.objects = []fyne.CanvasObject{r.bg}
 	for i := 0; i < 3; i++ {
 		segment := canvas.NewRectangle(Green)
@@ -139,7 +136,7 @@ func (b *TouchButton) CreateRenderer() fyne.WidgetRenderer {
 		r.progressSegments[i] = segment
 		r.objects = append(r.objects, segment)
 	}
-	r.objects = append(r.objects, r.label, r.detail)
+	r.objects = append(r.objects, r.label)
 	if b.Icon != nil {
 		r.icon = canvas.NewImageFromResource(b.Icon)
 		r.icon.FillMode = canvas.ImageFillContain
@@ -151,7 +148,7 @@ func (b *TouchButton) CreateRenderer() fyne.WidgetRenderer {
 type buttonRenderer struct {
 	b                *TouchButton
 	bg               *canvas.Rectangle
-	label, detail    *TextBlock
+	label            *TextBlock
 	icon             *canvas.Image
 	progressSegments [3]*canvas.Rectangle
 	objects          []fyne.CanvasObject
@@ -180,16 +177,13 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		ink = Muted
 	}
 	r.label.Color = ink
-	r.detail.Color = ink
 	r.label.FontSize = b.FontSize
 	r.label.MinimumFont = b.FontSize
 	if b.MinimumFont > 0 {
 		r.label.MinimumFont = b.MinimumFont
 	}
 	r.label.Text = b.Text
-	r.detail.Text = b.Detail
 	r.label.ScaleFactor = s
-	r.detail.ScaleFactor = s
 	x, pad := ButtonPadding*s, 4*s
 	if b.Compact {
 		pad = 2 * s
@@ -210,7 +204,6 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 			r.icon.Move(fyne.NewPos((size.Width-h)/2, (size.Height-h)/2))
 			r.icon.Resize(fyne.NewSize(h, h))
 			r.label.Hide()
-			r.detail.Hide()
 			r.bg.Refresh()
 			return
 		}
@@ -220,20 +213,9 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		r.label.Move(fyne.NewPos(x, (size.Height+h)/2))
 		r.label.Resize(fyne.NewSize(available, 30*s))
 		r.label.MaxLines = 1
-		r.detail.Hide()
 	} else {
 		labelHeight := size.Height - 2*pad
 		labelTop := pad
-		if b.Detail != "" {
-			labelHeight -= 23 * s
-			labelHeight = min(labelHeight, WrappedTextHeight(b.Text, available, b.FontSize*s, true))
-			labelTop = max(pad, (size.Height-labelHeight-23*s)/2)
-			r.detail.Show()
-			r.detail.Move(fyne.NewPos(x, labelTop+labelHeight))
-			r.detail.Resize(fyne.NewSize(available, 23*s))
-		} else {
-			r.detail.Hide()
-		}
 		r.label.Move(fyne.NewPos(x, labelTop))
 		r.label.Resize(fyne.NewSize(available, max(1, labelHeight)))
 		segmentCount := min(3, max(0, b.ProgressSegments))
@@ -267,6 +249,5 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	}
 	r.bg.Refresh()
 	r.label.Refresh()
-	r.detail.Refresh()
 }
 func (r *buttonRenderer) Refresh() { r.Layout(r.b.Size()); canvas.Refresh(r.b) }

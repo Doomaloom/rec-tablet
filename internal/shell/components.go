@@ -224,9 +224,9 @@ func newHeaderComponents(builder *componentBuilder) {
 	}
 
 	if len(state.HeaderSwitch) > 0 {
-		switchWidth := float32(len(state.HeaderSwitch)) * 140
+		const optionWidth = float32(92)
 		const optionGap = ui.Gap
-		optionWidth := (switchWidth - float32(len(state.HeaderSwitch)-1)*optionGap) / float32(len(state.HeaderSwitch))
+		switchWidth := float32(len(state.HeaderSwitch))*optionWidth + float32(len(state.HeaderSwitch)-1)*optionGap
 		for i, option := range state.HeaderSwitch {
 			index, option := i, option
 			button := builder.newTouchButton(fmt.Sprintf("header-switch-%d", i), option.Label, func() { _ = option.Run() })
@@ -237,71 +237,86 @@ func newHeaderComponents(builder *componentBuilder) {
 				button.Selected = true
 			}
 			position := func(width, _ float32) (float32, float32, float32, float32) {
-				return (width-switchWidth)/2 + float32(index)*(optionWidth+optionGap), ui.OuterMargin, optionWidth, ui.HeaderHeight
+				return width - ui.ContentInset - switchWidth + float32(index)*(optionWidth+optionGap), ui.OuterMargin, optionWidth, ui.HeaderHeight
 			}
 			builder.addComponent(fmt.Sprintf("header-switch-%d", i), button, position)
 		}
-		return
+		actionWidth = switchWidth
 	}
 
 	left := ui.ContentInset
-	titleButton := builder.newTouchButton("title", state.Title, func() {
-		if state.TitleDetails {
-			builder.view.details()
-		}
-	})
-	titleButton.Fill = ui.White
-	titleButton.Ink = ui.Navy
-	titleButton.FontSize = 25
+	fontSize := float32(25)
 	if state.HeaderTitleFontSize > 0 {
-		titleButton.FontSize = state.HeaderTitleFontSize
-	}
-	titleButton.OnHold = state.HoldTitle
-	if state.FitHeader {
-		titleButton.Compact = true
-		titleButton.MinimumFont = 10
-		titleButton.MaxLabelLines = -1
+		fontSize = state.HeaderTitleFontSize
 	}
 	position := func(width, height float32) (float32, float32, float32, float32) {
 		x, y, w, _ := headerTitleSlot(width, height, left, actionWidth)
 		return x, y, w, headerHeight(state)
 	}
-	builder.addComponent("screen-title", titleButton, position)
+	if state.HoldTitle != nil {
+		titleButton := builder.newTouchButton("title", state.Title, func() {})
+		titleButton.Fill, titleButton.Ink, titleButton.FontSize = ui.White, ui.Navy, fontSize
+		titleButton.OnHold = state.HoldTitle
+		if state.FitHeader {
+			titleButton.Compact, titleButton.MinimumFont, titleButton.MaxLabelLines = true, 10, -1
+		}
+		builder.addComponent("screen-title", titleButton, position)
+		return
+	}
+	background := canvas.NewRectangle(ui.White)
+	builder.addComponent("screen-title-background", background, position)
+	title := ui.NewText(state.Title, fontSize, ui.Navy)
+	title.Bold, title.Center = true, true
+	if state.FitHeader {
+		title.MinimumFont, title.MaxLines = 10, -1
+	}
+	builder.addComponent("screen-title", title, position)
 }
 
 func newSplitHeaderComponents(builder *componentBuilder) {
 	header := builder.state.SplitHeader
+	actionWidth := float32(0)
+	if builder.state.HeaderAction != "" {
+		actionWidth = builder.state.HeaderWidth
+		if actionWidth <= 0 {
+			actionWidth = 98
+		}
+	}
 	for i, label := range []string{header.Left, header.Right} {
 		index := i
 		id := fmt.Sprintf("header-half-%d", index)
-		button := builder.newTouchButton(id, label, func() {
-			if builder.state.TitleDetails {
-				builder.view.details()
+		position := func(width, _ float32) (float32, float32, float32, float32) {
+			if actionWidth > 0 {
+				return splitHeaderHalfWithActionSlot(width, index, actionWidth)
 			}
-		})
-		button.Fill, button.Ink, button.FontSize = ui.White, ui.Navy, 18
-		button.Compact, button.SingleLine = true, true
-		builder.addComponent(id, button, func(width, _ float32) (float32, float32, float32, float32) {
-			return splitHeaderSlot(width, index)
-		})
+			x, y, w, _ := splitHeaderSlot(width, index)
+			return x, y, w, headerHeight(builder.state)
+		}
+		background := canvas.NewRectangle(ui.White)
+		builder.addComponent(id+"-background", background, position)
+		text := ui.NewText(label, 22, ui.Navy)
+		text.Bold, text.Center, text.MinimumFont, text.MaxLines = true, true, 16, -1
+		builder.addComponent(id, text, position)
+	}
+	if builder.state.HeaderAction != "" {
+		button := builder.newTouchButton("header", builder.state.HeaderAction, func() { _ = builder.controller.Header() })
+		button.FontSize = 18
+		position := func(width, _ float32) (float32, float32, float32, float32) {
+			return splitHeaderActionSlot(width, actionWidth)
+		}
+		builder.addComponent("header-action", button, position)
 	}
 }
 
-func newContextComponent(builder *componentBuilder) {
-	if !hasContext(builder.state) {
+func newPrimaryInfoComponent(builder *componentBuilder) {
+	text := primaryInfoText(builder.state)
+	if text == "" {
 		return
 	}
-	contextButton := builder.newTouchButton("context", builder.state.Subtitle, builder.view.details)
-	contextButton.Fill = ui.Background
-	contextButton.Ink = ui.Muted
-	contextButton.FontSize = 17
-	if builder.state.FitHeader {
-		contextButton.Compact = true
-		contextButton.MinimumFont = 12
-		contextButton.MaxLabelLines = -1
-	}
-	builder.addComponent("screen-context", contextButton, func(width, _ float32) (float32, float32, float32, float32) {
-		return ui.ContentInset, ui.OuterMargin + headerHeight(builder.state) + ui.Gap, width - 2*ui.ContentInset, ui.ContextHeight
+	info := ui.NewText(text, 20, ui.Navy)
+	info.Bold = true
+	builder.addComponent("primary-info", info, func(width, _ float32) (float32, float32, float32, float32) {
+		return ui.ContentInset, ui.OuterMargin + headerHeight(builder.state) + ui.Gap, width - 2*ui.ContentInset, primaryInfoHeight(builder.state, width)
 	})
 }
 
@@ -326,18 +341,9 @@ func newBodyComponent(builder *componentBuilder) {
 
 func newFooterComponents(builder *componentBuilder) {
 	state := builder.state
-	if state.HideFooter {
+	if state.HideFooter || state.FooterAction == "" {
 		return
 	}
-	progress := ui.NewText(state.Progress, 16, ui.Muted)
-	builder.addComponent("progress-footer", progress, func(width, height float32) (float32, float32, float32, float32) {
-		return ui.ContentInset, height - ui.OuterMargin - footerHeight(state) + ui.Gap, width - 2*ui.ContentInset - 84 - ui.Gap, ui.StatusHeight
-	})
-	page := ui.NewText(formatPageIndicator(state.Page, state.PageCount), 16, ui.Muted)
-	page.Center = true
-	builder.addComponent("page-status", page, func(width, height float32) (float32, float32, float32, float32) {
-		return width - ui.ContentInset - 84, height - ui.OuterMargin - footerHeight(state) + ui.Gap, 84, ui.StatusHeight
-	})
 	if state.FooterAction != "" {
 		submitButton := builder.newTouchButton("submit", state.FooterAction, func() { _ = builder.controller.Submit() })
 		submitButton.Disabled = !state.CanSubmit
@@ -345,8 +351,4 @@ func newFooterComponents(builder *componentBuilder) {
 		submitButton.FontSize = 20
 		builder.addComponent("submit-footer", submitButton, submitFooterSlot)
 	}
-}
-
-func formatPageIndicator(page, pageCount int) string {
-	return fmt.Sprintf("%d / %d", page+1, pageCount)
 }

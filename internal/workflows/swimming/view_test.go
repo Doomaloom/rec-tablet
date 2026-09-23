@@ -218,9 +218,6 @@ func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 	}
 	for _, row := range f.c.State.Rows {
 		if row.ID == person {
-			if row.Detail != "" {
-				t.Fatalf("student progress subtext was not removed: %q", row.Detail)
-			}
 			if row.ProgressSegments != 1 {
 				t.Fatalf("student button did not show one segment: %d", row.ProgressSegments)
 			}
@@ -366,7 +363,7 @@ func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 	check(t, f.c.Refresh())
 	f.row(t, 0)
 	f.tap(t, "row:skills")
-	if f.c.State.RowCount != 1 || !f.c.State.Rows[0].Disabled || f.c.State.Rows[0].Detail != "Missing curriculum · update swimmer level" {
+	if f.c.State.RowCount != 1 || !f.c.State.Rows[0].Disabled || f.c.State.Rows[0].Label != "Unknown Level · Missing curriculum · update swimmer level" {
 		t.Fatalf("missing curriculum state absent: screen=%s rows=%d empty=%q", f.c.State.Screen, f.c.State.RowCount, f.c.State.Empty)
 	}
 	f.tap(t, "home")
@@ -519,18 +516,13 @@ func TestCompactFeedbackCorrectionAndDateLayouts(t *testing.T) {
 	f.compactLayout(t, "classes")
 	f.tap(t, "header")
 	selected := f.view.Buttons["row:2026-09-04"]
-	if selected == nil || !selected.Selected || selected.Detail != "" {
-		t.Fatal("date selection must remain visible without its old caption")
+	if selected == nil || !selected.Selected {
+		t.Fatal("selected date should remain visible")
 	}
 	f.compactLayout(t, "dates")
 	f.tap(t, "row:2026-09-04")
 	f.row(t, 0)
 	f.compactLayout(t, "lesson-menu")
-	for _, row := range f.c.State.Rows {
-		if f.view.Buttons["row:"+row.ID].Detail != "" {
-			t.Fatal("lesson menu retained instructional subtext")
-		}
-	}
 	f.tap(t, "row:skills")
 	f.row(t, 0)
 	f.rowLabel(t, "Harrold")

@@ -14,7 +14,7 @@ func ComposeScreen(view *View, state State) ScreenComposition {
 	}
 	newPagingRailComponents(builder)
 	newHeaderComponents(builder)
-	newContextComponent(builder)
+	newPrimaryInfoComponent(builder)
 	newBodyComponent(builder)
 	newFooterComponents(builder)
 

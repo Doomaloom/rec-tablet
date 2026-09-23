@@ -7,9 +7,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/widget"
 	"rectablet/internal/shared/ui"
 )
 
@@ -128,20 +126,4 @@ func (view *View) Render() {
 	view.Root.Layout = &surfaceLayout{items: placements}
 	view.Root.Objects = objects
 	view.Root.Refresh()
-}
-
-func (view *View) details() {
-	state := view.Controller.Snapshot()
-	detailsText := state.Context
-	if detailsText == "" {
-		detailsText = state.Subtitle
-	}
-	if detailsText == "" {
-		detailsText = state.Title
-	}
-	label := widget.NewLabel(detailsText)
-	label.Wrapping = fyne.TextWrapWord
-	detailsDialog := dialog.NewCustom(state.DetailsTitle, "Close", container.NewVScroll(label), view.Window)
-	detailsDialog.Resize(fyne.NewSize(650, 380))
-	detailsDialog.Show()
 }

@@ -214,12 +214,12 @@ func TestMultiSetupFiltersAndBalancesStudents(t *testing.T) {
 	f.pagedRow(t, people[0])
 	f.pagedRow(t, people[1])
 	f.pagedRow(t, people[2])
-	if !strings.Contains(f.c.State.Subtitle, "2 of 2 selected") || f.c.State.CanSubmit {
+	if !strings.Contains(f.c.State.PrimaryInfo, "2 of 2 selected") || f.c.State.CanSubmit {
 		t.Fatal("capacity not enforced")
 	}
 	f.tap(t, "multi-group-next")
 	f.pagedRow(t, people[0])
-	if !strings.Contains(f.c.State.Subtitle, "0 of 1 selected") {
+	if !strings.Contains(f.c.State.PrimaryInfo, "0 of 1 selected") {
 		t.Fatal("student assigned twice")
 	}
 	f.pagedRow(t, people[2])
@@ -432,12 +432,17 @@ func TestMultiGroupAndChecklistLayouts(t *testing.T) {
 					t.Fatal("missing student result controls")
 				}
 			}
-			f.tap(t, "multi-name:"+people[0])
-			details := f.w.Canvas().Overlays().Top()
-			if details == nil {
-				t.Fatal("full student name unavailable")
+			composition := shell.ComposeScreen(f.view, f.c.Snapshot())
+			var nameLabel *ui.TextBlock
+			for _, component := range composition.Components {
+				if component.Name == "feature-multi-name:"+people[0] {
+					nameLabel, _ = component.Object.(*ui.TextBlock)
+					break
+				}
 			}
-			details.Hide()
+			if nameLabel == nil || !strings.Contains(nameLabel.Text, "Alexandria Longsurname 00") {
+				t.Fatal("full student name should appear in the main row text")
+			}
 			f.tap(t, "multi-fail:"+people[0])
 			if len(f.c.State.Rows) != 6 || f.c.State.PageCount != 1 {
 				t.Fatal("checklist did not fit full skill")

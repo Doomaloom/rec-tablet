@@ -1,6 +1,9 @@
 package classes
 
 import (
+	"fmt"
+
+	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/navigation"
 
 	"time"
@@ -20,26 +23,24 @@ func (c *Controller) Build() (navigation.State, error) {
 	switch f.Screen {
 	case navigation.Classes:
 		state.HeaderAction = "Date"
-		instructor, e := s.Meta("instructor")
-		if e != nil {
-			return state, e
-		}
-		if instructor == "" {
-			instructor = "Ready for lessons"
-		}
-		state.Subtitle = instructor + " · " + c.Date
 		courses, e := s.ListCourses(c.Date)
 		if e != nil {
 			return state, e
 		}
 		for _, r := range courses {
-			rows = append(rows, navigation.Row{ID: r.ID, Label: r.Name, Detail: r.Time + " · " + r.Location, Data: navigation.Parameters{Lesson: r.LessonID}})
+			rows = append(rows, navigation.Row{ID: r.ID, Label: r.Name + " · " + r.Time, Data: navigation.Parameters{Lesson: r.LessonID}})
 		}
 		dates, e := s.Dates()
 		if e != nil {
 			return state, e
 		}
-		state.Empty = "No classes on this date. Choose Date to view loaded lessons."
+		for i, d := range dates {
+			if d == c.Date {
+				state.SplitHeader = &shell.SplitHeader{Left: state.Title, Right: fmt.Sprintf("Class %d/%d", i+1, len(dates))}
+				break
+			}
+		}
+		state.Empty = "No classes scheduled. Choose Date to view other lessons."
 		if len(dates) == 0 {
 			state.Empty = "No classes loaded. Hold My Classes for 3 seconds to import a class package."
 		}
@@ -57,11 +58,16 @@ func (c *Controller) Build() (navigation.State, error) {
 		state.Empty = "Import a class package to add lesson dates."
 
 	case navigation.Class:
-		_, _, e := navigation.LessonContext(s, f, c.Date, &state)
+		course, _, e := navigation.LessonContext(s, f, &state)
 		if e != nil {
 			return state, e
 		}
-		state.Title = "This Lesson"
+		level := course.Level
+		if level == "" {
+			level = course.Name
+		}
+		state.SplitHeader = &shell.SplitHeader{Left: level, Right: course.Time}
+		state.PrimaryInfo = ""
 		rows = []navigation.Row{{ID: "attendance", Label: "Attendance"}, {ID: "skills", Label: "Skills"}, {ID: "feedback_swimmers", Label: "Feedback"}}
 
 	}

@@ -1,14 +1,28 @@
 package shell
 
-import "rectablet/internal/shared/ui"
+import (
+	"strings"
+
+	"rectablet/internal/shared/ui"
+)
 
 // Layout slots use the logical 800x480 surface, scaled uniformly by the root.
 type LayoutSlot func(width, height float32) (x, y, slotWidth, slotHeight float32)
 
-const SplitHeaderHeight float32 = 32
+const SplitHeaderHeight float32 = 52
 
 func splitHeaderSlot(width float32, index int) (float32, float32, float32, float32) {
 	halfWidth := (width - 2*ui.ContentInset - ui.Gap) / 2
+	return ui.ContentInset + float32(index)*(halfWidth+ui.Gap), ui.OuterMargin, halfWidth, SplitHeaderHeight
+}
+
+func splitHeaderActionSlot(width float32, actionWidth float32) (float32, float32, float32, float32) {
+	return width - ui.ContentInset - actionWidth, ui.OuterMargin, actionWidth, SplitHeaderHeight
+}
+
+func splitHeaderHalfWithActionSlot(width float32, index int, actionWidth float32) (float32, float32, float32, float32) {
+	available := width - 2*ui.ContentInset - 2*ui.Gap - actionWidth
+	halfWidth := available / 2
 	return ui.ContentInset + float32(index)*(halfWidth+ui.Gap), ui.OuterMargin, halfWidth, SplitHeaderHeight
 }
 
@@ -53,27 +67,49 @@ func headerHeight(state State) float32 {
 	if state.SplitHeader != nil {
 		return SplitHeaderHeight
 	}
-	if state.HeaderTitleFontSize > 25 {
+	if state.HeaderTitleFontSize > 25 || state.FitHeader {
 		return 56
 	}
 	return ui.HeaderHeight
 }
-func hasContext(state State) bool { return !state.HideContext && state.Subtitle != "" }
+
+func primaryInfoText(state State) string {
+	parts := []string{state.PrimaryInfo}
+	if state.Progress != "" && !state.ProgressInBody {
+		parts = append(parts, state.Progress)
+	}
+	joined := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part != "" {
+			joined = append(joined, part)
+		}
+	}
+	return strings.Join(joined, " · ")
+}
+
+func primaryInfoHeight(state State, width float32) float32 {
+	text := primaryInfoText(state)
+	if text == "" {
+		return 0
+	}
+	return max(float32(30), ui.WrappedTextHeight(text, width-2*ui.ContentInset, 20, true)+4)
+}
+
 func footerHeight(state State) float32 {
 	if state.HideFooter {
 		return 0
 	}
-	height := ui.StatusHeight + ui.Gap
 	if state.FooterAction != "" {
-		height += ui.HeaderHeight + ui.Gap
+		return ui.HeaderHeight + ui.OuterMargin + ui.Gap
 	}
-	return height
+	return 0
 }
 func bodySlot(state State) ui.Bounds {
 	return func(width, height float32) (float32, float32, float32, float32) {
 		top := ui.OuterMargin + headerHeight(state) + ui.Gap
-		if hasContext(state) {
-			top += ui.ContextHeight + ui.Gap
+		infoHeight := primaryInfoHeight(state, width)
+		if infoHeight > 0 {
+			top += infoHeight + ui.Gap
 		}
 		return ui.ContentInset, top, width - 2*ui.ContentInset, height - top - ui.OuterMargin - footerHeight(state)
 	}

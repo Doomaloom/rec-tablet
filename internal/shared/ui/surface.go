@@ -20,7 +20,7 @@ type Surface struct {
 	Bounds    Bounds
 }
 type Item struct {
-	ID, Label, Detail, Status    string
+	ID, Label, Status            string
 	Disabled, Selected           bool
 	Data                         any
 	Fill                         color.Color
@@ -35,7 +35,6 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 		i, row := i, row
 		b := surface.Button("row:"+row.ID, row.Label, func() { selectRow(row.ID) })
 		b.MaxLabelLines = -1
-		b.Detail = row.Detail
 		b.Disabled = row.Disabled
 		b.Selected = row.Selected
 		b.OnHold = row.OnHold
@@ -59,7 +58,8 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 	}
 }
 func Empty(surface *Surface, message string) {
-	empty := NewText(message, 24, Muted)
+	empty := NewText(message, 28, Navy)
+	empty.Bold = true
 	empty.Center = true
 	surface.Add(empty, func(w, h float32) (float32, float32, float32, float32) {
 		x, y, width, height := surface.BodyBounds(w, h)

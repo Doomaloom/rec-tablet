@@ -8,8 +8,6 @@ const (
 	ContentInset          = OuterMargin + RailWidth + Gap
 	ButtonPadding float32 = 8
 	HeaderHeight  float32 = 44
-	ContextHeight float32 = 32
-	StatusHeight  float32 = 24
 )
 
 type Bounds func(width, height float32) (x, y, bodyWidth, bodyHeight float32)
@@ -19,6 +17,6 @@ func (surface *Surface) BodyBounds(width, height float32) (float32, float32, flo
 	if surface.Bounds != nil {
 		return surface.Bounds(width, height)
 	}
-	top := OuterMargin + HeaderHeight + Gap + ContextHeight + Gap
-	return ContentInset, top, width - 2*ContentInset, height - top - OuterMargin - StatusHeight - Gap
+	top := OuterMargin + HeaderHeight + Gap
+	return ContentInset, top, width - 2*ContentInset, height - top - OuterMargin
 }

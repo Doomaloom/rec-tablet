@@ -7,7 +7,6 @@ import (
 
 // Repository lists only the data operations this feature consumes.
 type Repository interface {
-	Meta(string) (string, error)
 	Dates() ([]string, error)
 	ListCourses(string) ([]domain.Course, error)
 	navigation.LessonReader

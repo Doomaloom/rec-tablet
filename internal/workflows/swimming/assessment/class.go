@@ -38,7 +38,6 @@ func (c *Controller) EnterClassMode() error {
 		c.leaveMultiSetup()
 		c.multi, c.multiEdit = nil, nil
 		c.classAttempts = attempts
-		c.classNames = abbreviateClassNames(attempts)
 		c.Push(navigation.ClassAssessment, nil)
 		return nil
 	})
@@ -61,11 +60,11 @@ func (c *Controller) buildClassAssessmentState(course domain.Course, f navigatio
 	if err != nil {
 		return state, err
 	}
-	state.Title = fmt.Sprintf("%s · %d/%d · %s. %s", student.Name, state.Page+1, state.PageCount, skill.Number, skill.Name)
-	state.Context = fmt.Sprintf("%s\n%s. %s\n%s\nStudent %d of %d", course.Name, skill.Number, skill.Name, student.Name, state.Page+1, state.PageCount)
-	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: c.classNames[student.PersonID]}
+	state.Title = student.Name
+	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: student.Name}
+	state.PrimaryInfo = fmt.Sprintf("%s · %s", course.Name, course.Time)
+	navigation.AppendPrimaryInfo(&state, fmt.Sprintf("%s. %s", skill.Number, skill.Name))
 	state.HideFooter = true
-	state.HideContext = true
 	state.LeftRailActions = c.classRailActions()
 	for _, subskill := range skill.Subskills {
 		state.Rows = append(state.Rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Status: answers[subskill.ID]})
@@ -138,7 +137,6 @@ func (c *Controller) finishClassAttempts(all, save bool) error {
 			c.classAttempts = append(c.classAttempts[:index], c.classAttempts[index+1:]...)
 		}
 		if len(c.classAttempts) == 0 {
-			c.classNames = nil
 			c.Pop()
 		} else {
 			c.Frames[len(c.Frames)-1].Page = min(index, len(c.classAttempts)-1)
@@ -155,7 +153,6 @@ type checklistLayout struct {
 
 const (
 	classChecklistGap    float32 = 2
-	classChecklistTop    float32 = ui.OuterMargin + shell.SplitHeaderHeight + ui.Gap
 	classChecklistBottom float32 = ui.OuterMargin
 )
 

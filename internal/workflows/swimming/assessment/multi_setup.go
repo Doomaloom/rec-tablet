@@ -49,14 +49,14 @@ func (c *Controller) buildMultiGroupCountState() (navigation.State, error) {
 		return state, fmt.Errorf("group setup is no longer available")
 	}
 	state.Title = "Number of Groups"
-	state.Subtitle = fmt.Sprintf("Choose groups · %d students present", len(c.multi.Roster))
-	state.Context = state.Subtitle + "\n" + c.multi.Skill.Name
+	state.PrimaryInfo = fmt.Sprintf("%s · %s · %d students present", c.multi.CourseInfo, c.multi.Skill.Name, len(c.multi.Roster))
 	state.HeaderSwitch = c.skillModeSwitch(c.multi.Skill, true)
 	state.Empty = "No students marked present. Take attendance first."
 	state.BackRailAction = &shell.RailAction{Label: "Back", Run: c.EnterSingleMode, Icon: theme.NavigateBackIcon(), Fill: ui.Rail, Ink: ui.Blue}
 	state.HideFooter = true
 	state.CanSubmit = len(c.multi.Roster) > 0
 	state.Progress = multiSplitLabel(len(c.multi.Roster), c.multi.ProposedGroupCount)
+	state.ProgressInBody = true
 	state.ComposeBody = c.composeMultiGroupCountBody(state, c.multi.ProposedGroupCount, len(c.multi.Roster))
 	return state, nil
 }
@@ -171,8 +171,8 @@ func (c *Controller) buildMultiSelectionState() (navigation.State, error) {
 	}
 	group := c.multi.Groups[c.multi.AssignmentGroup]
 	state.Title = fmt.Sprintf("Assign Group %d of %d", group.Number, c.multi.GroupCount)
-	state.Subtitle = fmt.Sprintf("%d of %d selected · %s", len(group.Members), group.Capacity, c.multi.Skill.Name)
-	state.Context = state.Subtitle
+	selectionInfo := fmt.Sprintf("%d of %d selected · %s", len(group.Members), group.Capacity, c.multi.Skill.Name)
+	state.PrimaryInfo = c.multi.CourseInfo + " · " + selectionInfo
 	state.HeaderActions = []shell.HeaderAction{{Label: "Groups", Run: c.changeMultiCount}}
 	state.HomeRailAction = discardRailAction(c.EnterSingleMode)
 	state.HomeRailAction.Label = "Cancel setup"
@@ -185,10 +185,10 @@ func (c *Controller) buildMultiSelectionState() (navigation.State, error) {
 	state.Progress = fmt.Sprintf("%d/%d assigned", assigned, len(c.multi.Roster))
 	var rows []navigation.Row
 	for _, student := range c.multi.Roster {
-		row := navigation.Row{ID: student.ID, Label: student.Name, Detail: "Unassigned"}
+		row := navigation.Row{ID: student.ID, Label: student.Name + " · Unassigned"}
 		for i, other := range c.multi.Groups {
 			if containsString(other.Members, student.ID) {
-				row.Detail = fmt.Sprintf("Group %d", other.Number)
+				row.Label = fmt.Sprintf("%s · Group %d", student.Name, other.Number)
 				row.Selected = i == c.multi.AssignmentGroup
 				row.Disabled = !row.Selected
 				if row.Selected {

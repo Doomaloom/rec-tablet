@@ -11,26 +11,17 @@ func renderCriterion(surface *ui.Surface, row ui.Item, mark func(string)) {
 	box := canvas.NewRectangle(ui.White)
 	box.CornerRadius = 0
 	surface.AddNamed("assessment-card", box, surface.BodyBounds)
-	groupHeight := float32(0)
-	if row.Detail != "" {
-		groupHeight = 28
-		groupText := ui.NewText(row.Detail, 17, ui.Muted)
-		surface.AddNamed("assessment-group", groupText, func(w, h float32) (float32, float32, float32, float32) {
-			x, y, width, _ := surface.BodyBounds(w, h)
-			return x + ui.ButtonPadding, y + ui.ButtonPadding, width - 2*ui.ButtonPadding, groupHeight
-		})
-	}
 	criterion := ui.NewText(row.Label, 25, ui.Navy)
 	criterion.Bold = true
 	criterion.MinimumFont = 18
 	surface.Criterion = criterion
 	surface.AddNamed("assessment-criterion", criterion, func(w, h float32) (float32, float32, float32, float32) {
 		x, y, width, height := surface.BodyBounds(w, h)
-		height -= 2*ui.ButtonPadding + groupHeight
+		height -= 2 * ui.ButtonPadding
 		if mark != nil {
 			height -= ui.HeaderHeight + ui.ButtonPadding
 		}
-		return x + ui.ButtonPadding, y + ui.ButtonPadding + groupHeight, width - 2*ui.ButtonPadding, height
+		return x + ui.ButtonPadding, y + ui.ButtonPadding, width - 2*ui.ButtonPadding, height
 	})
 	if mark != nil {
 		yes := surface.Button("successful", "Successful", func() { mark("successful") })

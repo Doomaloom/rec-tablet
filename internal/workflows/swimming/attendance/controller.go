@@ -17,7 +17,7 @@ func (c *Controller) Build() (navigation.State, error) {
 	state := c.InitialState()
 	rows := []navigation.Row{}
 	s := c.Store
-	_, roster, e := navigation.LessonContext(s, f, c.Date, &state)
+	_, roster, e := navigation.LessonContext(s, f, &state)
 	if e != nil {
 		return state, e
 	}
@@ -39,7 +39,8 @@ func (c *Controller) Build() (navigation.State, error) {
 			if status == "" {
 				status = "unmarked"
 			}
-			rows = append(rows, navigation.Row{ID: p.ID, Label: p.Name, Detail: strings.ToUpper(status[:1]) + status[1:], Status: status})
+			label := p.Name + " · " + strings.ToUpper(status[:1]) + status[1:]
+			rows = append(rows, navigation.Row{ID: p.ID, Label: label, Status: status})
 		}
 		state.Empty = "No enrolled swimmers."
 	}

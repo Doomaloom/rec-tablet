@@ -53,7 +53,6 @@ func (c *Controller) composeTimedSelectionBody(state shell.State) ui.BodyCompose
 		for i := range rows {
 			if rows[i].Status == "selected" {
 				rows[i].Fill = ui.Green
-				rows[i].Detail = ""
 				rows[i].Selected = true
 			}
 		}

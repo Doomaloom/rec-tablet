@@ -37,25 +37,24 @@ type HeaderSwitchOption struct {
 	Run      func() error
 }
 
-// SplitHeader replaces the normal title with two compact, single-line labels.
-// Both halves open the screen's full Context when TitleDetails is enabled.
+// SplitHeader replaces the normal title with two prominent, wrapping labels.
 type SplitHeader struct {
 	Left, Right string
 }
 
 type State struct {
 	// OnLeave releases feature resources when the route changes or the view closes.
-	OnLeave                                                                               func()
-	TitleDetails                                                                          bool
-	Screen, Title, Subtitle, Context, Empty, Progress, Notice, HeaderAction, FooterAction string
-	Error, CanBack, CanSubmit                                                             bool
-	Page, PageCount, RowCount                                                             int
-	Rows                                                                                  []Row
-	PageSize                                                                              int
-	HeaderWidth                                                                           float32
-	DetailsTitle                                                                          string
-	HoldTitle                                                                             func()
-	HomeRailAction, BackRailAction                                                        *RailAction
+	OnLeave                                                            func()
+	PrimaryInfo                                                        string
+	ProgressInBody                                                     bool
+	Screen, Title, Empty, Progress, Notice, HeaderAction, FooterAction string
+	Error, CanBack, CanSubmit                                          bool
+	Page, PageCount, RowCount                                          int
+	Rows                                                               []Row
+	PageSize                                                           int
+	HeaderWidth                                                        float32
+	HoldTitle                                                          func()
+	HomeRailAction, BackRailAction                                     *RailAction
 	// LeftRailActions overrides the home/back rail, in top-to-bottom order.
 	LeftRailActions     []RailAction
 	HeaderActions       []HeaderAction
@@ -63,7 +62,6 @@ type State struct {
 	HeaderTitleFontSize float32
 	SplitHeader         *SplitHeader
 	FitHeader           bool
-	HideContext         bool
 	HideFooter          bool
 	ComposeBody         ui.BodyComposer
 }

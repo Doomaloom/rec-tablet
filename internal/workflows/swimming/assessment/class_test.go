@@ -6,6 +6,7 @@ import (
 
 	"fyne.io/fyne/v2/test"
 	"rectablet/internal/shared/ui"
+	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/curriculum"
 	"rectablet/internal/workflows/swimming/navigation"
 )
@@ -51,7 +52,10 @@ func TestClassChecklistFitsEntireCatalog(t *testing.T) {
 			for _, subskill := range skill.Subskills {
 				rows = append(rows, navigation.Row{Label: subskill.Text})
 			}
-			availableHeight := 480 - classChecklistTop - classChecklistBottom
+			info := "Saturday morning swimming group · 9:00 AM · 2026-09-22 · " + skill.Number + ". " + skill.Name + " · Student 1 of 4"
+			infoHeight := max(float32(30), ui.WrappedTextHeight(info, 680, 20, true)+4)
+			checklistTop := ui.OuterMargin + shell.SplitHeaderHeight + ui.Gap + infoHeight + ui.Gap
+			availableHeight := 480 - checklistTop - classChecklistBottom
 			layout := fitClassChecklist(rows, 680, availableHeight)
 			total := float32(len(rows))*layout.height + float32(max(0, len(rows)-1))*classChecklistGap
 			for i, row := range rows {

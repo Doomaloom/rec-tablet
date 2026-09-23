@@ -9,7 +9,6 @@ import (
 func (c *Controller) composeFeatureBody(state *shell.State) {
 	if c.Frame().Screen == navigation.Classes {
 		state.HoldTitle = func() { _ = c.Maintenance() }
-		state.TitleDetails = false
 	}
 	switch c.Frame().Screen {
 	case navigation.Classes:

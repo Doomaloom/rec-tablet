@@ -18,11 +18,11 @@ type multiGroup struct {
 type multiSession struct {
 	Roster             []domain.Enrollment
 	Skill              curriculum.Skill
+	CourseInfo         string
 	Groups             []multiGroup
 	AssignmentGroup    int
 	GroupCount         int
 	ProposedGroupCount int
-	Names              map[string]string
 }
 
 type multiStudentEdit struct {
@@ -31,8 +31,8 @@ type multiStudentEdit struct {
 }
 
 type multiStudentSnapshot struct {
-	PersonID, Name, ShortName, Status string
-	Passed, Total                     int
+	PersonID, Name, Status string
+	Passed, Total          int
 }
 
 func (c *Controller) EnterMultiMode() error {
@@ -56,7 +56,11 @@ func (c *Controller) EnterMultiMode() error {
 		if err != nil {
 			return err
 		}
-		session := &multiSession{Skill: skill}
+		course, err := c.Store.GetCourse(f.Course)
+		if err != nil {
+			return err
+		}
+		session := &multiSession{Skill: skill, CourseInfo: course.Name + " · " + course.Time}
 		for _, student := range roster {
 			if student.Active && student.Level == f.Level && attendance[student.ID] == "present" {
 				session.Roster = append(session.Roster, student)
@@ -116,14 +120,13 @@ func (c *Controller) ConfirmMultiSelection() error {
 				}
 			}
 		}
-		c.multi.Names = abbreviateClassNames(attempts)
 		c.leaveMultiSetup()
 		c.Push(navigation.MultiAssessment, nil)
 		return nil
 	})
 }
 
-func (c *Controller) buildMultiAssessmentState(course domain.Course, f navigation.Frame) (navigation.State, error) {
+func (c *Controller) buildMultiAssessmentState(f navigation.Frame) (navigation.State, error) {
 	state := c.InitialState()
 	if c.multi == nil || len(c.multi.Groups) == 0 {
 		return state, fmt.Errorf("no pending groups")
@@ -135,8 +138,8 @@ func (c *Controller) buildMultiAssessmentState(course domain.Course, f navigatio
 	label := fmt.Sprintf("Group %d of %d", group.Number, c.multi.GroupCount)
 	state.Title = label
 	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: label}
-	state.Context = fmt.Sprintf("%s\n%s. %s\n%s · %d students", course.Name, skill.Number, skill.Name, label, len(group.Attempts))
-	state.HideFooter, state.HideContext = true, true
+	state.PrimaryInfo = fmt.Sprintf("%s · %d students", c.multi.CourseInfo, len(group.Attempts))
+	state.HideFooter = true
 	state.LeftRailActions = c.multiRailActions()
 	students := make([]multiStudentSnapshot, 0, len(group.Attempts))
 	for _, attempt := range group.Attempts {
@@ -144,7 +147,7 @@ func (c *Controller) buildMultiAssessmentState(course domain.Course, f navigatio
 		if err != nil {
 			return state, err
 		}
-		student := multiStudentSnapshot{PersonID: attempt.PersonID, Name: attempt.Name, ShortName: c.multi.Names[attempt.PersonID], Status: "unmarked", Total: len(skill.Subskills)}
+		student := multiStudentSnapshot{PersonID: attempt.PersonID, Name: attempt.Name, Status: "unmarked", Total: len(skill.Subskills)}
 		for _, subskill := range skill.Subskills {
 			if answers[subskill.ID] == "successful" {
 				student.Passed++
@@ -224,16 +227,16 @@ func (c *Controller) EditMultiStudent(person string) error {
 	})
 }
 
-func (c *Controller) buildMultiStudentState(course domain.Course, f navigation.Frame) (navigation.State, error) {
+func (c *Controller) buildMultiStudentState(f navigation.Frame) (navigation.State, error) {
 	state := c.InitialState()
 	if c.multi == nil || c.multiEdit == nil || c.multiEdit.Attempt.AttemptID != f.Attempt {
 		return state, fmt.Errorf("no student selected")
 	}
 	skill, edit := c.multi.Skill, c.multiEdit
 	state.Title = edit.Attempt.Name
-	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: c.multi.Names[edit.Attempt.PersonID]}
-	state.Context = course.Name + "\n" + skill.Number + ". " + skill.Name + "\n" + edit.Attempt.Name
-	state.HideContext, state.HideFooter = true, true
+	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: edit.Attempt.Name}
+	state.PrimaryInfo = c.multi.CourseInfo + " · " + skill.Number + ". " + skill.Name
+	state.HideFooter = true
 	state.HomeRailAction = saveRailAction(c.SaveMultiStudent)
 	state.BackRailAction = discardRailAction(c.DiscardMultiStudent)
 	// Checklist edits stay local until Save; leaving via Escape also abandons them.

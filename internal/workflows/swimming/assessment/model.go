@@ -17,7 +17,6 @@ type Repository interface {
 	Progress(string, string, string) (domain.Progress, error)
 	ListAttempts(string, string, string) ([]domain.Attempt, error)
 	GetAttempt(string) (domain.Attempt, error)
-	GetLesson(string) (domain.Lesson, error)
 	Draft(string) (map[string]string, error)
 	NewAttempt(string, string, string) (string, error)
 	EditAttempt(string) error

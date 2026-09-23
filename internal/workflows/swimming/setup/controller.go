@@ -17,20 +17,13 @@ func (c *Controller) Build() (navigation.State, error) {
 	f := c.Frame()
 	state := c.InitialState()
 	rows := []navigation.Row{}
-	s := c.Store
 	switch f.Screen {
 	case navigation.Maintenance:
 		state.Title = "Device Setup"
-		state.Subtitle = "Temporary file transfer · Works offline"
-		rows = []navigation.Row{{ID: "import", Label: "Import Class Data", Detail: "Class package (.json)"}, {ID: "export", Label: "Export Data", Detail: "Attendance, attempts, and drafts"}}
-		last, e := s.Meta("last_import")
-		if e != nil {
-			return state, e
+		rows = []navigation.Row{
+			{ID: "import", Label: "Import Class Data · Class package (.json)"},
+			{ID: "export", Label: "Export Data · Attendance, attempts, and drafts"},
 		}
-		if last == "" {
-			last = "Never"
-		}
-		state.Context = "Database: " + s.DatabasePath() + "\nLast import: " + last
 
 	}
 	c.Paginate(&state, rows)

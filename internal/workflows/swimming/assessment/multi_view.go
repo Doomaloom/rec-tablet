@@ -8,10 +8,8 @@ import (
 	"rectablet/internal/shell"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 )
 
 func (c *Controller) composeMultiGroupCountBody(state shell.State, count, students int) ui.BodyComposer {
@@ -48,7 +46,7 @@ func (c *Controller) composeMultiGroupCountBody(state shell.State, count, studen
 			})
 		}
 		summary := ui.NewText(strings.ReplaceAll(state.Progress, ", ", "\n"), 24, ui.Navy)
-		summary.Center = true
+		summary.Center, summary.Bold = true, true
 		surface.AddNamed("multi-count-summary", summary, func(w, h float32) (float32, float32, float32, float32) {
 			x, y, width, height := surface.BodyBounds(w, h)
 			return x, y + height*0.52, width, height * 0.25
@@ -103,37 +101,29 @@ func (c *Controller) composeMultiAssessmentBody(students []multiStudentSnapshot)
 		for index, student := range students {
 			index, student := index, student
 			nameLabel := student.Name
-			if len(students) > 8 {
-				nameLabel = student.ShortName
-			}
-			name := surface.Button("multi-name:"+student.PersonID, nameLabel, func() {
-				label := widget.NewLabel(student.Name)
-				label.Wrapping = fyne.TextWrapWord
-				details := dialog.NewCustom("Student", "Close", container.NewVScroll(label), surface.Window)
-				details.Resize(fyne.NewSize(520, 200))
-				details.Show()
-			})
-			name.Fill, name.Ink, name.FontSize = ui.Rail, ui.Navy, 22
-			name.Compact, name.MaxLabelLines = true, 1
-			name.Detail = "Unmarked"
+			statusLabel := "Unmarked"
 			switch student.Status {
 			case "successful":
-				name.Detail = "Passed"
+				statusLabel = "Passed"
 			case "not_yet":
-				name.Detail = fmt.Sprintf("Incomplete · %d/%d passed", student.Passed, student.Total)
+				statusLabel = fmt.Sprintf("Incomplete · %d/%d passed", student.Passed, student.Total)
 			}
-			statusDetail := name.Detail
-			surface.AddNamed("multi-name:"+student.PersonID, name, func(w, h float32) (float32, float32, float32, float32) {
+			name := ui.NewText(nameLabel+" · "+statusLabel, 20, ui.Navy)
+			name.Bold, name.Center, name.MinimumFont, name.MaxLines = true, true, 16, -1
+			nameBounds := func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, height := multiStudentBounds(len(students), index, surface, w, h)
 				actionWidth := min(float32(64), height)
-				// Compact rows omit the second line; the selected result button still
-				// distinguishes assessed students from unmarked students.
-				name.Detail = statusDetail
-				if height < 48 {
-					name.Detail = ""
+				if height < 50 {
+					name.Text = student.Name
+					name.FontSize = 18
+				} else {
+					name.Text = nameLabel + " · " + statusLabel
 				}
 				return x, y, width - 2*(actionWidth+ui.Gap), height
-			})
+			}
+			background := canvas.NewRectangle(ui.Rail)
+			surface.AddNamed("multi-name-background:"+student.PersonID, background, nameBounds)
+			surface.AddNamed("multi-name:"+student.PersonID, name, nameBounds)
 			pass := surface.Button("multi-pass:"+student.PersonID, "Pass", func() { _ = c.PassMultiStudent(student.PersonID) })
 			fail := surface.Button("multi-fail:"+student.PersonID, "Incomplete: choose passed subskills", func() { _ = c.EditMultiStudent(student.PersonID) })
 			pass.Icon, fail.Icon = saveActionIcon, discardActionIcon

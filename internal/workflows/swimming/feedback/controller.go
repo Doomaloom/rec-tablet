@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"rectablet/internal/workflows/swimming/navigation"
-	"strings"
 )
 
 type Controller struct {
@@ -18,13 +17,11 @@ func (c *Controller) Build() (navigation.State, error) {
 	state := c.InitialState()
 	rows := []navigation.Row{}
 	s := c.Store
-	course, roster, e := navigation.LessonContext(s, f, c.Date, &state)
+	course, roster, e := navigation.LessonContext(s, f, &state)
 	if e != nil {
 		return state, e
 	}
-	_ = roster
-	version := course.CurriculumVersion
-	_ = version
+	state.PrimaryInfo = course.Name
 	switch f.Screen {
 	case navigation.FeedbackSwimmers:
 		state.Title = "Feedback"
@@ -33,11 +30,15 @@ func (c *Controller) Build() (navigation.State, error) {
 			if e != nil {
 				return state, e
 			}
-			detail := fmt.Sprintf("%d skills in progress", len(feedback))
-			if !p.Active {
-				detail += " · Former enrollment"
+			unit := "skills"
+			if len(feedback) == 1 {
+				unit = "skill"
 			}
-			rows = append(rows, navigation.Row{ID: p.ID, Label: p.Name, Detail: detail})
+			label := fmt.Sprintf("%s · %d %s in progress", p.Name, len(feedback), unit)
+			if !p.Active {
+				label += " · Former enrollment"
+			}
+			rows = append(rows, navigation.Row{ID: p.ID, Label: label})
 		}
 		state.Empty = "No swimmers loaded."
 
@@ -47,17 +48,16 @@ func (c *Controller) Build() (navigation.State, error) {
 			return state, e
 		}
 		state.Title = p.Name
-		state.Subtitle = "Feedback · All assessed skills in this course"
 		feedback, e := s.Feedback(f.Person)
 		if e != nil {
 			return state, e
 		}
 		for _, entry := range feedback {
-			detail := navigation.ProgressText(entry.Progress)
+			label := entry.Skill.Name + " · " + navigation.ProgressText(entry.Progress)
 			if entry.Timed {
-				detail += " · Last heat " + formatTimedElapsed(entry.TimedElapsedMS)
+				label += " · Last heat " + formatTimedElapsed(entry.TimedElapsedMS)
 			}
-			rows = append(rows, navigation.Row{ID: entry.Skill.ID, Label: entry.Skill.Name, Detail: detail, Data: navigation.Parameters{Version: entry.Version}})
+			rows = append(rows, navigation.Row{ID: entry.Skill.ID, Label: label, Data: navigation.Parameters{Version: entry.Version}})
 		}
 		state.Empty = "No assessed skills remain incomplete. Unassessed skills are not included here."
 
@@ -77,15 +77,14 @@ func (c *Controller) Build() (navigation.State, error) {
 			if entry.Skill.ID != f.Skill || entry.Version != f.Version {
 				continue
 			}
-			state.Subtitle = entry.Skill.Name
-			state.Context += "\n" + state.Title + "\n" + entry.Skill.Name
 			state.Progress = navigation.ProgressText(entry.Progress)
+			navigation.AppendPrimaryInfo(&state, entry.Skill.Name)
 			state.Empty = fmt.Sprintf("Latest attempt successful. Needs %d more successful observation(s).", 3-entry.Successes)
 			if entry.Timed {
-				rows = append(rows, navigation.Row{Label: "Timed heat", Detail: fmt.Sprintf("%d/%d laps · %s", entry.TimedLaps, entry.TimedRequired, formatTimedElapsed(entry.TimedElapsedMS)), Disabled: true})
+				rows = append(rows, navigation.Row{Label: fmt.Sprintf("Timed heat · %d/%d laps · %s", entry.TimedLaps, entry.TimedRequired, formatTimedElapsed(entry.TimedElapsedMS)), Disabled: true})
 			}
 			for _, subskill := range entry.Remaining {
-				rows = append(rows, navigation.Row{Label: subskill.Text, Detail: strings.Join(subskill.Group, " › "), Disabled: true})
+				rows = append(rows, navigation.Row{Label: subskill.Text, Disabled: true})
 			}
 		}
 
