@@ -46,5 +46,15 @@ func New(s *repository.Store) *Controller {
 	_ = c.Refresh()
 	return c
 }
+
+func (c *Controller) ConfigureDeviceSessions(join func(string, func(error)), profiles []setup.ProfileOption, switchProfile func(string) error, server string, saveServer func(string) error, cancel func()) {
+	c.setup.JoinShare = join
+	c.setup.Profiles = profiles
+	c.setup.SwitchProfile = switchProfile
+	c.setup.ShareServer = server
+	c.setup.SaveShareServer = saveServer
+	c.setup.CancelShare = cancel
+	_ = c.Refresh()
+}
 func (c *Controller) Import(path string) error { return c.setup.Import(path) }
 func (c *Controller) Export(path string) error { return c.setup.Export(path) }

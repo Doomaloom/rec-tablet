@@ -50,7 +50,7 @@ The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling b
 
 All fixture names are synthetic. It includes a paginated roster, a long name, two standard classes, and a private class with swimmers at different levels.
 
-The same hidden screen provides **Export Data**. Select a folder, accept or edit the default filename, and confirm replacement if necessary. This lets the storage layer write atomically without a file picker truncating an existing export first. No records are cleared. These temporary file controls are intended for setup outside lessons; they are not network synchronization.
+The same hidden screen provides **Export Data**. Select a folder, accept or edit the default filename, and confirm replacement if necessary. This lets the storage layer write atomically without a file picker truncating an existing export first. No records are cleared. These file controls are intended for setup outside lessons.
 
 ## During a lesson
 
@@ -84,7 +84,9 @@ Both development tools now run in Go. Flags come **before** positional arguments
 
 The extractor preserves the previous JSON content, identifiers, and version hash. Compare a regenerated catalog before replacing the embedded file, then rebuild the app. The bundled file also contains app-specific multi-component splits; regenerating it from the sister repository produces the unsplit source catalog and those overrides must be reapplied. The sister repository is read only.
 
-The sister app's **Device Exports** page now produces directly importable instructor packages from its selected, loaded session. Review lesson dates and levels there, download the class JSON, then import it on this device. Keep its export ID backup for repeat exports from another browser. Each session has its own dataset and currently requires a separate device database.
+The sister app's **Device Exports** page can publish a temporary share for its selected, loaded session. Review each instructor's roster, levels, and lesson dates, start sharing, then enter that instructor's six digit code from **Import from Session Code** in the hidden Device Setup menu. The tablet downloads and imports the package, then opens that instructor's saved session automatically. Codes work while the host page is open and expire after a minute without a host heartbeat. The host can end sharing at any time; roster changes require ending and starting a new share.
+
+Each dataset and instructor has a separate SQLite database under `<database-directory>/<database-name>.sessions/`. The app records saved profiles and the active profile in `<database-path>.profiles.json`; the original database remains in place and is registered as a profile when it already contains an instructor dataset. Use the hidden **Switch Session** rows during development to change profiles. The active profile opens automatically on the next launch. Use **Configure Share Server** in the code keypad for development servers; the default is the hosted sister-app server. `REC_TABLET_SHARE_SERVER` or `--share-server URL` sets the initial server. HTTP is accepted only for localhost; remote servers must use HTTPS. Import and export files continue to operate on the active profile.
 
 See [data and architecture](docs/native-poc.md) for the unchanged import/export contract and identity details.
 

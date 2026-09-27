@@ -123,3 +123,22 @@ func TestExportThroughFolderPicker(t *testing.T) {
 		t.Fatal("export was not saved in the selected folder:", err)
 	}
 }
+
+func TestSessionCodeTouchKeypadPreservesLeadingZeroes(t *testing.T) {
+	f := setupUI(t)
+	check(t, f.c.Maintenance())
+	var received string
+	f.c.ConfigureDeviceSessions(func(code string, done func(error)) { received = code; done(nil) }, nil, nil, "https://share.example", nil, nil)
+	f.tap(t, "row:share")
+	overlay := f.w.Canvas().Overlays().Top()
+	f.shot(t, "share-code")
+	for _, digit := range []string{"0", "0", "1", "2", "3", "4"} {
+		button := dialogWidget(t, overlay, func(b *widget.Button) bool { return b.Text == digit })
+		test.Tap(button)
+	}
+	download := dialogWidget(t, overlay, func(b *widget.Button) bool { return b.Text == "Download" })
+	test.Tap(download)
+	if received != "001234" {
+		t.Fatalf("received instructor code %q", received)
+	}
+}

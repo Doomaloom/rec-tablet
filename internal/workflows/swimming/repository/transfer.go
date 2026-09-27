@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"rectablet/internal/platform/files"
 	"rectablet/internal/workflows/swimming/transfer"
@@ -95,10 +96,16 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 			}
 			level := c.Level
 			if pupil.Level != nil {
-				if level, e = transfer.Text(*pupil.Level, "level"); e != nil {
-					return 0, e
+				if strings.TrimSpace(*pupil.Level) == "" && c.Level == "SplashPrivate" {
+					level = ""
+				} else {
+					if level, e = transfer.Text(*pupil.Level, "level"); e != nil {
+						return 0, e
+					}
+					level = s.Catalog.NormalizeLevel(level)
 				}
-				level = s.Catalog.NormalizeLevel(level)
+			} else if c.Level == "SplashPrivate" {
+				level = ""
 			}
 			pupil.Level = &level
 			old, ok := seenNames[pupil.SourceID]
@@ -106,7 +113,12 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 				return 0, fmt.Errorf("ambiguous swimmer sourceId %s; use unique durable identifiers", pupil.SourceID)
 			}
 			if level == "SplashPrivate" {
-				return 0, fmt.Errorf("assign %s an actual swimmer level; SplashPrivate is a multi-level reference", pupil.Name)
+				if c.Level == "SplashPrivate" {
+					level = ""
+					pupil.Level = &level
+				} else {
+					return 0, fmt.Errorf("assign %s an actual swimmer level; SplashPrivate is a multi-level reference", pupil.Name)
+				}
 			}
 			seenIDs[pupil.SourceID] = true
 			seenNames[pupil.SourceID] = pupil.Name

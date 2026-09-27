@@ -373,6 +373,28 @@ func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 		t.Fatal("empty roster not empty")
 	}
 }
+func TestPrivateSwimmersWithoutLevelsStayOutOfSkillAssessment(t *testing.T) {
+	f := setupUI(t)
+	p := must(transfer.ReadPackage("../../../examples/classes.json"))
+	for i := range p.Courses[2].Swimmers {
+		p.Courses[2].Swimmers[i].Level = nil
+	}
+	_ = must(f.s.Import(p))
+	check(t, f.c.Refresh())
+	f.row(t, 2)
+	f.tap(t, "row:skills")
+	if f.c.State.RowCount != 0 || f.c.State.Empty != "No enrolled swimmers with an assigned level." {
+		t.Fatalf("unassigned private swimmers appeared in skills: rows=%d empty=%q", f.c.State.RowCount, f.c.State.Empty)
+	}
+	f.tap(t, "back")
+	if f.c.State.Screen != "class" {
+		t.Fatalf("back from skills opened %q, want class", f.c.State.Screen)
+	}
+	f.tap(t, "row:attendance")
+	if f.c.State.RowCount != 2 {
+		t.Fatalf("private attendance roster has %d swimmers, want 2", f.c.State.RowCount)
+	}
+}
 func TestSkillActionFailuresAreQuiet(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)

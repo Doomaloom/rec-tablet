@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"errors"
 	"flag"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"rectablet/internal/workflows/swimming/curriculum"
 
 	"rectablet/internal/workflows/swimming/transfer"
-
 )
 
 func main() {
@@ -42,6 +40,11 @@ func run(args []string) error {
 	}
 	flags := flag.NewFlagSet("rec-tablet", flag.ContinueOnError)
 	database := flags.String("database", filepath.Join(dataHome, "rec-tablet/lessons.sqlite3"), "SQLite database path")
+	shareServerDefault := os.Getenv("REC_TABLET_SHARE_SERVER")
+	if shareServerDefault == "" {
+		shareServerDefault = transfer.DefaultShareServer
+	}
+	shareServer := flags.String("share-server", shareServerDefault, "temporary data share server URL")
 	fullscreen := flags.Bool("fullscreen", false, "start fullscreen")
 	smoke := flags.Bool("smoke-test", false, "render briefly and exit")
 	screenshot := flags.String("screenshot", "", "PNG output during --smoke-test")
@@ -54,7 +57,7 @@ func run(args []string) error {
 	if *screenshot != "" && !*smoke {
 		return fmt.Errorf("--screenshot requires --smoke-test")
 	}
-	return application.Run(application.Options{Database: *database, Fullscreen: *fullscreen, SmokeTest: *smoke, Screenshot: *screenshot})
+	return application.Run(application.Options{Database: *database, ShareServer: *shareServer, Fullscreen: *fullscreen, SmokeTest: *smoke, Screenshot: *screenshot})
 }
 
 func adapt(args []string) error {

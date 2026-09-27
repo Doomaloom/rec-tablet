@@ -3,6 +3,7 @@ package setup
 import (
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
+	"strings"
 )
 
 func (c *Controller) composeFeatureBody(state *shell.State) {
@@ -20,8 +21,14 @@ func (c *Controller) composeSetupBody(state shell.State) ui.BodyComposer {
 			v := &dialogs{Controller: c, Window: surface.Window}
 			if id == "import" {
 				v.importDialog()
+			} else if id == "share" {
+				v.shareDialog()
+			} else if id == "server" {
+				v.shareServerDialog()
 			} else if id == "export" {
 				v.exportDialog()
+			} else if strings.HasPrefix(id, "profile:") {
+				_ = c.Select(id)
 			}
 		})
 	}

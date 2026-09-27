@@ -38,15 +38,17 @@ Program identity (`aquatics`) and curriculum definitions live in data, not UI co
 
 `sourceId` is required on every course and swimmer. Course IDs identify a specific course offering, not a recurring course name or reused course code. Swimmer IDs must remain stable within the dataset. Device UUIDs are assigned on first import, and the source references are retained. This POC does not infer IDs from a name, row index, or the sister app's generated roster IDs.
 
-Use the same `datasetId` for subsequent imports. Another dataset requires a separate database (`--database`). Changing a name behind an existing swimmer source ID is rejected for manual resolution, including intentional spelling corrections; name-edit reconciliation is deferred. Different swimmers may have identical names if their durable source IDs differ.
+File imports use the active database and require the same `datasetId`; another dataset is rejected there. Temporary sister-app code imports automatically use a separate saved profile for each `datasetId` and instructor, so switching sessions does not mix or replace their work. Changing a name behind an existing swimmer source ID is rejected for manual resolution, including intentional spelling corrections; name-edit reconciliation is deferred. Different swimmers may have identical names if their durable source IDs differ.
 
 Each listed course is a roster snapshot. Missing swimmers become inactive; their historical data remains. Reintroducing the same swimmer ID reactivates the same enrollment. Courses and dates omitted from a package remain on the device. Re-importing updates course display metadata and current enrollment levels; it never overwrites attempts or attendance. Use a new course ID for a new enrollment period.
 
-Names and IDs are bounded nonempty strings. Times use `HH:MM`; dates use `YYYY-MM-DD`. Class files are limited to 10 MB in the UI, 1–1000 courses, up to 500 swimmers per course, and 1–366 dates per course. Whole-package validation precedes an atomic transaction. Empty rosters are valid. Swimmer level defaults to course level; private classes require an actual per-swimmer level. Unknown levels import for attendance but show Missing curriculum for assessment.
+Names and IDs are bounded nonempty strings. Times use `HH:MM`; dates use `YYYY-MM-DD`. Class files are limited to 10 MB in the UI, 1–1000 courses, up to 500 swimmers per course, and 1–366 dates per course. Whole-package validation precedes an atomic transaction. Empty rosters are valid. Swimmer level defaults to course level, except private swimmers may remain unassigned when no individual level is provided. Unassigned private swimmers remain in rosters and attendance but are excluded from skill assessment until a later import supplies a level. Unknown levels import for attendance but show Missing curriculum for assessment.
 
 No phone numbers, email addresses, or authentication credentials are needed in the device package. Local roster identity and dates are authoritative for the POC; there is no concurrent server reconciliation.
 
 ## Temporary sister-app adapter
+
+Device Exports can host instructor-specific snapshots for Rec Tablet. The backend keeps each package in memory while the host page sends heartbeats. A six digit code retrieves only its instructor package; the tablet imports it into that instructor's saved profile and activates it. Codes expire after 60 seconds without a heartbeat. Hosts can end a share at any time; updates require starting a new share.
 
 DeckSupervisor's `ClassRoster` supplies `serviceName`, `location`, and `students` with names, levels, and waitlist flags. Its shape lacks durable swimmer IDs and exact dated lesson occurrences. Annotate a roster export with course/swimmer `sourceId`, course `level`, `startTime24`, and explicit `lessonDates`, as shown in `examples/sister-roster.json`. Preserve those assigned IDs in future exports.
 

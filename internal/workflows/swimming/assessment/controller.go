@@ -48,7 +48,7 @@ func (c *Controller) Build() (navigation.State, error) {
 		}
 		seenLevels := map[string]bool{}
 		for _, p := range roster {
-			if !p.Active || seenLevels[p.Level] {
+			if !p.Active || p.Level == "" || seenLevels[p.Level] {
 				continue
 			}
 			seenLevels[p.Level] = true

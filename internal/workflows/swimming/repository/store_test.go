@@ -409,17 +409,55 @@ func TestPastAttendanceDefaultsUncheckedStudentsAbsent(t *testing.T) {
 	}
 }
 
-func TestPrivateAndMissingLevel(t *testing.T) {
+func TestPrivateLevelMayBeUnassignedAndLaterAssigned(t *testing.T) {
 	f := setup(t)
-	level := "SplashPrivate"
-	f.p.Courses[2].Swimmers[0].Level = &level
-	if _, e := f.s.Import(f.p); e == nil {
-		t.Fatal("private reference accepted as curriculum")
+	private := &f.p.Courses[2]
+	private.Swimmers[0].Level = nil
+	body := must(json.Marshal(f.p))
+	decoded := must(transfer.DecodePackage(body))
+	if decoded.Courses[2].Swimmers[0].Level != nil {
+		t.Fatal("omitted private swimmer level was not preserved as unassigned")
 	}
+	if _, e := f.s.Import(decoded); e != nil {
+		t.Fatalf("private swimmer without a level was rejected: %v", e)
+	}
+	getLevel := func(sourceID string) string {
+		t.Helper()
+		r := must(f.s.queryOne(`SELECT e.level FROM enrollments e JOIN swimmers s ON s.id=e.swimmer_id WHERE s.source_id=?`, sourceID))
+		return r.String("level")
+	}
+	if got := getLevel(private.Swimmers[0].SourceID); got != "" {
+		t.Fatalf("unassigned private swimmer level = %q, want empty", got)
+	}
+	if got := getLevel(private.Swimmers[1].SourceID); got != "Splash9" {
+		t.Fatalf("assigned private swimmer level = %q, want Splash9", got)
+	}
+
+	level := "Splash2B"
+	private.Swimmers[0].Level = &level
+	_ = must(f.s.Import(f.p))
+	if got := getLevel(private.Swimmers[0].SourceID); got != level {
+		t.Fatalf("later import level = %q, want %q", got, level)
+	}
+
+	// Missing levels in other classes still inherit the course level.
+	standard := &f.p.Courses[0].Swimmers[0]
+	standard.Level = nil
+	_ = must(f.s.Import(f.p))
+	if got := getLevel(standard.SourceID); got != f.p.Courses[0].Level {
+		t.Fatalf("standard swimmer level = %q, want course level %q", got, f.p.Courses[0].Level)
+	}
+
 	level = "Mystery"
+	standard.Level = &level
 	_ = must(f.s.Import(f.p))
 	if _, ok := must(f.s.CatalogFor(f.version)).Level(level); ok {
 		t.Fatal("unknown level fell back")
+	}
+	level = "SplashPrivate"
+	standard.Level = &level
+	if _, e := f.s.Import(f.p); e == nil {
+		t.Fatal("private reference accepted as a standard swimmer level")
 	}
 }
 func TestExportAtomicityAndCompleteness(t *testing.T) {

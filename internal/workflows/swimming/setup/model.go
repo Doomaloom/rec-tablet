@@ -2,6 +2,8 @@ package setup
 
 import ()
 
+type ProfileOption struct{ Key, Label string }
+
 // Repository lists only the data operations this feature consumes.
 type Repository interface {
 	Meta(string) (string, error)
