@@ -11,10 +11,15 @@ type Controller struct {
 	Store Repository
 }
 
-func New(c *navigation.Controller, s Repository) *Controller { return &Controller{c, s} }
+func New(c *navigation.Controller, s Repository) *Controller {
+	return &Controller{Controller: c, Store: s}
+}
 func (c *Controller) Build() (navigation.State, error) {
 	f := c.Frame()
 	state := c.InitialState()
+	if c.DisplayMode.IsLarge() {
+		state.PageSize = 12
+	}
 	rows := []navigation.Row{}
 	s := c.Store
 	_, roster, e := navigation.LessonContext(s, f, &state)

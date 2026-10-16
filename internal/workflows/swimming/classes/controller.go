@@ -11,13 +11,24 @@ import (
 
 type Controller struct {
 	*navigation.Controller
-	Store Repository
+	Store         Repository
+	calendarMonth time.Time
 }
 
-func New(c *navigation.Controller, s Repository) *Controller { return &Controller{c, s} }
+func New(c *navigation.Controller, s Repository) *Controller {
+	return &Controller{Controller: c, Store: s}
+}
 func (c *Controller) Build() (navigation.State, error) {
 	f := c.Frame()
 	state := c.InitialState()
+	if c.DisplayMode.IsLarge() {
+		switch f.Screen {
+		case navigation.Classes:
+			state.PageSize = 6
+		case navigation.Class:
+			state.PageSize = 3
+		}
+	}
 	rows := []navigation.Row{}
 	s := c.Store
 	switch f.Screen {
@@ -55,6 +66,15 @@ func (c *Controller) Build() (navigation.State, error) {
 			t, _ := time.Parse("2006-01-02", d)
 			rows = append(rows, navigation.Row{ID: d, Label: t.Format("Monday, Jan 02, 2006"), Selected: d == c.Date})
 		}
+		if c.DisplayMode.IsLarge() {
+			if c.calendarMonth.IsZero() {
+				selected, parseErr := time.Parse("2006-01-02", c.Date)
+				if parseErr != nil {
+					selected = time.Now()
+				}
+				c.calendarMonth = time.Date(selected.Year(), selected.Month(), 1, 0, 0, 0, 0, selected.Location())
+			}
+		}
 		state.Empty = "Import a class package to add lesson dates."
 
 	case navigation.Class:
@@ -70,6 +90,10 @@ func (c *Controller) Build() (navigation.State, error) {
 		state.PrimaryInfo = ""
 		rows = []navigation.Row{{ID: "attendance", Label: "Attendance"}, {ID: "skills", Label: "Skills"}, {ID: "feedback_swimmers", Label: "Feedback"}}
 
+	}
+	if c.DisplayMode.IsLarge() && f.Screen == navigation.Dates {
+		// Calendar month navigation needs the complete set of scheduled dates.
+		state.PageSize = max(1, len(rows))
 	}
 	c.Paginate(&state, rows)
 	c.composeFeatureBody(&state)
@@ -90,6 +114,7 @@ func (c *Controller) Select(id string) error {
 
 	case navigation.Dates:
 		c.Date = id
+		c.calendarMonth = time.Time{}
 		c.Reset()
 
 	case navigation.Class:
@@ -98,10 +123,25 @@ func (c *Controller) Select(id string) error {
 	}
 	return nil
 }
+
+func (c *Controller) moveCalendarMonth(delta int) error {
+	return c.Controller.Run(func() error {
+		if c.calendarMonth.IsZero() {
+			selected, err := time.Parse("2006-01-02", c.Date)
+			if err != nil {
+				selected = time.Now()
+			}
+			c.calendarMonth = time.Date(selected.Year(), selected.Month(), 1, 0, 0, 0, 0, selected.Location())
+		}
+		c.calendarMonth = c.calendarMonth.AddDate(0, delta, 0)
+		return nil
+	})
+}
 func (c *Controller) Header() error {
 	f := c.Frame()
 	switch f.Screen {
 	case navigation.Classes:
+		c.calendarMonth = time.Time{}
 		c.Push(navigation.Dates, nil)
 
 	}

@@ -2,6 +2,7 @@ package setup
 
 import (
 	"path/filepath"
+	"rectablet/internal/shared/ui"
 	"rectablet/internal/workflows/swimming/navigation"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ type Controller struct {
 	ShareServer     string
 	SaveShareServer func(string) error
 	CancelShare     func()
+	SaveDisplayMode func(ui.DisplayMode)
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {
@@ -34,6 +36,7 @@ func (c *Controller) Build() (navigation.State, error) {
 			{ID: "share", Label: "Import from Session Code"},
 			{ID: "export", Label: "Export Data · Attendance, attempts, and drafts"},
 		}
+		rows = append(rows, navigation.Row{ID: "display", Label: "Display · " + c.DisplayMode.Label()})
 		for _, profile := range c.Profiles {
 			rows = append(rows, navigation.Row{ID: "profile:" + profile.Key, Label: "Switch Session · " + profile.Label})
 		}
@@ -42,6 +45,20 @@ func (c *Controller) Build() (navigation.State, error) {
 	c.Paginate(&state, rows)
 	c.composeFeatureBody(&state)
 	return state, nil
+}
+
+func (c *Controller) SetDisplayMode(mode ui.DisplayMode) error {
+	mode = mode.Normalize()
+	previous := c.DisplayMode
+	c.DisplayMode = mode
+	if err := c.Refresh(); err != nil {
+		c.DisplayMode = previous
+		return err
+	}
+	if c.SaveDisplayMode != nil {
+		c.SaveDisplayMode(mode)
+	}
+	return nil
 }
 func (c *Controller) Select(id string) error {
 	if strings.HasPrefix(id, "profile:") && c.SwitchProfile != nil {

@@ -2,6 +2,7 @@
 package swimming
 
 import (
+	"rectablet/internal/shared/ui"
 	"rectablet/internal/workflows/swimming/assessment"
 	"rectablet/internal/workflows/swimming/attendance"
 	"rectablet/internal/workflows/swimming/classes"
@@ -14,6 +15,13 @@ import (
 type Controller struct {
 	*navigation.Controller
 	setup *setup.Controller
+}
+
+// ConfigureDisplay applies a device preference independently of the active dataset.
+func (c *Controller) ConfigureDisplay(mode ui.DisplayMode, save func(ui.DisplayMode)) {
+	c.DisplayMode = mode.Normalize()
+	c.setup.SaveDisplayMode = save
+	_ = c.Refresh()
 }
 
 func New(s *repository.Store) *Controller {

@@ -309,6 +309,14 @@ func newSplitHeaderComponents(builder *componentBuilder) {
 			x, y, w, _ := splitHeaderSlot(width, index)
 			return x, y, w, headerHeight(builder.state)
 		}
+		if index == 0 && builder.state.HoldTitle != nil {
+			button := builder.newTouchButton("title", label, func() {})
+			button.OnHold = builder.state.HoldTitle
+			button.Fill, button.Ink, button.FontSize = ui.White, ui.Navy, 22
+			button.Compact, button.MinimumFont, button.MaxLabelLines = true, 16, -1
+			builder.addComponent(id, button, position)
+			continue
+		}
 		background := canvas.NewRectangle(ui.White)
 		builder.addComponent(id+"-background", background, position)
 		text := ui.NewText(label, 22, ui.Navy)
@@ -330,7 +338,7 @@ func newPrimaryInfoComponent(builder *componentBuilder) {
 	if text == "" {
 		return
 	}
-	info := ui.NewText(text, 20, ui.Navy)
+	info := ui.NewText(text, primaryInfoFontSize(builder.state), ui.Navy)
 	info.Bold = true
 	builder.addComponent("primary-info", info, func(width, _ float32) (float32, float32, float32, float32) {
 		return ui.ContentInset, ui.OuterMargin + headerHeight(builder.state) + ui.Gap, width - 2*ui.ContentInset, primaryInfoHeight(builder.state, width)
@@ -342,8 +350,9 @@ func newBodyComponent(builder *componentBuilder) {
 		return
 	}
 	surface := &ui.Surface{
-		Window: builder.view.Window,
-		Bounds: bodySlot(builder.state),
+		DisplayMode: builder.state.DisplayMode,
+		Window:      builder.view.Window,
+		Bounds:      bodySlot(builder.state),
 		Add: func(object fyne.CanvasObject, position func(float32, float32) (float32, float32, float32, float32)) {
 			builder.addBodyComponent(object, position)
 		},

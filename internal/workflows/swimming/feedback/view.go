@@ -12,7 +12,11 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 	}
 	switch c.Frame().Screen {
 	case navigation.FeedbackSwimmers:
-		state.ComposeBody = c.composeFeedbackSwimmerBody(*state)
+		if state.DisplayMode.IsLarge() {
+			state.ComposeBody = c.composeLargeFeedbackBody(*state, c.large)
+		} else {
+			state.ComposeBody = c.composeFeedbackSwimmerBody(*state)
+		}
 	case navigation.Feedback:
 		state.ComposeBody = c.composeFeedbackSkillBody(*state)
 	case navigation.FeedbackDetail:

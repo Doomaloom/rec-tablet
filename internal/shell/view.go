@@ -27,26 +27,31 @@ func chevronIcon(direction string, disabled bool) fyne.Resource {
 }
 
 type View struct {
-	Controller Presenter
-	Window     fyne.Window
-	Root       *fyne.Container
-	Buttons    map[string]*ui.TouchButton
-	Criterion  *ui.TextBlock
-	lastScreen string
-	readyAt    time.Time
-	closed     bool
-	onLeave    func()
+	Controller  Presenter
+	Window      fyne.Window
+	Root        *fyne.Container
+	Buttons     map[string]*ui.TouchButton
+	Criterion   *ui.TextBlock
+	lastScreen  string
+	readyAt     time.Time
+	closed      bool
+	displayMode ui.DisplayMode
+	onLeave     func()
 }
 
 type placement struct {
 	object fyne.CanvasObject
 	rect   LayoutSlot
 }
-type surfaceLayout struct{ items []placement }
+type surfaceLayout struct {
+	items []placement
+	mode  ui.DisplayMode
+}
 
-func (layout *surfaceLayout) MinSize([]fyne.CanvasObject) fyne.Size { return fyne.NewSize(800, 480) }
+func (layout *surfaceLayout) MinSize([]fyne.CanvasObject) fyne.Size { return layout.mode.Size() }
 func (layout *surfaceLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
-	scale := min(size.Width/800, size.Height/480)
+	base := layout.mode.Size()
+	scale := max(float32(0.01), min(size.Width/base.Width, size.Height/base.Height))
 	width, height := size.Width/scale, size.Height/scale
 	for _, component := range layout.items {
 		x, y, componentWidth, componentHeight := component.rect(width, height)
@@ -59,11 +64,12 @@ func (layout *surfaceLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
 }
 
 func New(controller Presenter, window fyne.Window) *View {
-	view := &View{Controller: controller, Window: window, Buttons: map[string]*ui.TouchButton{}}
+	mode := controller.Snapshot().DisplayMode.Normalize()
+	view := &View{Controller: controller, Window: window, Buttons: map[string]*ui.TouchButton{}, displayMode: mode}
 	window.SetPadded(false)
-	view.Root = container.New(&surfaceLayout{})
+	view.Root = container.New(&surfaceLayout{mode: mode})
 	window.SetContent(view.Root)
-	window.Resize(fyne.NewSize(800, 480))
+	window.Resize(mode.Size())
 	controller.Subscribe(view.Render)
 	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) { _ = controller.OpenSetup() })
 	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyLeft, Modifier: fyne.KeyModifierAlt}, func(fyne.Shortcut) { _ = controller.Back() })
@@ -123,7 +129,14 @@ func (view *View) Render() {
 		objects = append(objects, component.Object)
 		placements = append(placements, placement{object: component.Object, rect: component.Position})
 	}
-	view.Root.Layout = &surfaceLayout{items: placements}
+	view.Root.Layout = &surfaceLayout{items: placements, mode: state.DisplayMode}
 	view.Root.Objects = objects
 	view.Root.Refresh()
+	mode := state.DisplayMode.Normalize()
+	if mode != view.displayMode {
+		view.displayMode = mode
+		if !view.Window.FullScreen() {
+			view.Window.Resize(mode.Size())
+		}
+	}
 }

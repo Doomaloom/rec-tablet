@@ -163,7 +163,11 @@ func (c *Controller) buildMultiAssessmentState(f navigation.Frame) (navigation.S
 		state.Rows = append(state.Rows, navigation.Row{ID: student.PersonID, Label: student.Name, Status: student.Status})
 	}
 	state.RowCount, state.PageSize = len(students), len(students)
-	state.ComposeBody = c.composeMultiAssessmentBody(students)
+	if state.DisplayMode.IsLarge() {
+		state.ComposeBody = c.composeLargeMultiAssessmentBody(students)
+	} else {
+		state.ComposeBody = c.composeMultiAssessmentBody(students)
+	}
 	return state, nil
 }
 
@@ -245,7 +249,11 @@ func (c *Controller) buildMultiStudentState(f navigation.Frame) (navigation.Stat
 		state.Rows = append(state.Rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Status: edit.Answers[subskill.ID]})
 	}
 	state.RowCount, state.PageSize = len(state.Rows), len(state.Rows)
-	state.ComposeBody = c.composeClassChecklist(state.Rows)
+	if state.DisplayMode.IsLarge() {
+		state.ComposeBody = c.composeLargeChecklistBody(state.Rows, func(id string) { _ = c.Controller.Select(id) })
+	} else {
+		state.ComposeBody = c.composeClassChecklist(state.Rows)
+	}
 	return state, nil
 }
 

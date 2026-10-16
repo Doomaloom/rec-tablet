@@ -2,6 +2,7 @@ package attendance
 
 import (
 	"errors"
+	"fmt"
 	"rectablet/internal/workflows/swimming/domain"
 	"rectablet/internal/workflows/swimming/navigation"
 	"testing"
@@ -12,12 +13,16 @@ type attendanceStore struct {
 	person, lesson, status string
 	marks                  map[string]string
 	finalized              bool
+	roster                 []domain.Enrollment
 }
 
 func (s *attendanceStore) GetCourse(string) (domain.Course, error) {
 	return domain.Course{Name: "Splash 1"}, nil
 }
 func (s *attendanceStore) ListRoster(string) ([]domain.Enrollment, error) {
+	if s.roster != nil {
+		return s.roster, nil
+	}
 	return []domain.Enrollment{{ID: "active", Name: "A", Active: true}, {ID: "former", Name: "B"}}, nil
 }
 func (s *attendanceStore) Attendance(string) (map[string]string, error) {
@@ -26,6 +31,33 @@ func (s *attendanceStore) Attendance(string) (map[string]string, error) {
 		out[person] = status
 	}
 	return out, nil
+}
+
+func TestLargeAttendanceUsesTwoColumnsAndTwelveStudentPages(t *testing.T) {
+	nav := navigation.New()
+	nav.DisplayMode = "large"
+	s := &attendanceStore{marks: map[string]string{}}
+	for i := 0; i < 13; i++ {
+		s.roster = append(s.roster, domain.Enrollment{ID: fmt.Sprintf("person-%02d", i), Name: fmt.Sprintf("Swimmer %02d", i), Active: true})
+	}
+	c := New(nav, s)
+	nav.Features[navigation.Attendance] = c
+	nav.Push(navigation.Attendance, func(f *navigation.Frame) { f.Course = "course"; f.Lesson = "lesson" })
+	if err := nav.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	if nav.State.PageSize != 12 || nav.State.PageCount != 2 || len(nav.State.Rows) != 12 {
+		t.Fatalf("large attendance page = %d rows, size %d, pages %d", len(nav.State.Rows), nav.State.PageSize, nav.State.PageCount)
+	}
+	if err := nav.Page(1); err != nil {
+		t.Fatal(err)
+	}
+	if len(nav.State.Rows) != 1 || nav.State.Rows[0].ID != "person-12" {
+		t.Fatalf("last attendance page = %+v", nav.State.Rows)
+	}
+	if err := nav.Select("person-12"); err != nil || s.status != "present" {
+		t.Fatalf("last student tap did not mark attendance: %v, %q", err, s.status)
+	}
 }
 func (s *attendanceStore) SetAttendance(person, lesson, status string) error {
 	s.person, s.lesson, s.status = person, lesson, status

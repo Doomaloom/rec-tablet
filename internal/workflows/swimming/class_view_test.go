@@ -267,8 +267,9 @@ func TestClassChecklistLayoutAndModeRestrictions(t *testing.T) {
 			if f.c.State.SplitHeader == nil || f.c.State.SplitHeader.Left != skill.Number+". "+curriculum.CompactTitle(skill) || f.c.State.SplitHeader.Right != people[0].Name || f.view.Buttons["header-half-0"] != nil || f.view.Buttons["header-half-1"] != nil || f.view.Buttons["title"] != nil {
 				t.Fatal("Class should show the skill and full student name in its split header")
 			}
-			if !strings.Contains(f.c.State.PrimaryInfo, skill.Name) || !strings.Contains(f.c.State.PrimaryInfo, "Student 1 of 4") {
-				t.Fatal("main information line should retain the full skill and student position")
+			course := must(f.s.GetCourse(f.c.Frame().Course))
+			if !strings.Contains(f.c.State.PrimaryInfo, skill.Name) || !strings.Contains(f.c.State.PrimaryInfo, course.Name) || !strings.Contains(f.c.State.PrimaryInfo, course.Time) {
+				t.Fatal("main information line should retain the course and full skill")
 			}
 			if len(f.c.State.Rows) != scenario.count {
 				t.Fatalf("checklist paginated: got %d subskills, want %d", len(f.c.State.Rows), scenario.count)

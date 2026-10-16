@@ -20,9 +20,17 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 			state.ComposeBody = c.composeSwimmerListBody(*state)
 		}
 	case navigation.TimedLaps:
-		state.ComposeBody = c.composeTimedLapsBody(*state)
+		if state.DisplayMode.IsLarge() {
+			state.ComposeBody = c.composeLargeTimedLapsBody(*state)
+		} else {
+			state.ComposeBody = c.composeTimedLapsBody(*state)
+		}
 	case navigation.TimedHeat:
-		state.ComposeBody = c.composeTimedHeatBody(*state)
+		if state.DisplayMode.IsLarge() {
+			state.ComposeBody = c.composeLargeTimedHeatBody(*state)
+		} else {
+			state.ComposeBody = c.composeTimedHeatBody(*state)
+		}
 	case navigation.Attempts:
 		state.ComposeBody = c.composeAttemptListBody(*state)
 	case navigation.Assessment:
@@ -39,6 +47,11 @@ func (c *Controller) composeSkillListBody(state shell.State) ui.BodyComposer {
 }
 
 func (c *Controller) composeSwimmerListBody(state shell.State) ui.BodyComposer {
+	if state.DisplayMode.IsLarge() {
+		return func(surface *ui.Surface) {
+			c.largePagedGrid(surface, "large-return-swimmers", "Swimmers", state.Rows, 2, 6, &c.largeRosterPage, func(id string) { _ = c.Controller.Select(id) })
+		}
+	}
 	return c.composeAssessmentListBody(state)
 }
 
@@ -56,7 +69,11 @@ func (c *Controller) composeTimedSelectionBody(state shell.State) ui.BodyCompose
 				rows[i].Selected = true
 			}
 		}
-		ui.List(surface, rows, func(id string) { _ = c.Controller.Select(id) })
+		if surface.DisplayMode.IsLarge() {
+			c.largePagedGrid(surface, "timed-selection", "Swimmers in heat", rows, 2, 6, &c.largeRosterPage, func(id string) { _ = c.Controller.Select(id) })
+		} else {
+			ui.List(surface, rows, func(id string) { _ = c.Controller.Select(id) })
+		}
 	}
 }
 

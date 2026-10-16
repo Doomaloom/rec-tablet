@@ -81,6 +81,16 @@ func (f *uiFixture) rowLabel(t *testing.T, label string) {
 	}
 	t.Fatalf("missing row %q", label)
 }
+func (f *uiFixture) rowLabelPrefix(t *testing.T, prefix string) {
+	t.Helper()
+	for i, row := range f.c.State.Rows {
+		if strings.HasPrefix(row.Label, prefix) {
+			f.row(t, i)
+			return
+		}
+	}
+	t.Fatalf("missing row with prefix %q", prefix)
+}
 func (f *uiFixture) skill(t *testing.T) {
 	f.row(t, 0)
 	f.tap(t, "row:skills")
@@ -554,7 +564,7 @@ func TestCompactFeedbackCorrectionAndDateLayouts(t *testing.T) {
 	f.tap(t, "back")
 	f.tap(t, "row:feedback_swimmers")
 	f.compactLayout(t, "feedback-swimmers")
-	f.rowLabel(t, "Harrold")
+	f.rowLabelPrefix(t, "Harrold ·")
 	f.compactLayout(t, "feedback-skills")
 	f.row(t, 0)
 	f.compactLayout(t, "feedback-detail")

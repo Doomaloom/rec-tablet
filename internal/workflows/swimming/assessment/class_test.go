@@ -52,8 +52,12 @@ func TestClassChecklistFitsEntireCatalog(t *testing.T) {
 			for _, subskill := range skill.Subskills {
 				rows = append(rows, navigation.Row{Label: subskill.Text})
 			}
-			info := "Saturday morning swimming group · 9:00 AM · 2026-09-22 · " + skill.Number + ". " + skill.Name + " · Student 1 of 4"
-			infoHeight := max(float32(30), ui.WrappedTextHeight(info, 680, 20, true)+4)
+			info := "Saturday morning swimming group · 9:00 AM · " + skill.Number + ". " + skill.Name
+			infoFont := float32(20)
+			if ui.WrappedTextHeight(info, 680, 20, true) > 2*ui.WrappedTextHeight("Ag", 680, 20, true)+0.01 {
+				infoFont = 14
+			}
+			infoHeight := max(float32(30), ui.WrappedTextHeight(info, 680, infoFont, true)+4)
 			checklistTop := ui.OuterMargin + shell.SplitHeaderHeight + ui.Gap + infoHeight + ui.Gap
 			availableHeight := 480 - checklistTop - classChecklistBottom
 			layout := fitClassChecklist(rows, 680, availableHeight)

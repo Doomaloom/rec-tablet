@@ -3,6 +3,7 @@ package navigation
 
 import (
 	"fmt"
+	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/domain"
 	"strings"
@@ -56,6 +57,7 @@ type Feature interface {
 }
 
 type Controller struct {
+	DisplayMode ui.DisplayMode
 	*shell.History[Frame]
 	Date     string
 	State    State
@@ -174,7 +176,11 @@ func (c *Controller) Refresh() error {
 	return nil
 }
 func (c *Controller) InitialState() State {
-	return State{Screen: string(c.Frame().Screen), Title: "My Classes", CanBack: len(c.Frames) > 1, PageCount: 1, PageSize: 3, Rows: []Row{}}
+	pageSize := 3
+	if c.DisplayMode.IsLarge() {
+		pageSize = 6
+	}
+	return State{DisplayMode: c.DisplayMode, Screen: string(c.Frame().Screen), Title: "My Classes", CanBack: len(c.Frames) > 1, PageCount: 1, PageSize: pageSize, Rows: []Row{}}
 }
 
 func AppendPrimaryInfo(state *State, text string) {

@@ -51,6 +51,25 @@ func WrappedTextHeight(text string, width, size float32, bold bool) float32 {
 }
 
 func wrap(text string, width, size float32, bold, wrapping bool) []string {
+	return wrapMeasured(text, width, size, bold, wrapping, fyne.MeasureText)
+}
+
+// wrapScaled measures at the logical font size before applying the canvas scale.
+// Fyne's text metrics quantize fractional physical font sizes, which can move a
+// borderline word to another line even though both the font and available width
+// were scaled by the same factor.
+func wrapScaled(text string, width, size, scale float32, bold, wrapping bool) []string {
+	if scale <= 0 {
+		scale = 1
+	}
+	measure := func(text string, physicalSize float32, style fyne.TextStyle) fyne.Size {
+		logical := fyne.MeasureText(text, physicalSize/scale, style)
+		return fyne.NewSize(logical.Width*scale, logical.Height*scale)
+	}
+	return wrapMeasured(text, width, size, bold, wrapping, measure)
+}
+
+func wrapMeasured(text string, width, size float32, bold, wrapping bool, measure func(string, float32, fyne.TextStyle) fyne.Size) []string {
 	lines := []string{}
 	style := fyne.TextStyle{Bold: bold}
 	for _, paragraph := range strings.Split(text, "\n") {
@@ -64,7 +83,7 @@ func wrap(text string, width, size float32, bold, wrapping bool) []string {
 			if line != "" {
 				candidate = line + " " + word
 			}
-			if line != "" && fyne.MeasureText(candidate, size, style).Width > width {
+			if line != "" && measure(candidate, size, style).Width > width {
 				lines = append(lines, line)
 				line = ""
 			}
@@ -73,7 +92,7 @@ func wrap(text string, width, size float32, bold, wrapping bool) []string {
 			}
 			for _, r := range word {
 				candidate = line + string(r)
-				if line != "" && fyne.MeasureText(candidate, size, style).Width > width {
+				if line != "" && measure(candidate, size, style).Width > width {
 					lines = append(lines, line)
 					line = ""
 				}
@@ -88,11 +107,12 @@ func (r *textRenderer) Layout(bounds fyne.Size) {
 	t := r.t
 	size := t.FontSize * t.ScaleFactor
 	minimum := t.MinimumFont * t.ScaleFactor
+	scale := max(float32(0.01), t.ScaleFactor)
 	var lines []string
 	var lineHeight float32
 	for {
-		lines = wrap(t.Text, max(1, bounds.Width), size, t.Bold, t.Wrap)
-		lineHeight = fyne.MeasureText("Ag", size, fyne.TextStyle{Bold: t.Bold}).Height * 1.12
+		lines = wrapScaled(t.Text, max(1, bounds.Width), size, scale, t.Bold, t.Wrap)
+		lineHeight = fyne.MeasureText("Ag", size/scale, fyne.TextStyle{Bold: t.Bold}).Height * scale * 1.12
 		if float32(len(lines))*lineHeight <= bounds.Height || size <= minimum {
 			break
 		}
@@ -107,9 +127,9 @@ func (r *textRenderer) Layout(bounds fyne.Size) {
 		lines = lines[:maxLines]
 	}
 	for i, line := range lines {
-		tooWide := fyne.MeasureText(line, size, fyne.TextStyle{Bold: t.Bold}).Width > bounds.Width
+		tooWide := fyne.MeasureText(line, size/scale, fyne.TextStyle{Bold: t.Bold}).Width*scale > bounds.Width
 		if tooWide || (t.Truncated && i == len(lines)-1) {
-			for len(line) > 0 && fyne.MeasureText(line+"…", size, fyne.TextStyle{Bold: t.Bold}).Width > bounds.Width {
+			for len(line) > 0 && fyne.MeasureText(line+"…", size/scale, fyne.TextStyle{Bold: t.Bold}).Width*scale > bounds.Width {
 				_, n := utf8.DecodeLastRuneInString(line)
 				line = line[:len(line)-n]
 			}

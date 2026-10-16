@@ -43,6 +43,9 @@ type SplitHeader struct {
 }
 
 type State struct {
+	DisplayMode ui.DisplayMode
+	// PrimaryInfoFontSize defaults to 20; dense screens can reserve more body space.
+	PrimaryInfoFontSize float32
 	// OnLeave releases feature resources when the route changes or the view closes.
 	OnLeave                                                            func()
 	PrimaryInfo                                                        string

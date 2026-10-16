@@ -1,6 +1,6 @@
 package ui
 
-// Shared dimensions in the 800x480 logical design space.
+// Shared dimensions in the selected display profile's logical design space.
 const (
 	OuterMargin   float32 = 4
 	Gap           float32 = 4

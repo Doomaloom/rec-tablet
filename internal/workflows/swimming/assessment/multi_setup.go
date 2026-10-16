@@ -201,7 +201,14 @@ func (c *Controller) buildMultiSelectionState() (navigation.State, error) {
 		}
 		rows = append(rows, row)
 	}
+	if state.DisplayMode.IsLarge() {
+		state.PageSize = max(1, len(rows))
+	}
 	c.Paginate(&state, rows)
-	state.ComposeBody = c.composeMultiSelectionBody(state, c.multi.AssignmentGroup, len(c.multi.Groups))
+	if state.DisplayMode.IsLarge() {
+		state.ComposeBody = c.composeLargeMultiSelectionBody(state, c.multi.AssignmentGroup, len(c.multi.Groups))
+	} else {
+		state.ComposeBody = c.composeMultiSelectionBody(state, c.multi.AssignmentGroup, len(c.multi.Groups))
+	}
 	return state, nil
 }

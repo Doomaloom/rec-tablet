@@ -21,10 +21,10 @@ make build
 ./dist/native/rec-tablet
 ```
 
-Or run directly:
+Run the built executable with optional arguments:
 
 ```bash
-go run ./cmd/rec-tablet
+make run ARGS="--fullscreen"
 ```
 
 For the dedicated display:
@@ -37,7 +37,15 @@ To QA the native app from iPhone Safari while it runs in an isolated 800 × 480
 virtual display on this PC, follow [iPhone QA over noVNC](docs/iphone-qa.md).
 The short form is `make qa-setup`, `make qa-start`, and `make qa-stop`.
 
-`F11` toggles fullscreen. `Alt+Left` or Escape goes back. The layout starts at 800 × 480 and scales to larger landscape sizes. The packaged desktop build uses Fyne's Linux graphical driver and requires a working OpenGL/X11 environment (including XWayland on Wayland desktops). The SQLite driver is Go-only; the graphics stack still has native system dependencies.
+`F11` toggles fullscreen. `Alt+Left` or Escape goes back. The compact display profile uses an 800 × 480 logical layout; the large profile uses 1024 × 600. Each profile scales to the window while preserving its chosen layout. The packaged desktop build uses Fyne's Linux graphical driver and requires a working OpenGL/X11 environment (including XWayland on Wayland desktops). The SQLite driver is Go-only; the graphics stack still has native system dependencies.
+
+## Display profiles
+
+Compact is the default profile. To select a profile, hold **My Classes** for three seconds to open the hidden Device Setup screen, then choose **Display**. The preference is saved on the device independently of the active lesson dataset. Rec Tablet does not switch profiles automatically when the monitor or window size changes; choose the profile that matches the device.
+
+The large profile provides six class cards in a two-column grid, a Sunday-first calendar with scheduled lesson dates, three side-by-side lesson choices, and attendance pages with twelve swimmers in two columns. Skills appear beside their swimmers; Single and Class marking keep a roster beside the complete checklist. Multi group assignment shows groups and swimmers together, while group marking uses a full-width table. Timed heat setup combines swimmer selection and lap entry. Feedback keeps swimmers beside their scrollable assessment details. Attempt history and Device Setup show six rows per page.
+
+Private-level redesign is deferred. Private-lesson swimmers assigned a standard curriculum level continue using that level's assessment flow; unassigned swimmers cannot be assessed. All standard checklists fit without scrolling in the large profile.
 
 The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling back to `~/.local/share/rec-tablet/lessons.sqlite3`. Use `--database /path/to/lessons.sqlite3` for an isolated dataset. Close the old Python app before opening the same database in Go. Existing databases are read directly: no re-import or reset is required. A per-database process lock prevents concurrent app instances.
 
@@ -112,6 +120,7 @@ To capture representative test screens:
 
 ```bash
 REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-screens go test -tags ci ./internal/workflows/swimming -count=1
+REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-large-screens go test -tags ci ./internal/workflows/swimming ./internal/workflows/swimming/assessment -run TestLarge -count=1
 ```
 
 Tests cover the original POC workflows, recovery after abrupt process exit, failed writes, native widget interaction, curriculum extraction parity, and continuing work in a Python-created database. No Python is needed to run them. Template parity checks use the sibling repository when present; bundled-catalog and source-exception checks always run.

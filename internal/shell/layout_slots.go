@@ -6,7 +6,7 @@ import (
 	"rectablet/internal/shared/ui"
 )
 
-// Layout slots use the logical 800x480 surface, scaled uniformly by the root.
+// Layout slots use the selected profile's logical surface, scaled uniformly by the root.
 type LayoutSlot func(width, height float32) (x, y, slotWidth, slotHeight float32)
 
 const SplitHeaderHeight float32 = 52
@@ -117,7 +117,14 @@ func primaryInfoHeight(state State, width float32) float32 {
 	if text == "" {
 		return 0
 	}
-	return max(float32(30), ui.WrappedTextHeight(text, width-2*ui.ContentInset, 20, true)+4)
+	return max(float32(30), ui.WrappedTextHeight(text, width-2*ui.ContentInset, primaryInfoFontSize(state), true)+4)
+}
+
+func primaryInfoFontSize(state State) float32 {
+	if state.PrimaryInfoFontSize > 0 {
+		return state.PrimaryInfoFontSize
+	}
+	return 20
 }
 
 func footerHeight(state State) float32 {

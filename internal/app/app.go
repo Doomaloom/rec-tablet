@@ -255,6 +255,9 @@ func Run(options Options) error {
 	}
 	mount = func() {
 		controller := swimming.New(s)
+		controller.ConfigureDisplay(ui.DisplayMode(a.Preferences().StringWithFallback("display-mode", string(ui.DisplayCompact))), func(mode ui.DisplayMode) {
+			a.Preferences().SetString("display-mode", string(mode.Normalize()))
+		})
 		profileOptions := make([]setup.ProfileOption, 0)
 		for _, item := range profiles.rows() {
 			profileOptions = append(profileOptions, setup.ProfileOption{Key: item.Key, Label: item.Label})

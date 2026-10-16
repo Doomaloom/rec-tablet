@@ -31,6 +31,10 @@ func (c *Controller) composeAttendanceListBody(state shell.State) ui.BodyCompose
 			ui.Empty(surface, snapshot.Empty)
 			return
 		}
+		if c.DisplayMode.IsLarge() {
+			ui.Grid(surface, snapshot.Rows, 2, 6, func(id string) { _ = c.Controller.Select(id) })
+			return
+		}
 		ui.List(surface, snapshot.Rows, func(id string) { _ = c.Controller.Select(id) })
 	}
 }

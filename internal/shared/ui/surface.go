@@ -6,18 +6,19 @@ import (
 	"time"
 )
 
-// Surface exposes layout primitives to feature views in the 800x480 design space.
+// Surface exposes layout primitives in the selected profile's logical design space.
 type BodyComposer func(surface *Surface)
 type ComponentAdder func(object fyne.CanvasObject, position func(float32, float32) (float32, float32, float32, float32))
 type NamedComponentAdder func(name string, object fyne.CanvasObject, position func(float32, float32) (float32, float32, float32, float32))
 
 type Surface struct {
-	Window    fyne.Window
-	Add       ComponentAdder
-	AddNamed  NamedComponentAdder
-	Button    func(string, string, func()) *TouchButton
-	Criterion *TextBlock
-	Bounds    Bounds
+	DisplayMode DisplayMode
+	Window      fyne.Window
+	Add         ComponentAdder
+	AddNamed    NamedComponentAdder
+	Button      func(string, string, func()) *TouchButton
+	Criterion   *TextBlock
+	Bounds      Bounds
 }
 type Item struct {
 	ID, Label, Status            string
@@ -31,6 +32,17 @@ type Item struct {
 }
 
 func List(surface *Surface, rows []Item, selectRow func(string)) {
+	count := 3
+	if surface.DisplayMode.IsLarge() {
+		count = 6
+	}
+	Grid(surface, rows, 1, count, selectRow)
+}
+
+// Grid renders a page in row-major order. Callers own slicing and pagination.
+// rowsPerPage is the number of visual rows, not the total number of cells.
+func Grid(surface *Surface, rows []Item, columns, rowsPerPage int, selectRow func(string)) {
+	columns, rowsPerPage = max(1, columns), max(1, rowsPerPage)
 	for i, row := range rows {
 		i, row := i, row
 		b := surface.Button("row:"+row.ID, row.Label, func() { selectRow(row.ID) })
@@ -47,8 +59,9 @@ func List(surface *Surface, rows []Item, selectRow func(string)) {
 		}
 		rowPosition := func(w, h float32) (float32, float32, float32, float32) {
 			x, y, width, availableHeight := surface.BodyBounds(w, h)
-			height := (availableHeight - 2*Gap) / 3
-			return x, y + float32(i)*(height+Gap), width, height
+			height := (availableHeight - float32(rowsPerPage-1)*Gap) / float32(rowsPerPage)
+			cellWidth := (width - float32(columns-1)*Gap) / float32(columns)
+			return x + float32(i%columns)*(cellWidth+Gap), y + float32(i/columns)*(height+Gap), cellWidth, height
 		}
 		if surface.AddNamed != nil {
 			surface.AddNamed("list-row-"+row.ID, b, rowPosition)

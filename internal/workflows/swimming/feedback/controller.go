@@ -3,15 +3,25 @@ package feedback
 import (
 	"fmt"
 
+	"rectablet/internal/shared/ui"
+	"rectablet/internal/workflows/swimming/domain"
 	"rectablet/internal/workflows/swimming/navigation"
 )
 
 type Controller struct {
 	*navigation.Controller
 	Store Repository
+	large largeFeedback
 }
 
-func New(c *navigation.Controller, s Repository) *Controller { return &Controller{c, s} }
+type largeFeedback struct {
+	person  domain.Enrollment
+	entries []domain.Feedback
+}
+
+func New(c *navigation.Controller, s Repository) *Controller {
+	return &Controller{Controller: c, Store: s}
+}
 func (c *Controller) Build() (navigation.State, error) {
 	f := c.Frame()
 	state := c.InitialState()
@@ -25,6 +35,21 @@ func (c *Controller) Build() (navigation.State, error) {
 	switch f.Screen {
 	case navigation.FeedbackSwimmers:
 		state.Title = "Feedback"
+		selected := f.Person
+		if state.DisplayMode.IsLarge() {
+			found := false
+			for _, p := range roster {
+				if p.ID == selected {
+					found = true
+					break
+				}
+			}
+			if !found && len(roster) > 0 {
+				selected = roster[0].ID
+				c.Frames[len(c.Frames)-1].Person = selected
+			}
+			state.PageSize = 6
+		}
 		for _, p := range roster {
 			feedback, e := s.Feedback(p.ID)
 			if e != nil {
@@ -38,7 +63,19 @@ func (c *Controller) Build() (navigation.State, error) {
 			if !p.Active {
 				label += " · Former enrollment"
 			}
-			rows = append(rows, navigation.Row{ID: p.ID, Label: label})
+			if state.DisplayMode.IsLarge() {
+				label = p.Name
+				if !p.Active {
+					label += " · Former enrollment"
+				}
+			}
+			rows = append(rows, navigation.Row{ID: p.ID, Label: label, Selected: state.DisplayMode.IsLarge() && p.ID == selected})
+			if state.DisplayMode.IsLarge() && p.ID == selected {
+				c.large = largeFeedback{person: p, entries: feedback}
+			}
+		}
+		if state.DisplayMode.IsLarge() && len(roster) == 0 {
+			c.large = largeFeedback{}
 		}
 		state.Empty = "No swimmers loaded."
 
@@ -117,6 +154,10 @@ func (c *Controller) Select(id string) error {
 	f := c.Frame()
 	switch f.Screen {
 	case navigation.FeedbackSwimmers:
+		if c.DisplayMode == ui.DisplayLarge {
+			c.Frames[len(c.Frames)-1].Person = id
+			return nil
+		}
 		c.Push(navigation.Feedback, func(n *navigation.Frame) { n.Person = id })
 
 	case navigation.Feedback:

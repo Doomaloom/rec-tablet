@@ -3,8 +3,8 @@
 build:
 	go build -trimpath -o dist/native/rec-tablet ./cmd/rec-tablet
 
-run:
-	go run ./cmd/rec-tablet
+run: build
+	./dist/native/rec-tablet $(ARGS)
 
 test:
 	go test -tags ci ./cmd/... ./internal/...

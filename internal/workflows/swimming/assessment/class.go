@@ -38,6 +38,8 @@ func (c *Controller) EnterClassMode() error {
 		c.leaveMultiSetup()
 		c.multi, c.multiEdit = nil, nil
 		c.classAttempts = attempts
+		c.classRoster = append([]domain.MultiAttempt(nil), attempts...)
+		c.classStatus = make(map[string]string, len(attempts))
 		c.Push(navigation.ClassAssessment, nil)
 		return nil
 	})
@@ -63,15 +65,38 @@ func (c *Controller) buildClassAssessmentState(course domain.Course, f navigatio
 	state.Title = student.Name
 	state.SplitHeader = &shell.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: student.Name}
 	state.PrimaryInfo = fmt.Sprintf("%s · %s", course.Name, course.Time)
-	navigation.AppendPrimaryInfo(&state, fmt.Sprintf("%s. %s", skill.Number, skill.Name))
+	if state.DisplayMode.IsLarge() {
+		configureLargeClassHeader(&state, skill, course)
+	} else {
+		navigation.AppendPrimaryInfo(&state, fmt.Sprintf("%s. %s", skill.Number, skill.Name))
+		lineHeight := ui.WrappedTextHeight("Ag", 680, 20, true)
+		if ui.WrappedTextHeight(state.PrimaryInfo, 680, 20, true) > 2*lineHeight+0.01 {
+			state.PrimaryInfoFontSize = 14
+		}
+	}
 	state.HideFooter = true
 	state.LeftRailActions = c.classRailActions()
 	for _, subskill := range skill.Subskills {
 		state.Rows = append(state.Rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Status: answers[subskill.ID]})
 	}
 	state.RowCount, state.PageSize = len(state.Rows), len(state.Rows)
-	state.ComposeBody = c.composeClassChecklist(state.Rows)
+	if state.DisplayMode.IsLarge() {
+		state.ComposeBody = c.composeLargeClassBody(state.Rows)
+	} else {
+		state.ComposeBody = c.composeClassChecklist(state.Rows)
+	}
 	return state, nil
+}
+
+func configureLargeClassHeader(state *navigation.State, skill curriculum.Skill, course domain.Course) {
+	full := skill.Number + ". " + skill.Name
+	if ui.WrappedTextHeight(full, 450, 16, true) <= shell.SplitHeaderHeight {
+		state.SplitHeader.Left = full
+		return
+	}
+	state.SplitHeader.Left = skill.Number + ". " + curriculum.CompactTitle(skill)
+	state.PrimaryInfo = full + " · " + course.Name + " · " + course.Time
+	state.PrimaryInfoFontSize = 16
 }
 
 func (c *Controller) classRailActions() []shell.RailAction {
@@ -130,6 +155,13 @@ func (c *Controller) finishClassAttempts(all, save bool) error {
 		}
 		if err != nil {
 			return err
+		}
+		for _, student := range pending {
+			if save {
+				c.classStatus[student.PersonID] = "Saved"
+			} else {
+				c.classStatus[student.PersonID] = "Discarded"
+			}
 		}
 		if all {
 			c.classAttempts = nil

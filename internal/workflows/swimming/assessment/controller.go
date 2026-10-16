@@ -14,13 +14,24 @@ import (
 
 type Controller struct {
 	*navigation.Controller
-	Store          Repository
-	timedSelection []string
-	timedHeat      *timedHeatState
-	timedLapsInput string
-	multi          *multiSession
-	multiEdit      *multiStudentEdit
-	classAttempts  []domain.MultiAttempt
+	Store                Repository
+	timedSelection       []string
+	timedHeat            *timedHeatState
+	timedLapsInput       string
+	multi                *multiSession
+	multiEdit            *multiStudentEdit
+	classAttempts        []domain.MultiAttempt
+	classRoster          []domain.MultiAttempt
+	classStatus          map[string]string
+	largeSkillID         string
+	largeSkillPage       int
+	largeRosterPage      int
+	largeClassPage       int
+	largeMultiRosterPage int
+	largeGroupPage       int
+	largeMemberPage      int
+	largeTablePage       int
+	largeHeatPage        int
 }
 
 func New(c *navigation.Controller, s Repository) *Controller {
@@ -66,6 +77,55 @@ func (c *Controller) Build() (navigation.State, error) {
 			}
 		}
 		state.Empty = "No enrolled swimmers with an assigned level."
+		if state.DisplayMode.IsLarge() {
+			state.PageSize = max(1, len(rows))
+			var selected navigation.Row
+			for _, row := range rows {
+				if row.ID == c.largeSkillID && !row.Disabled {
+					selected = row
+					break
+				}
+			}
+			if selected.ID == "" {
+				for _, row := range rows {
+					if !row.Disabled {
+						selected = row
+						break
+					}
+				}
+			}
+			c.largeSkillID = selected.ID
+			var swimmers []navigation.Row
+			if selected.ID != "" {
+				params := navigation.Destination(selected)
+				for _, person := range roster {
+					if !person.Active || person.Level != params.Level {
+						continue
+					}
+					progress, err := s.Progress(person.ID, selected.ID, version)
+					if err != nil {
+						return state, err
+					}
+					row := navigation.Row{ID: person.ID, Label: person.Name, ProgressSegments: min(3, max(0, progress.Successes))}
+					if progress.Successes > 0 {
+						student, skillID := person.ID, selected.ID
+						row.OnHold = func() { _ = c.RemoveLatestSuccess(student, skillID, version) }
+						row.HoldDuration = 2 * time.Second
+					}
+					swimmers = append(swimmers, row)
+				}
+				if skill, err := s.Skill(version, selected.ID); err == nil {
+					if _, timed := benchmarkFor(skill.ID); !timed {
+						state.HeaderSwitch = []shell.HeaderSwitchOption{{Label: "Single", Selected: true, Run: func() error { return c.openLargeSelectedMode("single") }}}
+						if allowsMultiMode(skill) {
+							state.HeaderSwitch = append(state.HeaderSwitch, shell.HeaderSwitchOption{Label: "Multi", Run: func() error { return c.openLargeSelectedMode("multi") }})
+						}
+						state.HeaderSwitch = append(state.HeaderSwitch, shell.HeaderSwitchOption{Label: "Class", Run: func() error { return c.openLargeSelectedMode("class") }})
+					}
+				}
+			}
+			state.ComposeBody = c.composeLargeSkillsBody(rows, selected, swimmers)
+		}
 
 	case navigation.SkillSwimmers:
 		state.PrimaryInfo = ""
@@ -108,6 +168,9 @@ func (c *Controller) Build() (navigation.State, error) {
 				state.BackRailAction = discardRailAction(c.DiscardTimedSelection)
 			}
 			state.Empty = "No enrolled swimmers are assigned to this skill's level."
+			if state.DisplayMode.IsLarge() {
+				c.configureLargeTimedSetup(&state, rows)
+			}
 			break
 		}
 		state.HeaderSwitch = c.skillModeSwitch(skill, false)
@@ -133,6 +196,9 @@ func (c *Controller) Build() (navigation.State, error) {
 			rows = append(rows, row)
 		}
 		state.Empty = "No enrolled swimmers are assigned to this skill's level."
+		if state.DisplayMode.IsLarge() {
+			state.PageSize = max(1, len(rows))
+		}
 
 	case navigation.MultiGroupCount:
 		return c.buildMultiGroupCountState()
@@ -197,6 +263,9 @@ func (c *Controller) Build() (navigation.State, error) {
 			rows = append(rows, navigation.Row{ID: "timed-lap:" + participant.participant.PersonID, Label: participant.participant.Name + " · " + lapSummary, Status: status, ProgressValue: participant.participant.LapsCompleted, ProgressTotal: participant.participant.LapsRequired})
 		}
 		state.Empty = "No swimmers in this heat."
+		if state.DisplayMode.IsLarge() {
+			state.PageSize = max(1, len(rows))
+		}
 
 	case navigation.Attempts:
 		p, e := s.GetEnrollment(f.Person)
@@ -239,6 +308,9 @@ func (c *Controller) Build() (navigation.State, error) {
 			rows = append(rows, navigation.Row{ID: a.ID, Label: label + " · " + clock + " UTC"})
 		}
 		state.Empty = "No attempts recorded for this skill."
+		if state.DisplayMode.IsLarge() {
+			state.PageSize = 6
+		}
 
 	case navigation.Assessment:
 		a, e := s.GetAttempt(f.Attempt)
@@ -261,6 +333,9 @@ func (c *Controller) Build() (navigation.State, error) {
 		state.SplitHeader = &shell.SplitHeader{Left: p.Name, Right: skill.Name}
 		state.PrimaryInfo = ""
 		state.Progress = ""
+		if state.DisplayMode.IsLarge() {
+			configureLargeAssessmentHeader(&state, skill)
+		}
 		for _, subskill := range skill.Subskills {
 			status := answers[subskill.ID]
 			if status == "" {
@@ -277,10 +352,40 @@ func (c *Controller) Build() (navigation.State, error) {
 			state.BackRailAction = discardRailAction(c.DiscardAttempt)
 			state.PageSize = 3
 		}
+		if state.DisplayMode.IsLarge() {
+			state.PageSize = max(1, len(rows))
+			if f.Review {
+				state.ComposeBody = c.composeLargeChecklistBody(rows, func(id string) { _ = c.toggleLargeCorrectionSubskill(id) })
+			} else {
+				var swimmers []navigation.Row
+				for _, person := range roster {
+					if !person.Active || person.Level != p.Level {
+						continue
+					}
+					progress, err := s.Progress(person.ID, skill.ID, a.CurriculumVersion)
+					if err != nil {
+						return state, err
+					}
+					row := navigation.Row{ID: person.ID, Label: person.Name, ProgressSegments: min(3, max(0, progress.Successes)), Selected: person.ID == p.ID}
+					if row.Selected {
+						row.Fill = ui.Green
+					}
+					if progress.Successes > 0 {
+						student := person.ID
+						row.OnHold = func() { _ = c.RemoveLatestSuccess(student, skill.ID, a.CurriculumVersion) }
+						row.HoldDuration = 2 * time.Second
+					}
+					swimmers = append(swimmers, row)
+				}
+				state.ComposeBody = c.composeLargeSingleBody(rows, swimmers)
+			}
+		}
 	}
 
 	c.Paginate(&state, rows)
-	c.composeFeatureBody(&state)
+	if state.ComposeBody == nil {
+		c.composeFeatureBody(&state)
+	}
 	return state, nil
 }
 

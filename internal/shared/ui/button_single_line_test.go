@@ -34,3 +34,22 @@ func TestSingleLineButtonEllipsizesAtFixedFont(t *testing.T) {
 		}
 	}
 }
+
+func TestScaledWrappedTextKeepsLogicalBreaks(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	app.Settings().SetTheme(AppTheme{})
+	button := NewButton("Both legs kick at same time and recover at the same time", nil)
+	button.FontSize, button.Compact, button.MaxLabelLines = 22, true, -1
+	button.SetScale(1.6)
+	button.Resize(fyne.NewSize(656*1.6, 59.5*1.6))
+	button.Refresh()
+	label := test.WidgetRenderer(button).(*buttonRenderer).label
+	if label.Truncated {
+		t.Fatal("fractional display scaling changed a fitting logical line into a truncated line")
+	}
+	lines := test.WidgetRenderer(label).Objects()
+	if len(lines) != 1 || lines[0].(*canvas.Text).Text != button.Text {
+		t.Fatalf("scaled text wrapping changed unexpectedly: %+v", lines)
+	}
+}
