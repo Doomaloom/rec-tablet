@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
+	"rectablet/internal/shared/components/actionbutton"
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
 	lesson "rectablet/internal/workflows/swimming"
@@ -114,7 +115,7 @@ func TestExportThroughFolderPicker(t *testing.T) {
 	open := dialogWidget(t, overlay, func(b *widget.Button) bool { return b.Text == "Open" })
 	test.Tap(open)
 	form := f.w.Canvas().Overlays().Top()
-	save := dialogWidget(t, form, func(b *widget.Button) bool { return b.Text == "Save" })
+	save := dialogWidget(t, form, func(b *actionbutton.Button) bool { return b.AccessibilityLabel() == "Save" })
 	test.Tap(save)
 	if f.c.State.Error {
 		t.Fatal(f.c.State.Notice)
@@ -133,10 +134,16 @@ func TestSessionCodeTouchKeypadPreservesLeadingZeroes(t *testing.T) {
 	overlay := f.w.Canvas().Overlays().Top()
 	f.shot(t, "share-code")
 	for _, digit := range []string{"0", "0", "1", "2", "3", "4"} {
-		button := dialogWidget(t, overlay, func(b *widget.Button) bool { return b.Text == digit })
+		button := dialogWidget(t, overlay, func(b *actionbutton.Button) bool { return b.AccessibilityLabel() == digit })
 		test.Tap(button)
 	}
-	download := dialogWidget(t, overlay, func(b *widget.Button) bool { return b.Text == "Download" })
+	download := dialogWidget(t, overlay, func(b *actionbutton.Button) bool { return b.AccessibilityLabel() == "Download" })
+	// Confirmation must remain reachable on the 800x480 display even when the
+	// keypad body needs scrolling.
+	position := fyne.CurrentApp().Driver().AbsolutePositionForObject(download)
+	if position.Y < 0 || position.Y+download.Size().Height > f.w.Canvas().Size().Height {
+		t.Fatalf("download action is outside the viewport: %v size %v", position, download.Size())
+	}
 	test.Tap(download)
 	if received != "001234" {
 		t.Fatalf("received instructor code %q", received)

@@ -10,6 +10,11 @@ import (
 	"net"
 	"net/url"
 	"path/filepath"
+	"rectablet/internal/shared/components/actionbutton"
+	"rectablet/internal/shared/components/design"
+	"rectablet/internal/shared/components/field"
+	"rectablet/internal/shared/components/modalshell"
+	"rectablet/internal/shared/components/textinput"
 	"strings"
 )
 
@@ -64,32 +69,32 @@ func (v *dialogs) shareDialog() {
 	buttons := make([]fyne.CanvasObject, 0, 12)
 	for _, digit := range []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"} {
 		d := digit
-		buttons = append(buttons, widget.NewButton(d, func() {
+		buttons = append(buttons, actionbutton.New(d, actionbutton.Options{}, func() {
 			if len(code) < 6 {
 				code += d
 				label.SetText(code)
 			}
 		}))
 	}
-	buttons = append(buttons, widget.NewButton("Clear", func() { code = ""; label.SetText(code) }))
-	buttons = append(buttons, widget.NewButton("0", func() {
+	buttons = append(buttons, actionbutton.New("Clear", actionbutton.Options{Variant: actionbutton.Outline}, func() { code = ""; label.SetText(code) }))
+	buttons = append(buttons, actionbutton.New("0", actionbutton.Options{}, func() {
 		if len(code) < 6 {
 			code += "0"
 			label.SetText(code)
 		}
 	}))
-	buttons = append(buttons, widget.NewButton("Delete", func() {
+	buttons = append(buttons, actionbutton.New("Delete", actionbutton.Options{Variant: actionbutton.Outline}, func() {
 		if len(code) > 0 {
 			code = code[:len(code)-1]
 			label.SetText(code)
 		}
 	}))
-	var dlg *dialog.ConfirmDialog
-	serverButton := widget.NewButton("Configure Share Server", func() {
+	var dlg *modalshell.Modal
+	serverButton := actionbutton.New("Configure Share Server", actionbutton.Options{Variant: actionbutton.Outline}, func() {
 		dlg.Hide()
 		v.shareServerDialog()
 	})
-	dlg = dialog.NewCustomConfirm("Import Session", "Download", "Cancel", container.NewVBox(label, container.NewGridWithColumns(3, buttons...), serverButton), func(submit bool) {
+	dlg = confirmModal("Import Session", "Download", "Cancel", container.NewVBox(label, container.NewGridWithColumns(3, buttons...), serverButton), func(submit bool) {
 		if !submit {
 			return
 		}
@@ -110,14 +115,13 @@ func (v *dialogs) shareDialog() {
 			}
 		})
 	}, v.Window)
-	dlg.Resize(fyne.NewSize(500, 455))
 	dlg.Show()
 }
 
 func (v *dialogs) shareServerDialog() {
-	entry := widget.NewEntry()
+	entry := textinput.New(textinput.Options{})
 	entry.SetText(v.Controller.ShareServer)
-	form := dialog.NewForm("Share Server", "Save", "Cancel", []*widget.FormItem{widget.NewFormItem("Server URL", entry)}, func(save bool) {
+	form := confirmModal("Share Server", "Save", "Cancel", field.New(entry.Object(), field.Options{Label: "Server URL"}), func(save bool) {
 		if !save {
 			return
 		}
@@ -141,7 +145,6 @@ func (v *dialogs) shareServerDialog() {
 		v.Controller.ShareServer = strings.TrimRight(parsed.String(), "/")
 		_ = v.Controller.Refresh()
 	}, v.Window)
-	form.Resize(fyne.NewSize(650, 260))
 	form.Show()
 }
 func (v *dialogs) exportDialog() {
@@ -161,9 +164,9 @@ func (v *dialogs) exportDialog() {
 			v.Controller.Fail(e)
 			return
 		}
-		entry := widget.NewEntry()
+		entry := textinput.New(textinput.Options{})
 		entry.SetText("rec-tablet-results.json")
-		form := dialog.NewForm("Export Data", "Save", "Cancel", []*widget.FormItem{widget.NewFormItem("File name", entry)}, func(save bool) {
+		form := confirmModal("Export Data", "Save", "Cancel", field.New(entry.Object(), field.Options{Label: "File name"}), func(save bool) {
 			if !save {
 				return
 			}
@@ -178,7 +181,6 @@ func (v *dialogs) exportDialog() {
 			path := filepath.Join(folder, name)
 			v.confirmExport(path)
 		}, v.Window)
-		form.Resize(fyne.NewSize(650, 280))
 		form.Show()
 	}, v.Window)
 	chooser.Show()
@@ -191,12 +193,24 @@ func (v *dialogs) confirmExport(path string) {
 		return
 	}
 	if exists {
-		dialog.ShowConfirm("Replace export?", "Replace "+filepath.Base(path)+"?", func(ok bool) {
+		confirmModal("Replace export?", "Replace", "Cancel", design.Label("Replace "+filepath.Base(path)+"?", 16, design.Secondary, false), func(ok bool) {
 			if ok {
 				_ = v.Controller.Export(path)
 			}
-		}, v.Window)
+		}, v.Window).Show()
 	} else {
 		_ = v.Controller.Export(path)
 	}
+}
+
+// File-system selection stays with Fyne; app-owned confirmations use ModalShell.
+func confirmModal(title, accept, cancel string, content fyne.CanvasObject, callback func(bool), window fyne.Window) *modalshell.Modal {
+	var modal *modalshell.Modal
+	finish := func(ok bool) { modal.Hide(); callback(ok) }
+	actions := container.NewGridWithColumns(2,
+		actionbutton.New(cancel, actionbutton.Options{Variant: actionbutton.Outline}, func() { finish(false) }),
+		actionbutton.New(accept, actionbutton.Options{Variant: actionbutton.Primary}, func() { finish(true) }),
+	)
+	modal = modalshell.New(window, content, modalshell.Options{Title: title, MaxWidth: 600, Footer: actions})
+	return modal
 }

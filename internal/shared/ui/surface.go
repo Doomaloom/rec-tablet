@@ -3,6 +3,7 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"image/color"
+	"rectablet/internal/shared/components/emptystate"
 	"time"
 )
 
@@ -71,11 +72,21 @@ func Grid(surface *Surface, rows []Item, columns, rowsPerPage int, selectRow fun
 	}
 }
 func Empty(surface *Surface, message string) {
-	empty := NewText(message, 28, Navy)
-	empty.Bold = true
-	empty.Center = true
-	surface.Add(empty, func(w, h float32) (float32, float32, float32, float32) {
+	panel := emptystate.New(emptystate.Options{Title: message})
+	surface.Add(panel, func(w, h float32) (float32, float32, float32, float32) {
 		x, y, width, height := surface.BodyBounds(w, h)
 		return x + ButtonPadding, y, width - 2*ButtonPadding, height
 	})
+}
+
+// SelectableSurface styles only this surface's choices as selectable cards.
+// The original button factory still owns activation guards and long presses.
+func SelectableSurface(surface *Surface) *Surface {
+	scoped := *surface
+	scoped.Button = func(id, label string, run func()) *TouchButton {
+		button := surface.Button(id, label, run)
+		button.Selectable = true
+		return button
+	}
+	return &scoped
 }

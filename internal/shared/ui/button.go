@@ -7,20 +7,23 @@ import (
 	"fyne.io/fyne/v2/driver/mobile"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
+	"rectablet/internal/shared/components/actionbutton"
+	"rectablet/internal/shared/components/design"
 	"sync"
 	"time"
 )
 
+// Compatibility names for workflow status colors; visual tokens come from COB.
 var (
-	Navy       = color.NRGBA{R: 18, G: 58, B: 115, A: 255}
-	Blue       = color.NRGBA{R: 49, G: 93, B: 175, A: 255}
-	Rail       = color.NRGBA{R: 225, G: 233, B: 244, A: 255}
-	Muted      = color.NRGBA{R: 82, G: 104, B: 130, A: 255}
+	Navy       = design.Secondary
+	Blue       = design.Primary
+	Rail       = design.Background
+	Muted      = design.Alpha(design.Secondary, 179)
 	Green      = color.NRGBA{R: 23, G: 103, B: 93, A: 255}
-	Red        = color.NRGBA{R: 164, G: 54, B: 51, A: 255}
-	Amber      = color.NRGBA{R: 129, G: 83, B: 38, A: 255}
-	White      = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
-	Background = color.NRGBA{R: 243, G: 246, B: 251, A: 255}
+	Red        = design.Danger
+	Amber      = design.Header
+	White      = design.White
+	Background = design.Background
 )
 
 type TouchButton struct {
@@ -37,13 +40,16 @@ type TouchButton struct {
 	ProgressSegments                      int
 	ProgressValue, ProgressTotal          int
 	Disabled, Selected, Outlined, focused bool
-	OnTap, OnHold                         func()
-	CanActivate                           func() bool
-	Icon                                  fyne.Resource
-	IconOnly                              bool
-	timer                                 *time.Timer
-	mu                                    sync.Mutex
-	held, pressed                         bool
+	hovered                               bool
+	// Selectable uses the library card treatment instead of an action fill.
+	Selectable    bool
+	OnTap, OnHold func()
+	CanActivate   func() bool
+	Icon          fyne.Resource
+	IconOnly      bool
+	timer         *time.Timer
+	mu            sync.Mutex
+	held, pressed bool
 }
 
 func NewButton(text string, fn func()) *TouchButton {
@@ -111,9 +117,9 @@ func (b *TouchButton) MouseDown(e *desktop.MouseEvent) {
 	}
 }
 func (b *TouchButton) MouseUp(*desktop.MouseEvent)    { b.Release() }
-func (b *TouchButton) MouseIn(*desktop.MouseEvent)    {}
+func (b *TouchButton) MouseIn(*desktop.MouseEvent)    { b.hovered = true; b.Refresh() }
 func (b *TouchButton) MouseMoved(*desktop.MouseEvent) {}
-func (b *TouchButton) MouseOut()                      { b.Release() }
+func (b *TouchButton) MouseOut()                      { b.hovered = false; b.Release(); b.Refresh() }
 func (b *TouchButton) TouchDown(*mobile.TouchEvent)   { b.down() }
 func (b *TouchButton) TouchUp(*mobile.TouchEvent)     { b.Release() }
 func (b *TouchButton) TouchCancel(*mobile.TouchEvent) { b.Release() }
@@ -121,6 +127,9 @@ func (b *TouchButton) FocusGained()                   { b.focused = true; b.Refr
 func (b *TouchButton) FocusLost()                     { b.focused = false; b.Release(); b.Refresh() }
 func (b *TouchButton) TypedRune(rune)                 {}
 func (b *TouchButton) TypedKey(e *fyne.KeyEvent) {
+	if design.HandleEscape(b, e) {
+		return
+	}
 	if e.Name == fyne.KeyReturn || e.Name == fyne.KeySpace {
 		b.Tapped(nil)
 	}
@@ -164,18 +173,11 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		segment.Hide()
 	}
 	r.bg.Resize(size)
-	r.bg.CornerRadius = 0
-	r.bg.FillColor = b.Fill
-	r.bg.StrokeWidth = 0
-	if b.Selected || b.Outlined || b.focused {
-		r.bg.StrokeWidth = 3 * s
-		r.bg.StrokeColor = Navy
-	}
-	ink := b.Ink
-	if b.Disabled {
-		r.bg.FillColor = Rail
-		ink = Muted
-	}
+	ink := actionbutton.PaintSurface(r.bg, actionbutton.SurfaceStyle{
+		Fill: b.Fill, Ink: b.Ink, Selected: b.Selected, Outlined: b.Outlined,
+		Focused: b.focused, Hovered: b.hovered, Disabled: b.Disabled, Scale: s, Selectable: b.Selectable,
+	})
+	r.label.Center = !b.Selectable
 	r.label.Color = ink
 	r.label.FontSize = b.FontSize
 	r.label.MinimumFont = b.FontSize
@@ -221,14 +223,19 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		segmentCount := min(3, max(0, b.ProgressSegments))
 		segmentInset := 2 * s
 		segmentHeight := max(1, size.Height-2*segmentInset)
+		segmentY := segmentInset
+		if b.Selectable {
+			segmentHeight = min(6*s, segmentHeight)
+			segmentY = size.Height - segmentInset - segmentHeight
+		}
 		if b.ProgressTotal > 0 {
 			value := min(b.ProgressTotal, max(0, b.ProgressValue))
 			width := size.Width * float32(value) / float32(b.ProgressTotal)
 			if width > 0 {
 				segment := r.progressSegments[0]
 				segment.FillColor = Green
-				segment.CornerRadius = 0
-				segment.Move(fyne.NewPos(0, segmentInset))
+				segment.CornerRadius = min(design.ControlRadius*s, segmentHeight/2)
+				segment.Move(fyne.NewPos(0, segmentY))
 				segment.Resize(fyne.NewSize(width, segmentHeight))
 				segment.Show()
 			}
@@ -240,8 +247,8 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 			for i := 0; i < segmentCount; i++ {
 				segment := r.progressSegments[i]
 				segment.FillColor = Green
-				segment.CornerRadius = 0
-				segment.Move(fyne.NewPos(startX+float32(i)*(segmentWidth+segmentGap), segmentInset))
+				segment.CornerRadius = min(design.ControlRadius*s, segmentHeight/2)
+				segment.Move(fyne.NewPos(startX+float32(i)*(segmentWidth+segmentGap), segmentY))
 				segment.Resize(fyne.NewSize(segmentWidth, segmentHeight))
 				segment.Show()
 			}

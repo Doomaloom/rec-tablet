@@ -1,14 +1,14 @@
 package feedback
 
 import (
-	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"rectablet/internal/shared/components/card"
 	"rectablet/internal/shared/ui"
 )
 
 func renderDetail(surface *ui.Surface, row ui.Item) {
 
-	box := canvas.NewRectangle(ui.White)
-	box.CornerRadius = 0
+	box := card.New(container.NewWithoutLayout(), card.Panel)
 	surface.AddNamed("feedback-detail-card", box, surface.BodyBounds)
 	criterion := ui.NewText(row.Label, 25, ui.Navy)
 	criterion.Bold = true

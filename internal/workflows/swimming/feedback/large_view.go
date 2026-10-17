@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"rectablet/internal/shared/components/card"
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
 	"rectablet/internal/workflows/swimming/domain"
@@ -39,6 +39,7 @@ func (c *Controller) composeLargeFeedbackBody(state shell.State, data largeFeedb
 		left := ui.Panel(surface, feedbackSidebarBounds(surface))
 		left.Button = func(id, label string, run func()) *ui.TouchButton {
 			button := surface.Button(id, label, run)
+			button.Selectable = true
 			button.FontSize = 18
 			button.MinimumFont = 16
 			return button
@@ -197,9 +198,7 @@ func newFeedbackScroll(surface *ui.Surface, c *Controller, data largeFeedback) *
 		details := feedbackDetailText(entry)
 		layout := &feedbackCardLayout{title: entry.Skill.Name, details: details, width: 500, scale: 1}
 		stack.cards = append(stack.cards, layout)
-		bg := canvas.NewRectangle(ui.White)
-		bg.StrokeColor = ui.Rail
-		bg.StrokeWidth = 1
+		bg := card.New(container.NewWithoutLayout(), card.Panel)
 		title := ui.NewText(entry.Skill.Name, 23, ui.Navy)
 		title.Bold = true
 		progress := ui.NewText(navigation.ProgressText(entry.Progress), 18, ui.Green)

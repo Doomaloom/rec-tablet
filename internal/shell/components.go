@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"image/color"
+	"rectablet/internal/shared/components/card"
 	"rectablet/internal/shared/ui"
 )
 
@@ -280,7 +282,7 @@ func newHeaderComponents(builder *componentBuilder) {
 		builder.addComponent("screen-title", titleButton, position)
 		return
 	}
-	background := canvas.NewRectangle(ui.White)
+	background := card.New(container.NewWithoutLayout(), card.Panel)
 	builder.addComponent("screen-title-background", background, position)
 	title := ui.NewText(state.Title, fontSize, ui.Navy)
 	title.Bold, title.Center = true, true
@@ -317,7 +319,7 @@ func newSplitHeaderComponents(builder *componentBuilder) {
 			builder.addComponent(id, button, position)
 			continue
 		}
-		background := canvas.NewRectangle(ui.White)
+		background := card.New(container.NewWithoutLayout(), card.Panel)
 		builder.addComponent(id+"-background", background, position)
 		text := ui.NewText(label, 22, ui.Navy)
 		text.Bold, text.Center, text.MinimumFont, text.MaxLines = true, true, 16, -1

@@ -1,7 +1,9 @@
 # COB Aquatics components for Fyne
 
 A native translation of `COB-Aquatics-SPA/frontend/src/general-components`,
-independent of lesson data and the existing `internal/shared/ui` controls.
+independent of lesson data. The tablet uses this theme and its components;
+`internal/shared/ui` adapts button surfaces for fixed display profiles, long presses,
+and lesson progress overlays.
 
 ## Run the gallery
 
@@ -91,9 +93,19 @@ Avoid changing `MultiLine` on TextInput; use Textarea instead.
 
 Components scope their own themes. `design.Theme{}` can also be installed on a
 standalone application's settings, as the gallery does; `design.Scope(content)`
-applies it to a subtree. Neither changes the existing tablet theme automatically.
+applies it to a subtree. The tablet installs this theme application-wide.
 Application-specific labels inside supplied content should use ordinary Fyne
 labels to inherit selected foreground colors, or `design.Label` for a fixed tone.
+
+## Tablet integration
+
+The application uses `design.Theme` (also exposed as `ui.AppTheme`), `Card`,
+`EmptyState`, and setup `ActionButton`, `Field`, `TextInput`, and `ModalShell`.
+Fyne file/folder pickers inherit the application theme. Lesson controls retain
+fixed logical sizing, fitted labels, long-press gestures, and progress overlays;
+`actionbutton.PaintSurface` shares the library's surface styling with those
+controls. Success remains green to distinguish completed work from selection.
+PageShell is for flowing pages; lesson screens retain their device-sized layouts.
 
 ## Native conventions
 
@@ -108,7 +120,7 @@ a visible ring. The fixed light palette matches the source collection even when
 the operating system requests a dark theme. Rubik regular/italic and semibold
 styles are embedded; see `design/fonts/README.md` for provenance and license.
 
-ModalShell centers a panel, caps its height, and scrolls longer content. Close,
+ModalShell centers a panel, caps its height, and scrolls longer content. `Options.Footer` keeps confirmation actions visible while the body scrolls. Close,
 backdrop, and Escape dismissal invoke `OnClose` once per open lifecycle and
 restore focus. Library controls forward Escape to their canvas's topmost modal.
 Custom third-party focusable controls should call `design.HandleEscape(control,

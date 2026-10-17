@@ -8,7 +8,7 @@ New to the codebase? Open the standalone [developer code guide](docs/code-guide.
 
 The code is grouped by workflow and feature. Under `internal/workflows/swimming`, `classes`, `attendance`, `assessment`, `feedback`, and `setup` each contain their model/repository interface, controller, view, and tests. Swimming's `domain` contains typed entities and rules; its `repository` owns SQL and the unchanged v1 schema. `module.go` constructs the features and registers their routes.
 
-`internal/app` wires the app together. `internal/shell` hosts screens and common navigation controls, `internal/shared/ui` contains touch widgets, and `internal/platform` owns SQLite connection policy, file writing, and process locks. These packages do not import swimming. Future workflows can sit alongside swimming and provide their own routes, content, and data model.
+`internal/app` wires the app together. `internal/shell` hosts screens and common navigation controls, `internal/shared/components` provides the COB Aquatics design library, `internal/shared/ui` adapts it for scaled lesson controls and long-press gestures, and `internal/platform` owns SQLite connection policy, file writing, and process locks. These packages do not import swimming. Future workflows can sit alongside swimming and provide their own routes, content, and data model.
 
 The [code guide](docs/code-guide.html#changes) explains how to add a feature or workflow. Run `make test` to check feature behavior, compatibility, and package boundaries.
 
@@ -103,8 +103,7 @@ See [data and architecture](docs/native-poc.md) for the unchanged import/export 
 ## UI component gallery
 
 Run `make gallery` to open the separate COB Aquatics style gallery. It demonstrates
-the new component library alongside the existing tablet UI without opening lesson
-storage. Each component has its own folder with paired UI and behavior Go files.
+the same component library used by the tablet without opening lesson storage. Each component has its own folder with paired UI and behavior Go files.
 See [the component guide](internal/shared/components/README.md) for APIs, styling
 conventions, and verification commands.
 

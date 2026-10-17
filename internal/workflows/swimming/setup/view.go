@@ -2,8 +2,8 @@ package setup
 
 import (
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/widget"
+	"rectablet/internal/shared/components/actionbutton"
+	"rectablet/internal/shared/components/modalshell"
 	"rectablet/internal/shared/ui"
 	"rectablet/internal/shell"
 	"strings"
@@ -31,12 +31,12 @@ func (c *Controller) composeSetupBody(state shell.State) ui.BodyComposer {
 			} else if id == "export" {
 				v.exportDialog()
 			} else if id == "display" {
-				var chooser dialog.Dialog
+				var chooser *modalshell.Modal
 				choose := func(mode ui.DisplayMode) { chooser.Hide(); _ = c.SetDisplayMode(mode) }
-				chooser = dialog.NewCustom("Display", "Cancel", container.NewVBox(
-					widget.NewButton(ui.DisplayCompact.Label(), func() { choose(ui.DisplayCompact) }),
-					widget.NewButton(ui.DisplayLarge.Label(), func() { choose(ui.DisplayLarge) }),
-				), surface.Window)
+				chooser = modalshell.New(surface.Window, container.NewVBox(
+					actionbutton.New(ui.DisplayCompact.Label(), actionbutton.Options{Variant: actionbutton.Outline}, func() { choose(ui.DisplayCompact) }),
+					actionbutton.New(ui.DisplayLarge.Label(), actionbutton.Options{Variant: actionbutton.Outline}, func() { choose(ui.DisplayLarge) }),
+				), modalshell.Options{Title: "Display", MaxWidth: 600})
 				chooser.Show()
 			} else if strings.HasPrefix(id, "profile:") {
 				_ = c.Select(id)

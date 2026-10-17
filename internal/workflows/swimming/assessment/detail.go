@@ -1,15 +1,15 @@
 package assessment
 
 import (
-	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	"image/color"
+	"rectablet/internal/shared/components/card"
 	"rectablet/internal/shared/ui"
 )
 
 func renderCriterion(surface *ui.Surface, row ui.Item, mark func(string)) {
 
-	box := canvas.NewRectangle(ui.White)
-	box.CornerRadius = 0
+	box := card.New(container.NewWithoutLayout(), card.Panel)
 	surface.AddNamed("assessment-card", box, surface.BodyBounds)
 	criterion := ui.NewText(row.Label, 25, ui.Navy)
 	criterion.Bold = true

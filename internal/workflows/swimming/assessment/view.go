@@ -43,7 +43,8 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 }
 
 func (c *Controller) composeSkillListBody(state shell.State) ui.BodyComposer {
-	return c.composeAssessmentListBody(state)
+	compose := c.composeAssessmentListBody(state)
+	return func(surface *ui.Surface) { compose(ui.SelectableSurface(surface)) }
 }
 
 func (c *Controller) composeSwimmerListBody(state shell.State) ui.BodyComposer {

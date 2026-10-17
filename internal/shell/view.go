@@ -12,9 +12,9 @@ import (
 )
 
 func chevronIcon(direction string, disabled bool) fyne.Resource {
-	ink := "#315daf"
+	ink := "#007acc"
 	if disabled {
-		ink = "#9aacc5"
+		ink = "#669fbd"
 	}
 	path := "M12 24L32 44L52 24"
 	switch direction {

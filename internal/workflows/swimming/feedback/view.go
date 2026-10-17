@@ -25,7 +25,8 @@ func (c *Controller) composeFeatureBody(state *shell.State) {
 }
 
 func (c *Controller) composeFeedbackSwimmerBody(state shell.State) ui.BodyComposer {
-	return c.composeFeedbackListBody(state)
+	compose := c.composeFeedbackListBody(state)
+	return func(surface *ui.Surface) { compose(ui.SelectableSurface(surface)) }
 }
 
 func (c *Controller) composeFeedbackSkillBody(state shell.State) ui.BodyComposer {

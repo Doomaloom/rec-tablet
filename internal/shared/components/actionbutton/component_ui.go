@@ -81,7 +81,7 @@ func (r *renderer) Refresh() {
 		}
 	case Selectable:
 		stroke = 1
-		fill = design.Background
+		fill = design.White
 		ink = design.Secondary
 		border = design.Alpha(design.Secondary, 51)
 		if b.hovered {
@@ -102,10 +102,9 @@ func (r *renderer) Refresh() {
 		fill = design.Opacity(fill, 153)
 		ink = design.Opacity(ink, 153)
 	}
-	r.bg.FillColor = fill
+	PaintSurface(r.bg, SurfaceStyle{Fill: fill, Ink: ink, Focused: b.focused})
 	r.bg.StrokeColor = border
 	r.bg.StrokeWidth = stroke
-	r.bg.CornerRadius = design.ControlRadius
 	if b.radius > 0 {
 		r.bg.CornerRadius = b.radius
 	}

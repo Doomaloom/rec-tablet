@@ -22,7 +22,12 @@ func (m *Modal) build() {
 	}
 	items = append(items, m.content)
 	m.body = design.Column(16, items...)
-	m.panel = design.Frame(design.Scope(container.NewVScroll(m.body)), design.White, design.Alpha(design.Secondary, 51), 24, 24, 2, true)
+	var footer fyne.CanvasObject
+	if m.options.Footer != nil {
+		footer = design.Pad(m.options.Footer, 8)
+	}
+	viewport := container.NewBorder(nil, footer, nil, nil, container.NewVScroll(m.body))
+	m.panel = design.Frame(design.Scope(viewport), design.White, design.Alpha(design.Secondary, 51), 24, 24, 2, true)
 }
 func (m *Modal) CreateRenderer() fyne.WidgetRenderer {
 	return &renderer{m: m, bg: canvas.NewRectangle(color.NRGBA{0, 0, 0, 102})}
@@ -39,7 +44,11 @@ func (r *renderer) Layout(s fyne.Size) {
 	r.bg.Resize(s)
 	w := max(0, min(r.m.options.MaxWidth, s.Width-32))
 	r.m.body.Resize(fyne.NewSize(max(0, w-48), r.m.body.MinSize().Height))
-	h := max(0, min(min(560, s.Height-48), max(200, r.m.body.MinSize().Height+48)))
+	footerHeight := float32(0)
+	if r.m.options.Footer != nil {
+		footerHeight = r.m.options.Footer.MinSize().Height + 24
+	}
+	h := max(0, min(min(560, s.Height-48), max(200, r.m.body.MinSize().Height+footerHeight+48)))
 	r.m.panelPos = fyne.NewPos((s.Width-w)/2, (s.Height-h)/2)
 	r.m.panelSize = fyne.NewSize(w, h)
 	r.m.panel.Move(r.m.panelPos)

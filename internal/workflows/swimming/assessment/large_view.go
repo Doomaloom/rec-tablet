@@ -97,10 +97,9 @@ func (c *Controller) composeLargeSkillsBody(skills []navigation.Row, selected na
 		for i := range skillRows {
 			if skillRows[i].ID == selected.ID {
 				skillRows[i].Selected = true
-				skillRows[i].Fill = ui.Green
 			}
 		}
-		c.largePagedGrid(left, "large-skills", "Skills", skillRows, 1, 6, &c.largeSkillPage, func(id string) {
+		c.largePagedGrid(ui.SelectableSurface(left), "large-skills", "Skills", skillRows, 1, 6, &c.largeSkillPage, func(id string) {
 			if _, timed := benchmarkFor(id); timed {
 				_ = c.openLargeTimedSkill(id)
 				return

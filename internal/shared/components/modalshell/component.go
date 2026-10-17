@@ -11,8 +11,10 @@ import (
 type Options struct {
 	Title, Description string
 	Notice             fyne.CanvasObject
-	MaxWidth           float32
-	OnClose            func()
+	// Footer stays visible while long modal content scrolls.
+	Footer   fyne.CanvasObject
+	MaxWidth float32
+	OnClose  func()
 }
 type Modal struct {
 	widget.BaseWidget

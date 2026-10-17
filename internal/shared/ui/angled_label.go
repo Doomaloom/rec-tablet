@@ -9,12 +9,12 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
+	"rectablet/internal/shared/components/design"
 )
 
 var (
@@ -64,7 +64,7 @@ func (label *AngledLabel) Tapped(*fyne.PointEvent) {
 
 func newAngledLabelFace(size float64) font.Face {
 	angledLabelFontOnce.Do(func() {
-		resource := theme.DefaultTextBoldFont()
+		resource := (design.Theme{}).Font(fyne.TextStyle{Bold: true})
 		if resource != nil {
 			angledLabelFont, _ = opentype.Parse(resource.Content())
 		}
