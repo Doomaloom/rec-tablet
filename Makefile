@@ -1,10 +1,16 @@
-.PHONY: build run test race vet smoke package qa-setup qa-start qa-restart qa-watch qa-stop qa-status qa-verify
+.PHONY: build run gallery gallery-build test race vet smoke package qa-setup qa-start qa-restart qa-watch qa-stop qa-status qa-verify
 
 build:
 	go build -trimpath -o dist/native/rec-tablet ./cmd/rec-tablet
 
 run: build
 	./dist/native/rec-tablet $(ARGS)
+
+gallery-build:
+	go build -trimpath -o dist/native/ui-gallery ./cmd/ui-gallery
+
+gallery: gallery-build
+	./dist/native/ui-gallery $(ARGS)
 
 test:
 	go test -tags ci ./cmd/... ./internal/...

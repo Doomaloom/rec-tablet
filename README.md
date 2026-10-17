@@ -100,6 +100,14 @@ Each dataset and instructor has a separate SQLite database under `<database-dire
 
 See [data and architecture](docs/native-poc.md) for the unchanged import/export contract and identity details.
 
+## UI component gallery
+
+Run `make gallery` to open the separate COB Aquatics style gallery. It demonstrates
+the new component library alongside the existing tablet UI without opening lesson
+storage. Each component has its own folder with paired UI and behavior Go files.
+See [the component guide](internal/shared/components/README.md) for APIs, styling
+conventions, and verification commands.
+
 ## Tests and packaging
 
 ```bash
