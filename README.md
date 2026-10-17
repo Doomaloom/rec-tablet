@@ -27,6 +27,8 @@ Run the built executable with optional arguments:
 make run ARGS="--fullscreen"
 ```
 
+The first native build can take several minutes before a window opens while Go compiles the graphics dependencies; later builds use the cache. To start an existing build immediately, run `./dist/native/rec-tablet` directly.
+
 For the dedicated display:
 
 ```bash
