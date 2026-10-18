@@ -24,11 +24,12 @@ buttons, cards, selection, tabs, an editable form, validation, notices, and a mo
 
 ## Paired files
 
-Each component lives in its own package:
+Each component lives in its own package. Filenames identify the component using a
+snake_case prefix, as in the action button examples below:
 
-- `component_ui.go`: Fyne renderers, visual trees, layout, colors, and spacing.
-- `component.go`: public types, constructors, state changes, callbacks, and input handling.
-- `component_test.go`, where present: interaction and rendering checks.
+- `action_button_component_ui.go`: Fyne renderers, visual trees, layout, colors, and spacing.
+- `action_button_component.go`: public types, constructors, state changes, callbacks, and input handling.
+- `action_button_component_test.go`, where present: interaction and rendering checks.
 
 Presentation-only components still have a constructor file and a UI file.
 `design` contains shared tokens, font assets, scoped theme, layout helpers, and
