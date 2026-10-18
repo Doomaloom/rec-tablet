@@ -4,15 +4,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	application "rectablet/internal/app"
+	application "rectablet/src/app"
 
 	"os"
 	"path/filepath"
-	"rectablet/internal/platform/files"
+	"rectablet/src/platform/files"
 
-	"rectablet/internal/workflows/swimming/curriculum"
+	"rectablet/src/workflows/swimming/curriculum"
 
-	"rectablet/internal/workflows/swimming/transfer"
+	"rectablet/src/workflows/swimming/transfer"
 )
 
 func main() {

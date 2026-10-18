@@ -7,10 +7,10 @@ import (
 
 	"os"
 	"path/filepath"
-	"rectablet/internal/workflows/swimming/transfer"
+	"rectablet/src/workflows/swimming/transfer"
 	"testing"
 
-	store "rectablet/internal/workflows/swimming/repository"
+	store "rectablet/src/workflows/swimming/repository"
 
 )
 

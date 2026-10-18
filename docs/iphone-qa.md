@@ -87,7 +87,7 @@ URL, and QA database stay in place. If the build fails, the currently running
 app is left untouched.
 
 During active development, run `make qa-watch` in a terminal. It watches Go and
-embedded UI asset changes under `cmd` and `internal`, plus `go.mod` and
+embedded UI asset changes under `cmd` and `src`, plus `go.mod` and
 `go.sum`, then performs the same safe app-only restart after each save. Stop the
 watcher with Ctrl-C; the QA session continues running until `make qa-stop`.
 

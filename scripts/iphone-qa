@@ -571,10 +571,10 @@ watch_sources() {
     if ! unit_is_active; then
         start_session
     fi
-    note "watching cmd, internal, go.mod, and go.sum; press Ctrl-C to stop watching"
+    note "watching cmd, src, go.mod, and go.sum; press Ctrl-C to stop watching"
     inotifywait --monitor --quiet --recursive \
         --event close_write,moved_to,create,delete --format '%w%f' \
-        "$PROJECT_DIR/cmd" "$PROJECT_DIR/internal" "$PROJECT_DIR/go.mod" "$PROJECT_DIR/go.sum" |
+        "$PROJECT_DIR/cmd" "$PROJECT_DIR/src" "$PROJECT_DIR/go.mod" "$PROJECT_DIR/go.sum" |
         while IFS= read -r changed_file; do
             case "$changed_file" in
                 *.go|*.json|*.png|*.svg|*.ttf|*/go.mod|*/go.sum) ;;

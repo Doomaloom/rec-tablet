@@ -9,8 +9,8 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"rectablet/internal/gallery"
-	"rectablet/internal/shared/components/design"
+	"rectablet/src/gallery"
+	"rectablet/src/shared/components/design"
 )
 
 func main() {

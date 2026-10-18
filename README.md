@@ -6,9 +6,13 @@ New to the codebase? Open the standalone [developer code guide](docs/code-guide.
 
 ## Code organization
 
-The code is grouped by workflow and feature. Under `internal/workflows/swimming`, `classes`, `attendance`, `assessment`, `feedback`, and `setup` each contain their model/repository interface, controller, view, and tests. Swimming's `domain` contains typed entities and rules; its `repository` owns SQL and the unchanged v1 schema. `module.go` constructs the features and registers their routes.
+The code is grouped by workflow and feature. Under `src/workflows/swimming`, `classes`, `attendance`, `assessment`, `feedback`, and `setup` each contain their model/repository interface, controller, view, and tests. Swimming's `domain` contains typed entities and rules; its `repository` owns SQL and the unchanged v1 schema. `module.go` constructs the features and registers their routes.
 
-`internal/app` wires the app together. `internal/shell` hosts screens and common navigation controls, `internal/shared/components` provides the COB Aquatics design library, `internal/shared/ui` adapts it for scaled lesson controls and long-press gestures, and `internal/platform` owns SQLite connection policy, file writing, and process locks. These packages do not import swimming. Future workflows can sit alongside swimming and provide their own routes, content, and data model.
+Feature UI uses `view.go` for screen selection, `view_large.go` and `view_small.go` where layouts differ, and `view_shared.go` for reusable rendering. Size-specific detail and timed views follow the same naming. Setup keeps a single view because its layout is shared across display sizes. Assembled workflow interaction tests live in `src/workflows/swimming/integration`; feature unit tests stay with their feature.
+
+Assessment groups its presentation under `assessment/view/large`, `assessment/view/small`, and `assessment/view/shared`. Those packages contain layout, checklist, timed, and multi-group rendering; `assessment/view.go` selects the display and `view_bindings.go` supplies data and action callbacks. Controllers, persistence interfaces, drafts, and timers remain owned by `assessment`.
+
+`src/app` wires the app together. `src/shell` hosts screens and common navigation controls, `src/shared/components` provides the COB Aquatics design library, `src/shared/ui` adapts it for scaled lesson controls and long-press gestures, and `src/platform` owns SQLite connection policy, file writing, and process locks. These packages do not import swimming. Future workflows can sit alongside swimming and provide their own routes, content, and data model.
 
 The [code guide](docs/code-guide.html#changes) explains how to add a feature or workflow. Run `make test` to check feature behavior, compatibility, and package boundaries.
 
@@ -81,9 +85,9 @@ Class marking uses a split header with the skill number and short title on the l
 
 ## Curriculum and transfer tools
 
-The embedded [curriculum JSON](internal/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 290 skills and 937 criteria. Grouped multi-component skills are separate entries with the same skill number so each component can be marked independently. Unknown levels show Missing curriculum instead of using a fallback level. When the bundled curriculum version changes, assessment marking rows are reset and existing courses move to the new version while roster and attendance data are retained.
+The embedded [curriculum JSON](src/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 290 skills and 937 criteria. Grouped multi-component skills are separate entries with the same skill number so each component can be marked independently. Unknown levels show Missing curriculum instead of using a fallback level. When the bundled curriculum version changes, assessment marking rows are reset and existing courses move to the new version while roster and attendance data are retained.
 
-Edit Class-mode short titles in [compact_titles.json](internal/workflows/swimming/curriculum/compact_titles.json), using the existing skill IDs as keys and omitting the skill number from the values. These are concise header labels; the full assessment instructions remain visible in the main information line. They are embedded display metadata, separate from the versioned curriculum: editing them requires a rebuild but does not reset markings, change exports, or need a curriculum version bump. Skills without an override use their original title.
+Edit Class-mode short titles in [compact_titles.json](src/workflows/swimming/curriculum/compact_titles.json), using the existing skill IDs as keys and omitting the skill number from the values. These are concise header labels; the full assessment instructions remain visible in the main information line. They are embedded display metadata, separate from the versioned curriculum: editing them requires a rebuild but does not reset markings, change exports, or need a curriculum version bump. Skills without an override use their original title.
 
 Both development tools now run in Go. Flags come **before** positional arguments:
 
@@ -104,7 +108,7 @@ See [data and architecture](docs/native-poc.md) for the unchanged import/export 
 
 Run `make gallery` to open the separate COB Aquatics style gallery. It demonstrates
 the same component library used by the tablet without opening lesson storage. Each component has its own folder with paired UI and behavior Go files.
-See [the component guide](internal/shared/components/README.md) for APIs, styling
+See [the component guide](src/shared/components/README.md) for APIs, styling
 conventions, and verification commands.
 
 ## Tests and packaging
@@ -128,8 +132,8 @@ Native launch and visible rendering were checked from the extracted Linux archiv
 To capture representative test screens:
 
 ```bash
-REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-screens go test -tags ci ./internal/workflows/swimming -count=1
-REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-large-screens go test -tags ci ./internal/workflows/swimming ./internal/workflows/swimming/assessment -run TestLarge -count=1
+REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-screens go test -tags ci ./src/workflows/swimming/integration -count=1
+REC_TABLET_SCREENSHOTS=/tmp/rec-tablet-large-screens go test -tags ci ./src/workflows/swimming/integration ./src/workflows/swimming/assessment -run TestLarge -count=1
 ```
 
 Tests cover the original POC workflows, recovery after abrupt process exit, failed writes, native widget interaction, curriculum extraction parity, and continuing work in a Python-created database. No Python is needed to run them. Template parity checks use the sibling repository when present; bundled-catalog and source-exception checks always run.
