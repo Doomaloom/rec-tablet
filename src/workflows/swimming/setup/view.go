@@ -1,45 +1,34 @@
 package setup
 
 import (
-	"fyne.io/fyne/v2/container"
-	"rectablet/src/shared/components/actionbutton"
-	"rectablet/src/shared/components/modalshell"
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
-	"strings"
 )
 
-func (c *Controller) composeFeatureBody(state *shell.State) {
+func (c *Component) composeFeatureBody(state *shell.State) {
 	state.ComposeBody = c.composeSetupBody(*state)
 }
 
-func (c *Controller) composeSetupBody(state shell.State) ui.BodyComposer {
-	snapshot := state
+func (c *Component) composeSetupBody(state shell.State) ui.BodyComposer {
 	return func(surface *ui.Surface) {
-		if snapshot.RowCount == 0 {
-			ui.Empty(surface, snapshot.Empty)
+		if state.RowCount == 0 {
+			ui.Empty(surface, state.Empty)
 			return
 		}
-		ui.List(surface, snapshot.Rows, func(id string) {
-			v := &dialogs{Controller: c, Window: surface.Window}
-			if id == "import" {
-				v.importDialog()
-			} else if id == "share" {
-				v.shareDialog()
-			} else if id == "server" {
-				v.shareServerDialog()
-			} else if id == "export" {
-				v.exportDialog()
-			} else if id == "display" {
-				var chooser *modalshell.Modal
-				choose := func(mode ui.DisplayMode) { chooser.Hide(); _ = c.SetDisplayMode(mode) }
-				chooser = modalshell.New(surface.Window, container.NewVBox(
-					actionbutton.New(ui.DisplayCompact.Label(), actionbutton.Options{Variant: actionbutton.Outline}, func() { choose(ui.DisplayCompact) }),
-					actionbutton.New(ui.DisplayLarge.Label(), actionbutton.Options{Variant: actionbutton.Outline}, func() { choose(ui.DisplayLarge) }),
-				), modalshell.Options{Title: "Display", MaxWidth: 600})
-				chooser.Show()
-			} else if strings.HasPrefix(id, "profile:") {
-				_ = c.Select(id)
+		ui.List(surface, state.Rows, func(id string) {
+			switch id {
+			case "import":
+				c.fileTransfer.OpenImport(surface.Window)
+			case "export":
+				c.fileTransfer.OpenExport(surface.Window)
+			case "share":
+				c.sessionSharing.Open(surface.Window)
+			case "server":
+				c.sessionSharing.OpenServer(surface.Window)
+			case "display":
+				c.displayPicker.Open(surface.Window)
+			default:
+				_ = c.profilePicker.Select(id)
 			}
 		})
 	}

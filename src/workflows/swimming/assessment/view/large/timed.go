@@ -1,19 +1,20 @@
 package large
 
 import (
+	"strconv"
+
 	"rectablet/src/shared/ui"
 	"rectablet/src/workflows/swimming/navigation"
-	"strconv"
 )
 
 func (c *View) RenderLargeTimedSelection(surface *ui.Surface, rows []ui.Item) {
-	c.largePagedGrid(surface, "timed-selection", "Swimmers in heat", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Controller.Select(id) })
+	c.largePagedGrid(surface, "timed-selection", "Swimmers in heat", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 }
 
 func (c *View) ComposeLargeTimedSetup(state navigation.State, rows []navigation.Row) ui.BodyComposer {
 	return func(surface *ui.Surface) {
 		left, right := Split(surface, .5)
-		c.largePagedGrid(left, "timed-setup-swimmers", "Select swimmers", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Controller.Select(id) })
+		c.largePagedGrid(left, "timed-setup-swimmers", "Select swimmers", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 		c.largeLapKeypad(right)
 	}
 }
@@ -74,6 +75,6 @@ func (c *View) ComposeLargeTimedHeatBody(state navigation.State) ui.BodyComposer
 				rows[i].Fill, rows[i].Selected = ui.Green, true
 			}
 		}
-		c.largePagedGrid(surface, "timed-heat-swimmers", "Tap a swimmer to record a lap", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Controller.Select(id) })
+		c.largePagedGrid(surface, "timed-heat-swimmers", "Tap a swimmer to record a lap", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
 	}
 }

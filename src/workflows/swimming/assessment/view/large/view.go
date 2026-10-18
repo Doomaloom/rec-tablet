@@ -6,12 +6,12 @@ import (
 	"rectablet/src/workflows/swimming/navigation"
 )
 
-// Pages points to controller-owned positions that persist across renders.
+// Pages points to mode-owned positions that persist across renders.
 type Pages struct{ Skill, Roster, Class, Group, Member, MultiRoster, Table, Heat *int }
 
 // View renders large assessment layouts; feature data and actions arrive as callbacks.
 type View struct {
-	*navigation.Controller
+	Actions           shared.Actions
 	Pages             Pages
 	Shared            *shared.View
 	IsTimed           func(string) bool

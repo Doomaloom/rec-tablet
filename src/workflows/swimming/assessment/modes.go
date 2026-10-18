@@ -14,7 +14,7 @@ func allowsMultiMode(skill curriculum.Skill) bool {
 		!strings.Contains(name, "stroke") && !strings.Contains(name, "butterfly")
 }
 
-func (c *Controller) skillModeSwitch(skill curriculum.Skill, multi bool) []shell.HeaderSwitchOption {
+func (c *Component) skillModeSwitch(skill curriculum.Skill, multi bool) []shell.HeaderSwitchOption {
 	options := []shell.HeaderSwitchOption{{Label: "Single", Selected: !multi, Run: c.EnterSingleMode}}
 	if allowsMultiMode(skill) {
 		options = append(options, shell.HeaderSwitchOption{Label: "Multi", Selected: multi, Run: c.EnterMultiMode})

@@ -2,6 +2,7 @@ package large
 
 import (
 	"fmt"
+
 	"rectablet/src/shared/ui"
 	"rectablet/src/workflows/swimming/assessment/view/shared"
 	"rectablet/src/workflows/swimming/navigation"
@@ -21,8 +22,8 @@ func (c *View) ComposeLargeMultiSelectionBody(state navigation.State, group, cou
 		})
 		groups, members := c.MultiRows(group, count)
 		c.largePagedGrid(groupsPanel, "multi-groups", "Groups", groups, 1, 2, c.Pages.Group, c.SelectGroup)
-		c.largePagedGrid(membersPanel, "multi-group-members", "Group members", members, 1, 3, c.Pages.Member, func(id string) { _ = c.Controller.Select(id) })
-		c.largePagedGrid(right, "multi-assign-roster", "Assign swimmers", state.Rows, 2, 5, c.Pages.MultiRoster, func(id string) { _ = c.Controller.Select(id) })
+		c.largePagedGrid(membersPanel, "multi-group-members", "Group members", members, 1, 3, c.Pages.Member, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(right, "multi-assign-roster", "Assign swimmers", state.Rows, 2, 5, c.Pages.MultiRoster, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 
@@ -34,7 +35,7 @@ func (c *View) ComposeLargeMultiAssessmentBody(students []shared.MultiStudentSna
 			for direction, caption := range map[int]string{-1: "‹ Previous swimmers", 1: "Next swimmers ›"} {
 				direction, caption := direction, caption
 				button := surface.Button(fmt.Sprintf("multi-table-page-%d", direction), caption, func() {
-					_ = c.Run(func() error { *c.Pages.Table = max(0, min(*c.Pages.Table+direction, pageCount-1)); return nil })
+					_ = c.Actions.Run(func() error { *c.Pages.Table = max(0, min(*c.Pages.Table+direction, pageCount-1)); return nil })
 				})
 				button.Fill, button.Ink = ui.Rail, ui.Blue
 				surface.AddNamed(fmt.Sprintf("multi-table-navigation-%d", direction), button, func(w, h float32) (float32, float32, float32, float32) {

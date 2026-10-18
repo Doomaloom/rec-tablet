@@ -84,8 +84,8 @@ func TestImportThroughFilePicker(t *testing.T) {
 				t.Fatal("cannot select the class package")
 			}
 			test.Tap(open)
-			if c.State.Error {
-				t.Fatal(c.State.Notice)
+			if c.Snapshot().Error {
+				t.Fatal(c.Snapshot().Notice)
 			}
 			if w.Canvas().Overlays().Top() != nil {
 				t.Fatal("picker did not close")
@@ -96,10 +96,10 @@ func TestImportThroughFilePicker(t *testing.T) {
 				t.Fatalf("imported %d courses; expected %d", count, len(expected.Courses))
 			}
 			f.tap(t, "home")
-			if c.State.RowCount == 0 {
+			if c.Snapshot().RowCount == 0 {
 				t.Fatal("successful import left the class list empty")
 			}
-			t.Logf("File picker imported %d courses; selected lesson date %s", count, c.Date)
+			t.Logf("File picker imported %d courses; selected lesson date %s", count, c.Date())
 		})
 	}
 }
@@ -117,8 +117,8 @@ func TestExportThroughFolderPicker(t *testing.T) {
 	form := f.w.Canvas().Overlays().Top()
 	save := dialogWidget(t, form, func(b *actionbutton.Button) bool { return b.AccessibilityLabel() == "Save" })
 	test.Tap(save)
-	if f.c.State.Error {
-		t.Fatal(f.c.State.Notice)
+	if f.c.Snapshot().Error {
+		t.Fatal(f.c.Snapshot().Notice)
 	}
 	if _, err := os.Stat(filepath.Join(home, "rec-tablet-results.json")); err != nil {
 		t.Fatal("export was not saved in the selected folder:", err)

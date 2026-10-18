@@ -45,7 +45,7 @@ func (f *uiFixture) pagedRow(t *testing.T, id string) {
 
 func (f *uiFixture) multiCount(t *testing.T) int {
 	t.Helper()
-	for _, component := range shell.ComposeScreen(f.view, f.c.State).Components {
+	for _, component := range shell.ComposeScreen(f.view, f.c.Snapshot()).Components {
 		if component.Name == "feature-multi-count-value" {
 			value, err := strconv.Atoi(component.Object.(*ui.TextBlock).Text)
 			check(t, err)
@@ -76,7 +76,7 @@ func (f *uiFixture) chooseGroups(t *testing.T, count int) {
 func (f *uiFixture) assignMulti(t *testing.T, groups [][]string) {
 	t.Helper()
 	f.tap(t, "header-switch-1")
-	if f.c.State.Screen != "multi_group_count" {
+	if f.c.Snapshot().Screen != "multi_group_count" {
 		t.Fatal("missing group count setup")
 	}
 	f.chooseGroups(t, len(groups))
@@ -88,12 +88,12 @@ func (f *uiFixture) assignMulti(t *testing.T, groups [][]string) {
 			f.pagedRow(t, person)
 		}
 	}
-	if !f.c.State.CanSubmit {
+	if !f.c.Snapshot().CanSubmit {
 		t.Fatal("complete group assignment cannot start")
 	}
 	f.tap(t, "submit")
-	if f.c.State.Screen != "multi_assessment" {
-		t.Fatalf("could not start marking: %+v", f.c.State)
+	if f.c.Snapshot().Screen != "multi_assessment" {
+		t.Fatalf("could not start marking: %+v", f.c.Snapshot())
 	}
 }
 
@@ -113,11 +113,11 @@ func TestMultiGroupPassChecklistAndBatchSave(t *testing.T) {
 	frame := f.c.Frame()
 	people := f.multiPresent(t)
 	f.assignMulti(t, [][]string{people[:2], people[2:]})
-	if f.c.State.PageCount != 2 || len(f.c.State.Rows) != 2 {
+	if f.c.Snapshot().PageCount != 2 || len(f.c.Snapshot().Rows) != 2 {
 		t.Fatal("pages are not groups")
 	}
 	for i, id := range []string{"save-group", "discard-group", "discard-all", "save-all"} {
-		if f.c.State.LeftRailActions[i].ID != id {
+		if f.c.Snapshot().LeftRailActions[i].ID != id {
 			t.Fatal("incorrect rail actions")
 		}
 	}
@@ -127,7 +127,7 @@ func TestMultiGroupPassChecklistAndBatchSave(t *testing.T) {
 		t.Fatal("pass submitted the student early")
 	}
 	f.tap(t, "multi-fail:"+people[0])
-	if f.c.State.Rows[0].Status != "successful" || f.c.State.Rows[1].Status != "successful" {
+	if f.c.Snapshot().Rows[0].Status != "successful" || f.c.Snapshot().Rows[1].Status != "successful" {
 		t.Fatal("existing marks not preselected")
 	}
 	f.row(t, 0)
@@ -160,11 +160,11 @@ func TestMultiGroupPassChecklistAndBatchSave(t *testing.T) {
 		t.Fatal("paging lost marks")
 	}
 	f.tap(t, "save-group")
-	if f.c.State.PageCount != 1 || f.c.State.SplitHeader.Right != "Group 2 of 2" {
+	if f.c.Snapshot().PageCount != 1 || f.c.Snapshot().SplitHeader.Right != "Group 2 of 2" {
 		t.Fatal("saving group did not advance with stable numbering")
 	}
 	f.tap(t, "save-all")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("finished session did not return to roster")
 	}
 	for i, person := range people {
@@ -193,11 +193,11 @@ func TestMultiSetupFiltersAndBalancesStudents(t *testing.T) {
 		t.Fatal("count went below one")
 	}
 	f.tap(t, "multi-count-plus")
-	if f.c.State.Progress != "1 group of 2, 1 group of 1" || f.multiCount(t) != 2 || f.c.State.Screen != "multi_group_count" {
+	if f.c.Snapshot().Progress != "1 group of 2, 1 group of 1" || f.multiCount(t) != 2 || f.c.Snapshot().Screen != "multi_group_count" {
 		t.Fatal("live split preview did not update")
 	}
 	f.tap(t, "multi-count-plus")
-	if !f.view.Buttons["multi-count-plus"].Disabled || f.c.State.Progress != "3 groups of 1" {
+	if !f.view.Buttons["multi-count-plus"].Disabled || f.c.Snapshot().Progress != "3 groups of 1" {
 		t.Fatal("maximum count not enforced")
 	}
 	f.tap(t, "multi-count-plus")
@@ -208,22 +208,22 @@ func TestMultiSetupFiltersAndBalancesStudents(t *testing.T) {
 	f.compactLayout(t, "multi-group-count")
 	f.chooseGroups(t, 2)
 	f.compactLayout(t, "multi-group-assignment")
-	if f.c.State.RowCount != 3 || f.c.State.CanSubmit {
+	if f.c.Snapshot().RowCount != 3 || f.c.Snapshot().CanSubmit {
 		t.Fatal("wrong assignment roster")
 	}
 	f.pagedRow(t, people[0])
 	f.pagedRow(t, people[1])
 	f.pagedRow(t, people[2])
-	if !strings.Contains(f.c.State.PrimaryInfo, "2 of 2 selected") || f.c.State.CanSubmit {
+	if !strings.Contains(f.c.Snapshot().PrimaryInfo, "2 of 2 selected") || f.c.Snapshot().CanSubmit {
 		t.Fatal("capacity not enforced")
 	}
 	f.tap(t, "multi-group-next")
 	f.pagedRow(t, people[0])
-	if !strings.Contains(f.c.State.PrimaryInfo, "0 of 1 selected") {
+	if !strings.Contains(f.c.Snapshot().PrimaryInfo, "0 of 1 selected") {
 		t.Fatal("student assigned twice")
 	}
 	f.pagedRow(t, people[2])
-	if !f.c.State.CanSubmit {
+	if !f.c.Snapshot().CanSubmit {
 		t.Fatal("complete assignment blocked")
 	}
 	// Release a student in each group, then swap them without losing other selections.
@@ -233,21 +233,21 @@ func TestMultiSetupFiltersAndBalancesStudents(t *testing.T) {
 	f.pagedRow(t, people[2])
 	f.tap(t, "multi-group-next")
 	f.pagedRow(t, people[1])
-	if !f.c.State.CanSubmit {
+	if !f.c.Snapshot().CanSubmit {
 		t.Fatal("reassignment did not complete")
 	}
 	f.tap(t, "back")
 	f.chooseGroups(t, 2)
-	if !f.c.State.CanSubmit {
+	if !f.c.Snapshot().CanSubmit {
 		t.Fatal("reselecting the same count lost assignments")
 	}
 	f.tap(t, "back")
 	f.chooseGroups(t, 1)
-	if f.c.State.CanSubmit || f.c.State.Progress != "0/3 assigned" {
+	if f.c.Snapshot().CanSubmit || f.c.Snapshot().Progress != "0/3 assigned" {
 		t.Fatal("changed group count kept assignments")
 	}
 	f.tap(t, "home")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("cancel did not return to roster")
 	}
 	var attempts int
@@ -263,7 +263,7 @@ func TestMultiEligibilityEmptyAndSingleStudent(t *testing.T) {
 	frame := f.c.Frame()
 	people := must(f.s.ListRoster(frame.Course))
 	f.tap(t, "header-switch-1")
-	if f.c.State.RowCount != 0 || !strings.Contains(f.c.State.Empty, "Take attendance") {
+	if f.c.Snapshot().RowCount != 0 || !strings.Contains(f.c.Snapshot().Empty, "Take attendance") {
 		t.Fatal("unmarked attendance included")
 	}
 	f.tap(t, "header-switch-0")
@@ -276,7 +276,7 @@ func TestMultiEligibilityEmptyAndSingleStudent(t *testing.T) {
 	check(t, err)
 	check(t, f.s.SetAttendance(people[3].ID, frame.Lesson, "unmarked"))
 	f.assignMulti(t, [][]string{{people[0].ID}})
-	if len(f.c.State.Rows) != 1 || !f.view.Buttons["up"].Disabled || !f.view.Buttons["down"].Disabled {
+	if len(f.c.Snapshot().Rows) != 1 || !f.view.Buttons["up"].Disabled || !f.view.Buttons["down"].Disabled {
 		t.Fatal("single-student group not isolated")
 	}
 	f.tap(t, "discard-all")
@@ -310,7 +310,7 @@ func TestMultiDiscardRestoresResumedDraftsAndKeepsSavedGroups(t *testing.T) {
 	}
 	// Reopening starts at group-count setup, while the existing student draft survives.
 	f.tap(t, "header-switch-1")
-	if f.c.State.Screen != "multi_group_count" {
+	if f.c.Snapshot().Screen != "multi_group_count" {
 		t.Fatal("group assignments survived session")
 	}
 	if f.multiCount(t) != 1 {
@@ -328,26 +328,26 @@ func TestMultiChecklistAllPassedAndEscape(t *testing.T) {
 	f.tap(t, "multi-fail:"+people[2])
 	f.row(t, 0)
 	f.w.Canvas().OnTypedKey()(&fyne.KeyEvent{Name: fyne.KeyEscape})
-	if f.c.State.Page != 1 || f.view.Buttons["multi-pass:"+people[2]].Selected || f.view.Buttons["multi-fail:"+people[2]].Selected {
+	if f.c.Snapshot().Page != 1 || f.view.Buttons["multi-pass:"+people[2]].Selected || f.view.Buttons["multi-fail:"+people[2]].Selected {
 		t.Fatal("Escape committed changes or changed groups")
 	}
 	f.tap(t, "multi-fail:"+people[2])
-	if f.c.State.Rows[0].Status == "successful" {
+	if f.c.Snapshot().Rows[0].Status == "successful" {
 		t.Fatal("abandoned local edit leaked")
 	}
-	for _, row := range f.c.State.Rows {
+	for _, row := range f.c.Snapshot().Rows {
 		f.tap(t, "row:"+row.ID)
 	}
 	f.tap(t, "home")
-	if f.c.State.Page != 1 || !f.view.Buttons["multi-pass:"+people[2]].Selected {
+	if f.c.Snapshot().Page != 1 || !f.view.Buttons["multi-pass:"+people[2]].Selected {
 		t.Fatal("all-passed checklist did not return a pass to the same group")
 	}
 	f.tap(t, "discard-group")
-	if f.c.State.PageCount != 1 || f.c.State.SplitHeader.Right != "Group 1 of 2" {
+	if f.c.Snapshot().PageCount != 1 || f.c.Snapshot().SplitHeader.Right != "Group 1 of 2" {
 		t.Fatal("discard last group did not clamp navigation")
 	}
 	f.tap(t, "discard-group")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("last group did not exit")
 	}
 }
@@ -360,7 +360,7 @@ func TestMultiFailedActionsPreserveDraftsAndGroups(t *testing.T) {
 			people := f.multiPresent(t)
 			f.assignMulti(t, [][]string{people[:2], people[2:]})
 			f.tap(t, "multi-pass:"+people[0])
-			before := f.c.State
+			before := f.c.Snapshot()
 			table, operation := "attempts", "UPDATE"
 			if strings.HasPrefix(action, "discard") {
 				operation = "DELETE"
@@ -380,14 +380,14 @@ func TestMultiFailedActionsPreserveDraftsAndGroups(t *testing.T) {
 				button = "home"
 			}
 			f.tap(t, button)
-			if !f.c.State.Error {
+			if !f.c.Snapshot().Error {
 				t.Fatal("write failure not reported")
 			}
 			if action == "checklist" {
-				if f.c.State.Screen != "multi_student" || f.c.State.Rows[0].Status != "successful" {
+				if f.c.Snapshot().Screen != "multi_student" || f.c.Snapshot().Rows[0].Status != "successful" {
 					t.Fatal("failed checklist save lost edit")
 				}
-			} else if f.c.State.Screen != before.Screen || f.c.State.PageCount != before.PageCount || f.c.State.Rows[0].Status != "successful" {
+			} else if f.c.Snapshot().Screen != before.Screen || f.c.Snapshot().PageCount != before.PageCount || f.c.Snapshot().Rows[0].Status != "successful" {
 				t.Fatal("failed action changed groups or marks")
 			}
 			for _, person := range people {
@@ -400,7 +400,7 @@ func TestMultiFailedActionsPreserveDraftsAndGroups(t *testing.T) {
 			check(t, err)
 			f.c.Dismiss()
 			f.tap(t, button)
-			if f.c.State.Error {
+			if f.c.Snapshot().Error {
 				t.Fatal("retry failed")
 			}
 		})
@@ -422,7 +422,7 @@ func TestMultiGroupAndChecklistLayouts(t *testing.T) {
 			f.openClassSkill(t, "", "Splash9:12")
 			people := f.multiPresent(t)
 			f.assignMulti(t, [][]string{people})
-			if len(f.c.State.Rows) != count || f.c.State.PageCount != 1 {
+			if len(f.c.Snapshot().Rows) != count || f.c.Snapshot().PageCount != 1 {
 				t.Fatal("group split across pages")
 			}
 			f.tap(t, "multi-pass:"+people[0])
@@ -444,7 +444,7 @@ func TestMultiGroupAndChecklistLayouts(t *testing.T) {
 				t.Fatal("full student name should appear in the main row text")
 			}
 			f.tap(t, "multi-fail:"+people[0])
-			if len(f.c.State.Rows) != 6 || f.c.State.PageCount != 1 {
+			if len(f.c.Snapshot().Rows) != 6 || f.c.Snapshot().PageCount != 1 {
 				t.Fatal("checklist did not fit full skill")
 			}
 			f.compactLayout(t, fmt.Sprintf("multi-checklist-%d", count))
@@ -474,7 +474,7 @@ func TestMultiStartFailureKeepsAssignmentsAndCreatesNoPartialAttempts(t *testing
 	_, err := f.s.DB.Exec("CREATE TRIGGER multi_start_failure BEFORE INSERT ON attempts WHEN NEW.enrollment_id = '" + people[1] + "' BEGIN SELECT RAISE(ABORT, 'disk full'); END")
 	check(t, err)
 	f.tap(t, "submit")
-	if f.c.State.Screen != "multi_selection" || !f.c.State.CanSubmit || !f.c.State.Error {
+	if f.c.Snapshot().Screen != "multi_selection" || !f.c.Snapshot().CanSubmit || !f.c.Snapshot().Error {
 		t.Fatal("failed start lost assignment screen")
 	}
 	var count int
@@ -486,12 +486,12 @@ func TestMultiStartFailureKeepsAssignmentsAndCreatesNoPartialAttempts(t *testing
 	check(t, err)
 	f.c.Dismiss()
 	f.tap(t, "submit")
-	if f.c.State.Screen != "multi_assessment" || len(f.c.State.Rows) != len(people) {
+	if f.c.Snapshot().Screen != "multi_assessment" || len(f.c.Snapshot().Rows) != len(people) {
 		t.Fatal("could not retry completed assignment")
 	}
 	f.tap(t, "multi-pass:"+people[0])
 	check(t, f.c.Back())
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("setup frames remained in history")
 	}
 	f.assignMulti(t, [][]string{people[:2], people[2:]})
@@ -508,11 +508,11 @@ func TestMultiUnevenGroupPagesSaveAllPendingGroups(t *testing.T) {
 	people := f.multiPresent(t)
 	f.assignMulti(t, [][]string{people[:2], people[2:3], people[3:]})
 	for index, expected := range []int{2, 1, 1} {
-		if f.c.State.PageCount != 3 || len(f.c.State.Rows) != expected || f.c.State.SplitHeader.Right != fmt.Sprintf("Group %d of 3", index+1) {
+		if f.c.Snapshot().PageCount != 3 || len(f.c.Snapshot().Rows) != expected || f.c.Snapshot().SplitHeader.Right != fmt.Sprintf("Group %d of 3", index+1) {
 			t.Fatal("uneven group lost its page boundary")
 		}
 		f.compactLayout(t, fmt.Sprintf("multi-uneven-group-%d", index+1))
-		for _, row := range f.c.State.Rows {
+		for _, row := range f.c.Snapshot().Rows {
 			f.tap(t, "multi-pass:"+row.ID)
 		}
 		if index < 2 {
@@ -520,7 +520,7 @@ func TestMultiUnevenGroupPagesSaveAllPendingGroups(t *testing.T) {
 		}
 	}
 	f.tap(t, "save-all")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("batch save did not finish all groups")
 	}
 	for _, person := range people {

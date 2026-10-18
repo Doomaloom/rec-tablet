@@ -47,7 +47,7 @@ func setupUI(t *testing.T) *uiFixture {
 	s := must(store.Open(filepath.Join(t.TempDir(), "test.sqlite3")))
 	_ = must(s.ImportFile("../../../../examples/classes.json"))
 	c := lesson.New(s)
-	c.Date = "2026-09-04"
+	c.SetDate("2026-09-04")
 	check(t, c.Refresh())
 	w := a.NewWindow("Rec Tablet")
 	v := shell.New(c, w)
@@ -69,11 +69,11 @@ func (f *uiFixture) tap(t *testing.T, key string) {
 }
 func (f *uiFixture) row(t *testing.T, index int) {
 	t.Helper()
-	f.tap(t, "row:"+f.c.State.Rows[index].ID)
+	f.tap(t, "row:"+f.c.Snapshot().Rows[index].ID)
 }
 func (f *uiFixture) rowLabel(t *testing.T, label string) {
 	t.Helper()
-	for i, row := range f.c.State.Rows {
+	for i, row := range f.c.Snapshot().Rows {
 		if row.Label == label {
 			f.row(t, i)
 			return
@@ -83,7 +83,7 @@ func (f *uiFixture) rowLabel(t *testing.T, label string) {
 }
 func (f *uiFixture) rowLabelPrefix(t *testing.T, prefix string) {
 	t.Helper()
-	for i, row := range f.c.State.Rows {
+	for i, row := range f.c.Snapshot().Rows {
 		if strings.HasPrefix(row.Label, prefix) {
 			f.row(t, i)
 			return
@@ -115,32 +115,32 @@ func TestPointerNavigationAttendanceAndMaintenance(t *testing.T) {
 		b.CanActivate = func() bool { return true }
 	}
 	test.TapCanvas(f.w.Canvas(), fyne.NewPos(380, 158))
-	if f.c.State.Screen != "class" {
-		t.Fatal(f.c.State.Screen)
+	if f.c.Snapshot().Screen != "class" {
+		t.Fatal(f.c.Snapshot().Screen)
 	}
 	for _, b := range f.view.Buttons {
 		b.CanActivate = func() bool { return true }
 	}
 	test.TapCanvas(f.w.Canvas(), fyne.NewPos(380, 158))
-	if f.c.State.Screen != "attendance" {
-		t.Fatal(f.c.State.Screen)
+	if f.c.Snapshot().Screen != "attendance" {
+		t.Fatal(f.c.Snapshot().Screen)
 	}
 	f.shot(t, "attendance")
 	f.row(t, 0)
-	if f.c.State.Rows[0].Status != "present" {
+	if f.c.Snapshot().Rows[0].Status != "present" {
 		t.Fatal("attendance did not save")
 	}
 	f.row(t, 0)
-	if f.c.State.Rows[0].Status != "absent" {
+	if f.c.Snapshot().Rows[0].Status != "absent" {
 		t.Fatal("attendance toggle did not switch to absent")
 	}
 	f.c.Dismiss()
 	f.tap(t, "down")
-	if f.c.State.Page != 1 {
+	if f.c.Snapshot().Page != 1 {
 		t.Fatal("paging failed")
 	}
 	f.tap(t, "home")
-	if f.c.State.Screen != "classes" {
+	if f.c.Snapshot().Screen != "classes" {
 		t.Fatal("home failed")
 	}
 	hold := f.view.Buttons["title"]
@@ -158,38 +158,38 @@ func TestPointerNavigationAttendanceAndMaintenance(t *testing.T) {
 	}
 	hold.MouseUp(&desktop.MouseEvent{})
 	hold.Tapped(nil)
-	if f.c.State.Screen != "maintenance" {
-		t.Fatal(f.c.State.Screen)
+	if f.c.Snapshot().Screen != "maintenance" {
+		t.Fatal(f.c.Snapshot().Screen)
 	}
 	f.shot(t, "maintenance")
 }
 func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)
-	if f.c.State.Screen != "assessment" || f.c.State.RowCount < 2 {
+	if f.c.Snapshot().Screen != "assessment" || f.c.Snapshot().RowCount < 2 {
 		t.Fatal("skill checklist did not open")
 	}
-	firstID := f.c.State.Rows[0].ID
-	secondID := f.c.State.Rows[1].ID
+	firstID := f.c.Snapshot().Rows[0].ID
+	secondID := f.c.Snapshot().Rows[1].ID
 	person := f.c.Frame().Person
 	version := f.c.Frame().Version
 	f.tap(t, "row:"+firstID)
-	if f.c.State.Rows[0].Status != "successful" {
+	if f.c.Snapshot().Rows[0].Status != "successful" {
 		t.Fatal("subskill check not saved")
 	}
 	f.shot(t, "assessment")
 	f.tap(t, "row:"+secondID)
-	if f.c.State.Screen != "assessment" {
+	if f.c.Snapshot().Screen != "assessment" {
 		t.Fatal("checklist exited before Save was pressed")
 	}
-	if f.c.State.Notice != "" {
-		t.Fatalf("skill completion displayed an unexpected notice: %q", f.c.State.Notice)
+	if f.c.Snapshot().Notice != "" {
+		t.Fatalf("skill completion displayed an unexpected notice: %q", f.c.Snapshot().Notice)
 	}
 	if !f.view.Buttons["home"].IconOnly || f.view.Buttons["home"].Icon == nil || !f.view.Buttons["back"].IconOnly || f.view.Buttons["back"].Icon == nil {
 		t.Fatal("checklist did not replace Home and Back with Save and Discard")
 	}
 	f.tap(t, "home")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("Save attempt did not return to the student list")
 	}
 	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 1 {
@@ -204,9 +204,9 @@ func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 		t.Fatalf("saved attempt count = %d, want 1", count)
 	}
 	f.rowLabel(t, "Harrold")
-	f.tap(t, "row:"+f.c.State.Rows[0].ID)
+	f.tap(t, "row:"+f.c.Snapshot().Rows[0].ID)
 	f.tap(t, "home")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("Save incomplete attempt did not return to the student list")
 	}
 	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
@@ -217,16 +217,16 @@ func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 		t.Fatal("incomplete attempt incorrectly changed successful progress")
 	}
 	f.rowLabel(t, "Harrold")
-	f.tap(t, "row:"+f.c.State.Rows[0].ID)
+	f.tap(t, "row:"+f.c.Snapshot().Rows[0].ID)
 	f.tap(t, "back")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("Discard attempt did not return to the student list")
 	}
 	check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM attempts").Scan(&count))
 	if count != 2 {
 		t.Fatalf("discarded unfinished attempt changed saved attempt count to %d", count)
 	}
-	for _, row := range f.c.State.Rows {
+	for _, row := range f.c.Snapshot().Rows {
 		if row.ID == person {
 			if row.ProgressSegments != 1 {
 				t.Fatalf("student button did not show one segment: %d", row.ProgressSegments)
@@ -269,7 +269,7 @@ func TestSkillsViewUsesCompactSkillTitles(t *testing.T) {
 	f.tap(t, "row:skills")
 	const skillID = "Splash1:10-front-crawl-wearing-pfd-5-m"
 	for {
-		for _, row := range f.c.State.Rows {
+		for _, row := range f.c.Snapshot().Rows {
 			if row.ID != skillID {
 				continue
 			}
@@ -303,7 +303,7 @@ func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
 	f.tap(t, "row:skills")
 	for {
 		found := false
-		for _, row := range f.c.State.Rows {
+		for _, row := range f.c.Snapshot().Rows {
 			if row.ID == "Splash7:10" {
 				found = true
 				break
@@ -315,26 +315,26 @@ func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
 		f.tap(t, "down")
 	}
 	f.tap(t, "row:Splash7:10")
-	if f.c.State.Screen != "skill_swimmers" || len(f.c.State.Rows) != 2 {
-		t.Fatalf("timed skill did not show its selected roster: screen=%s rows=%d", f.c.State.Screen, len(f.c.State.Rows))
+	if f.c.Snapshot().Screen != "skill_swimmers" || len(f.c.Snapshot().Rows) != 2 {
+		t.Fatalf("timed skill did not show its selected roster: screen=%s rows=%d", f.c.Snapshot().Screen, len(f.c.Snapshot().Rows))
 	}
 	if f.view.Buttons["header-switch-0"] != nil || f.view.Buttons["header-switch-1"] != nil {
 		t.Fatal("timed benchmark exposed the normal Single/Multi switch")
 	}
-	people := []string{f.c.State.Rows[0].ID, f.c.State.Rows[1].ID}
+	people := []string{f.c.Snapshot().Rows[0].ID, f.c.Snapshot().Rows[1].ID}
 	f.tap(t, "row:"+people[0])
 	f.tap(t, "row:"+people[1])
 	if !f.view.Buttons["home"].IconOnly || f.view.Buttons["home"].Icon == nil || !f.view.Buttons["back"].IconOnly || f.view.Buttons["back"].Icon == nil {
 		t.Fatal("timed swimmer selection did not show heat actions")
 	}
 	f.tap(t, "home")
-	if f.c.State.Screen != "timed_laps" {
+	if f.c.Snapshot().Screen != "timed_laps" {
 		t.Fatal("timed selection did not open lap setup")
 	}
 	f.tap(t, "timed-digit:3")
 	f.compactLayout(t, "timed-laps")
 	f.tap(t, "home")
-	if f.c.State.Screen != "timed_heat" || f.view.Buttons["header-action-0"] == nil || f.view.Buttons["header-action-1"] == nil {
+	if f.c.Snapshot().Screen != "timed_heat" || f.view.Buttons["header-action-0"] == nil || f.view.Buttons["header-action-1"] == nil {
 		t.Fatal("lap setup did not open the timed heat")
 	}
 	f.compactLayout(t, "timed-heat")
@@ -343,11 +343,11 @@ func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
 		f.tap(t, "row:timed-lap:"+people[0])
 	}
 	f.compactLayout(t, "timed-heat-completed")
-	if f.c.State.Screen != "timed_heat" || f.c.State.Rows[0].ProgressValue != 3 || f.c.State.Rows[0].ProgressTotal != 3 {
+	if f.c.Snapshot().Screen != "timed_heat" || f.c.Snapshot().Rows[0].ProgressValue != 3 || f.c.Snapshot().Rows[0].ProgressTotal != 3 {
 		t.Fatal("lap taps did not complete the swimmer")
 	}
 	f.tap(t, "home")
-	if f.c.State.Screen != "skill_swimmers" {
+	if f.c.Snapshot().Screen != "skill_swimmers" {
 		t.Fatal("saving timed heat did not return to swimmers")
 	}
 	var attempts, timed int
@@ -373,13 +373,13 @@ func TestMissingCurriculumAndEmptyClass(t *testing.T) {
 	check(t, f.c.Refresh())
 	f.row(t, 0)
 	f.tap(t, "row:skills")
-	if f.c.State.RowCount != 1 || !f.c.State.Rows[0].Disabled || f.c.State.Rows[0].Label != "Unknown Level · Missing curriculum · update swimmer level" {
-		t.Fatalf("missing curriculum state absent: screen=%s rows=%d empty=%q", f.c.State.Screen, f.c.State.RowCount, f.c.State.Empty)
+	if f.c.Snapshot().RowCount != 1 || !f.c.Snapshot().Rows[0].Disabled || f.c.Snapshot().Rows[0].Label != "Unknown Level · Missing curriculum · update swimmer level" {
+		t.Fatalf("missing curriculum state absent: screen=%s rows=%d empty=%q", f.c.Snapshot().Screen, f.c.Snapshot().RowCount, f.c.Snapshot().Empty)
 	}
 	f.tap(t, "home")
 	f.row(t, 1)
 	f.tap(t, "row:attendance")
-	if f.c.State.RowCount != 0 {
+	if f.c.Snapshot().RowCount != 0 {
 		t.Fatal("empty roster not empty")
 	}
 }
@@ -393,16 +393,16 @@ func TestPrivateSwimmersWithoutLevelsStayOutOfSkillAssessment(t *testing.T) {
 	check(t, f.c.Refresh())
 	f.row(t, 2)
 	f.tap(t, "row:skills")
-	if f.c.State.RowCount != 0 || f.c.State.Empty != "No enrolled swimmers with an assigned level." {
-		t.Fatalf("unassigned private swimmers appeared in skills: rows=%d empty=%q", f.c.State.RowCount, f.c.State.Empty)
+	if f.c.Snapshot().RowCount != 0 || f.c.Snapshot().Empty != "No enrolled swimmers with an assigned level." {
+		t.Fatalf("unassigned private swimmers appeared in skills: rows=%d empty=%q", f.c.Snapshot().RowCount, f.c.Snapshot().Empty)
 	}
 	f.tap(t, "back")
-	if f.c.State.Screen != "class" {
-		t.Fatalf("back from skills opened %q, want class", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "class" {
+		t.Fatalf("back from skills opened %q, want class", f.c.Snapshot().Screen)
 	}
 	f.tap(t, "row:attendance")
-	if f.c.State.RowCount != 2 {
-		t.Fatalf("private attendance roster has %d swimmers, want 2", f.c.State.RowCount)
+	if f.c.Snapshot().RowCount != 2 {
+		t.Fatalf("private attendance roster has %d swimmers, want 2", f.c.Snapshot().RowCount)
 	}
 }
 func TestSkillActionFailuresAreQuiet(t *testing.T) {
@@ -410,12 +410,12 @@ func TestSkillActionFailuresAreQuiet(t *testing.T) {
 	f.skill(t)
 	_, e := f.s.DB.Exec(`CREATE TEMP TRIGGER reject_draft BEFORE UPDATE ON drafts BEGIN SELECT RAISE(ABORT,'Disk full'); END`)
 	check(t, e)
-	f.tap(t, "row:"+f.c.State.Rows[0].ID)
-	if f.c.State.Error || f.c.State.Rows[0].Status != "unmarked" {
+	f.tap(t, "row:"+f.c.Snapshot().Rows[0].ID)
+	if f.c.Snapshot().Error || f.c.Snapshot().Rows[0].Status != "unmarked" {
 		t.Fatal("failed save was not handled quietly")
 	}
 	f.tap(t, "down")
-	if f.c.State.Error {
+	if f.c.Snapshot().Error {
 		t.Fatal("quiet skill failure set an error state")
 	}
 	f.shot(t, "save-error")
@@ -426,7 +426,7 @@ func TestLongCriteriaAndLargerLandscape(t *testing.T) {
 	f.tap(t, "row:skills")
 	for {
 		found := false
-		for _, r := range f.c.State.Rows {
+		for _, r := range f.c.Snapshot().Rows {
 			if r.ID == "Splash9:7" {
 				found = true
 			}
@@ -441,7 +441,7 @@ func TestLongCriteriaAndLargerLandscape(t *testing.T) {
 	f.shot(t, "long-skill")
 	f.w.Resize(fyne.NewSize(1280, 800))
 	f.shot(t, "assessment-1280")
-	if f.c.State.RowCount == 0 {
+	if f.c.Snapshot().RowCount == 0 {
 		t.Fatal("long skill has no subskills")
 	}
 }
@@ -449,11 +449,11 @@ func TestNavigationGuard(t *testing.T) {
 	f := setupUI(t)
 	f.row(t, 0)
 	test.Tap(f.view.Buttons["row:attendance"])
-	if f.c.State.Screen != "class" {
+	if f.c.Snapshot().Screen != "class" {
 		t.Fatal("rapid tap crossed navigation boundary")
 	}
 	f.tap(t, "row:attendance")
-	if f.c.State.Screen != "attendance" {
+	if f.c.Snapshot().Screen != "attendance" {
 		t.Fatal("navigation did not unlock")
 	}
 }
@@ -468,7 +468,7 @@ func TestLongestCriterionFitsAndGroupsRemainVisible(t *testing.T) {
 	f.tap(t, "row:skills")
 	for {
 		found := false
-		for _, r := range f.c.State.Rows {
+		for _, r := range f.c.Snapshot().Rows {
 			if r.ID == "SplashFitness:3" {
 				found = true
 			}
@@ -481,20 +481,20 @@ func TestLongestCriterionFitsAndGroupsRemainVisible(t *testing.T) {
 	f.tap(t, "row:SplashFitness:3")
 	f.rowLabel(t, "Harrold")
 	_ = f.w.Canvas().Capture()
-	if f.c.State.RowCount == 0 {
+	if f.c.Snapshot().RowCount == 0 {
 		t.Fatal("longest skill has no subskills")
 	}
 	f.shot(t, "longest-criterion")
 }
 func TestFailedImportAndExportSurfaceErrors(t *testing.T) {
 	f := setupUI(t)
-	before := f.c.State.RowCount
+	before := f.c.Snapshot().RowCount
 	path := filepath.Join(t.TempDir(), "bad.json")
 	check(t, os.WriteFile(path, []byte("broken"), 0600))
-	if f.c.Import(path) == nil || !f.c.State.Error {
+	if f.c.Import(path) == nil || !f.c.Snapshot().Error {
 		t.Fatal("invalid import hidden")
 	}
-	if f.c.State.RowCount != before {
+	if f.c.Snapshot().RowCount != before {
 		t.Fatal("failed import changed view")
 	}
 	f.c.Dismiss()
@@ -502,7 +502,7 @@ func TestFailedImportAndExportSurfaceErrors(t *testing.T) {
 		t.Fatal("export failure hidden")
 	}
 	f.c.Fail(errors.New("test"))
-	if !f.c.State.Error {
+	if !f.c.Snapshot().Error {
 		t.Fatal("error state missing")
 	}
 }
@@ -579,7 +579,7 @@ func TestCompactFeedbackCorrectionAndDateLayouts(t *testing.T) {
 	f.tap(t, "down")
 	f.tap(t, "not_yet")
 	f.tap(t, "submit")
-	if f.c.State.Screen != "attempts" {
+	if f.c.Snapshot().Screen != "attempts" {
 		t.Fatal("correction did not return to attempts")
 	}
 }

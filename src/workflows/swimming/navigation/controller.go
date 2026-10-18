@@ -58,19 +58,27 @@ type Feature interface {
 
 type Controller struct {
 	DisplayMode ui.DisplayMode
-	*shell.History[Frame]
-	Date     string
-	State    State
-	OnChange func()
-	Features map[Route]Feature
+	History     *shell.History[Frame]
+	Date        string
+	State       State
+	OnChange    func()
+	Features    map[Route]Feature
 }
 
 func New() *Controller {
 	return &Controller{History: shell.NewHistory(Frame{Screen: Classes}), Date: time.Now().Format("2006-01-02"), Features: map[Route]Feature{}}
 }
+
+// History operations are explicit and do not refresh the active screen.
+// Feature actions compose them inside Run, which restores history on failure.
+func (c *Controller) Reset() { c.History.Reset() }
+func (c *Controller) Pop()   { c.History.Pop() }
+
+var _ shell.Presenter = (*Controller)(nil)
+
 func (c *Controller) Snapshot() shell.State { return c.State }
 func (c *Controller) Subscribe(fn func())   { c.OnChange = fn }
-func (c *Controller) Frame() Frame          { return c.Frames[len(c.Frames)-1] }
+func (c *Controller) Frame() Frame          { return c.History.Frames[len(c.History.Frames)-1] }
 func (c *Controller) Push(route Route, change func(*Frame)) {
 	f := c.Frame()
 	f.Screen = route
@@ -78,7 +86,7 @@ func (c *Controller) Push(route Route, change func(*Frame)) {
 	if change != nil {
 		change(&f)
 	}
-	c.Append(f)
+	c.History.Append(f)
 }
 func (c *Controller) changed() {
 	if c.OnChange != nil {
@@ -98,14 +106,14 @@ func (c *Controller) Fail(err error) error {
 // the refreshed screen rather than a transient popup.
 func (c *Controller) Saved(string) { c.State.Notice = ""; c.State.Error = false }
 func (c *Controller) Run(fn func() error) error {
-	before := append([]Frame{}, c.Frames...)
+	before := append([]Frame{}, c.History.Frames...)
 	date := c.Date
 	err := fn()
 	if err == nil {
 		err = c.Refresh()
 	}
 	if err != nil {
-		c.Frames = before
+		c.History.Frames = before
 		c.Date = date
 		c.Fail(err)
 	}
@@ -116,7 +124,7 @@ func (c *Controller) Home() error { return c.Run(func() error { c.Reset(); retur
 func (c *Controller) Back() error { return c.Run(func() error { c.Pop(); return nil }) }
 func (c *Controller) Page(direction int) error {
 	return c.Run(func() error {
-		f := &c.Frames[len(c.Frames)-1]
+		f := &c.History.Frames[len(c.History.Frames)-1]
 		f.Page = max(0, min(f.Page+direction, c.State.PageCount-1))
 		return nil
 	})
@@ -180,7 +188,7 @@ func (c *Controller) InitialState() State {
 	if c.DisplayMode.IsLarge() {
 		pageSize = 6
 	}
-	return State{DisplayMode: c.DisplayMode, Screen: string(c.Frame().Screen), Title: "My Classes", CanBack: len(c.Frames) > 1, PageCount: 1, PageSize: pageSize, Rows: []Row{}}
+	return State{DisplayMode: c.DisplayMode, Screen: string(c.Frame().Screen), Title: "My Classes", CanBack: len(c.History.Frames) > 1, PageCount: 1, PageSize: pageSize, Rows: []Row{}}
 }
 
 func AppendPrimaryInfo(state *State, text string) {
@@ -199,7 +207,7 @@ func (c *Controller) Paginate(state *State, rows []Row) {
 	state.RowCount = len(rows)
 	state.PageCount = max(1, (len(rows)+size-1)/size)
 	state.Page = min(max(0, c.Frame().Page), state.PageCount-1)
-	c.Frames[len(c.Frames)-1].Page = state.Page
+	c.History.Frames[len(c.History.Frames)-1].Page = state.Page
 	start := state.Page * size
 	state.Rows = rows[start:min(start+size, len(rows))]
 }

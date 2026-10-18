@@ -12,7 +12,7 @@ func (c *View) ComposeAssessmentBody(state shell.State) ui.BodyComposer {
 			ui.Empty(surface, snapshot.Empty)
 			return
 		}
-		renderCriterion(surface, snapshot.Rows[0], func(status string) { _ = c.Controller.Mark(status) })
+		renderCriterion(surface, snapshot.Rows[0], func(status string) { _ = c.Actions.Mark(status) })
 	}
 }
 
@@ -30,6 +30,6 @@ func (c *View) ComposeSubskillChecklistBody(state shell.State) ui.BodyComposer {
 				rows[i].Selected = true
 			}
 		}
-		ui.List(surface, rows, func(id string) { _ = c.Controller.Select(id) })
+		ui.List(surface, rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }

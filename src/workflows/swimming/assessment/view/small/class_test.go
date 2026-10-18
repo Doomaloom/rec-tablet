@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"fyne.io/fyne/v2/test"
+
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
 	"rectablet/src/workflows/swimming/curriculum"

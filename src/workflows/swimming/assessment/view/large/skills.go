@@ -36,12 +36,12 @@ func (c *View) ComposeLargeSingleBody(rows []navigation.Row, swimmers []navigati
 	return func(surface *ui.Surface) {
 		left, right := Split(surface, .28)
 		c.largePagedGrid(left, "large-single-roster", "Swimmers", swimmers, 1, 6, c.Pages.Roster, c.SwitchPerson)
-		c.RenderLargeChecklist(right, rows, func(id string) { _ = c.Controller.Select(id) })
+		c.RenderLargeChecklist(right, rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 
 func (c *View) ComposeLargeSwimmerListBody(state shell.State) ui.BodyComposer {
 	return func(surface *ui.Surface) {
-		c.largePagedGrid(surface, "large-return-swimmers", "Swimmers", state.Rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Controller.Select(id) })
+		c.largePagedGrid(surface, "large-return-swimmers", "Swimmers", state.Rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 	}
 }

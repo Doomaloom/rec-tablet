@@ -2,12 +2,14 @@ package shared
 
 import (
 	"fmt"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/theme"
+
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
-	"strings"
 )
 
 func (c *View) ComposeMultiGroupCountBody(state shell.State, count, students int) ui.BodyComposer {
@@ -49,7 +51,7 @@ func (c *View) ComposeMultiGroupCountBody(state shell.State, count, students int
 			x, y, width, height := surface.BodyBounds(w, h)
 			return x, y + height*0.52, width, height * 0.25
 		})
-		next := surface.Button("submit", "Continue", func() { _ = c.Controller.Submit() })
+		next := surface.Button("submit", "Continue", func() { _ = c.Actions.Submit() })
 		surface.AddNamed("multi-count-continue", next, func(w, h float32) (float32, float32, float32, float32) {
 			x, y, width, height := surface.BodyBounds(w, h)
 			return x + (width-240)/2, y + height - 56, 240, 56
@@ -77,7 +79,7 @@ func (c *View) ComposeMultiSelectionBody(state shell.State, group, count int) ui
 			offset := ui.HeaderHeight + ui.Gap
 			return x, y + offset, width, height - offset
 		}
-		ui.List(&listSurface, state.Rows, func(id string) { _ = c.Controller.Select(id) })
+		ui.List(&listSurface, state.Rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 

@@ -33,8 +33,8 @@ func TestLargeClassesCalendarMenuAndAttendancePages(t *testing.T) {
 	}
 	_ = must(f.s.Import(pkg))
 	check(t, f.c.Refresh())
-	if f.c.State.RowCount != 7 || f.c.State.PageCount != 2 {
-		t.Fatalf("classes rows/pages = %d/%d, want 7/2", f.c.State.RowCount, f.c.State.PageCount)
+	if f.c.Snapshot().RowCount != 7 || f.c.Snapshot().PageCount != 2 {
+		t.Fatalf("classes rows/pages = %d/%d, want 7/2", f.c.Snapshot().RowCount, f.c.Snapshot().PageCount)
 	}
 	assertLargeCards(t, f, 2, 3, 6)
 	f.shot(t, "large-classes")
@@ -49,7 +49,7 @@ func TestLargeClassesCalendarMenuAndAttendancePages(t *testing.T) {
 		t.Fatal("unscheduled calendar date should be disabled")
 	}
 	f.tap(t, "calendar-next")
-	if f.c.State.Screen != "dates" || f.view.Buttons["row:2026-09-04"] != nil {
+	if f.c.Snapshot().Screen != "dates" || f.view.Buttons["row:2026-09-04"] != nil {
 		t.Fatal("next month did not replace the visible calendar month")
 	}
 	f.tap(t, "calendar-previous")
@@ -57,24 +57,24 @@ func TestLargeClassesCalendarMenuAndAttendancePages(t *testing.T) {
 		t.Fatal("previous month did not return to the selected lesson month")
 	}
 	f.tap(t, "row:2026-09-11")
-	if f.c.Date != "2026-09-11" || f.c.State.Screen != "classes" {
+	if f.c.Date() != "2026-09-11" || f.c.Snapshot().Screen != "classes" {
 		t.Fatal("scheduled calendar date did not return to classes")
 	}
 	selectClassStartingWith(t, f, "Splash 1 ·")
 	assertLargeCards(t, f, 3, 1, 3)
 	f.shot(t, "large-lesson-menu")
 	f.tap(t, "row:attendance")
-	if f.c.State.RowCount != 13 || f.c.State.PageCount != 2 || len(f.c.State.Rows) != 12 {
-		t.Fatalf("attendance rows/pages/current = %d/%d/%d, want 13/2/12", f.c.State.RowCount, f.c.State.PageCount, len(f.c.State.Rows))
+	if f.c.Snapshot().RowCount != 13 || f.c.Snapshot().PageCount != 2 || len(f.c.Snapshot().Rows) != 12 {
+		t.Fatalf("attendance rows/pages/current = %d/%d/%d, want 13/2/12", f.c.Snapshot().RowCount, f.c.Snapshot().PageCount, len(f.c.Snapshot().Rows))
 	}
 	assertLargeCards(t, f, 2, 6, 12)
-	if !containsRosterName(f.c.State.Rows, "Alexandria Montgomery-Sutherland") {
-		t.Fatalf("large attendance page omitted the long name: %+v", f.c.State.Rows)
+	if !containsRosterName(f.c.Snapshot().Rows, "Alexandria Montgomery-Sutherland") {
+		t.Fatalf("large attendance page omitted the long name: %+v", f.c.Snapshot().Rows)
 	}
 	f.shot(t, "large-attendance")
 	f.tap(t, "down")
-	if f.c.State.Page != 1 || len(f.c.State.Rows) != 1 {
-		t.Fatalf("partial attendance page = %d, %d rows", f.c.State.Page, len(f.c.State.Rows))
+	if f.c.Snapshot().Page != 1 || len(f.c.Snapshot().Rows) != 1 {
+		t.Fatalf("partial attendance page = %d, %d rows", f.c.Snapshot().Page, len(f.c.Snapshot().Rows))
 	}
 	assertLargeCards(t, f, 2, 6, 1)
 	f.shot(t, "large-attendance-partial")
@@ -83,13 +83,13 @@ func TestLargeClassesCalendarMenuAndAttendancePages(t *testing.T) {
 func selectClassStartingWith(t *testing.T, f *uiFixture, prefix string) {
 	t.Helper()
 	for {
-		for i, row := range f.c.State.Rows {
+		for i, row := range f.c.Snapshot().Rows {
 			if strings.HasPrefix(row.Label, prefix) {
 				f.row(t, i)
 				return
 			}
 		}
-		if f.c.State.Page >= f.c.State.PageCount-1 {
+		if f.c.Snapshot().Page >= f.c.Snapshot().PageCount-1 {
 			t.Fatalf("missing class with label prefix %q", prefix)
 		}
 		f.tap(t, "down")
@@ -105,7 +105,7 @@ func assertLargeCards(t *testing.T, f *uiFixture, columns, visualRows, expected 
 	count := 0
 	var previousX, previousY float32
 	bodyTop := ui.OuterMargin + ui.HeaderHeight + ui.Gap
-	if f.c.State.SplitHeader != nil {
+	if f.c.Snapshot().SplitHeader != nil {
 		bodyTop = ui.OuterMargin + shell.SplitHeaderHeight + ui.Gap
 	}
 	for _, component := range composed.Components {

@@ -1,8 +1,10 @@
 package assessment
 
 import (
-	"rectablet/src/workflows/swimming/curriculum"
 	"testing"
+
+	"rectablet/src/workflows/swimming/curriculum"
+	"rectablet/src/workflows/swimming/navigation"
 )
 
 func TestModeAvailability(t *testing.T) {
@@ -24,7 +26,7 @@ func TestModeAvailability(t *testing.T) {
 			if got := allowsMultiMode(skill); got != tc.multi {
 				t.Fatalf("Multi available = %v, want %v", got, tc.multi)
 			}
-			c := &Controller{}
+			c := New(navigation.New(), nil)
 			options := c.skillModeSwitch(skill, false)
 			if options[0].Label != "Single" || !options[0].Selected || options[len(options)-1].Label != "Class" {
 				t.Fatalf("wrong mode options: %+v", options)

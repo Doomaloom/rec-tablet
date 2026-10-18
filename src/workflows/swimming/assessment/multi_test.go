@@ -44,7 +44,7 @@ func TestBalancedMultiGroups(t *testing.T) {
 }
 
 func TestMultiAssignmentConstraintsAndReassignment(t *testing.T) {
-	c := &Controller{multi: &multiSession{
+	c := &MultiAssessment{session: &multiSession{
 		Roster: []domain.Enrollment{{ID: "a"}, {ID: "b"}, {ID: "c"}},
 		Groups: []multiGroup{{Number: 1, Capacity: 2}, {Number: 2, Capacity: 1}},
 	}}
@@ -53,12 +53,12 @@ func TestMultiAssignmentConstraintsAndReassignment(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if !reflect.DeepEqual(c.multi.Groups[0].Members, []string{"a", "b"}) || c.multiReady() {
+	if !reflect.DeepEqual(c.session.Groups[0].Members, []string{"a", "b"}) || c.multiReady() {
 		t.Fatal("group capacity not enforced")
 	}
-	c.multi.AssignmentGroup = 1
+	c.session.AssignmentGroup = 1
 	_ = c.toggleMultiMember("a")
-	if len(c.multi.Groups[1].Members) != 0 {
+	if len(c.session.Groups[1].Members) != 0 {
 		t.Fatal("duplicate assignment accepted")
 	}
 	_ = c.toggleMultiMember("c")
@@ -66,19 +66,19 @@ func TestMultiAssignmentConstraintsAndReassignment(t *testing.T) {
 		t.Fatal("complete assignment rejected")
 	}
 	_ = c.toggleMultiMember("c")
-	c.multi.AssignmentGroup = 0
+	c.session.AssignmentGroup = 0
 	_ = c.toggleMultiMember("b")
 	_ = c.toggleMultiMember("c")
-	c.multi.AssignmentGroup = 1
+	c.session.AssignmentGroup = 1
 	_ = c.toggleMultiMember("b")
 	if !c.multiReady() {
 		t.Fatal("reassignment failed")
 	}
-	c.multi.Groups[1].Members = []string{"outsider"}
+	c.session.Groups[1].Members = []string{"outsider"}
 	if c.multiReady() {
 		t.Fatal("ineligible student accepted")
 	}
-	c.multi.Groups[1].Members = []string{"a"}
+	c.session.Groups[1].Members = []string{"a"}
 	if c.multiReady() {
 		t.Fatal("duplicate assignment accepted by final validation")
 	}

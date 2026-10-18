@@ -2,6 +2,7 @@ package small
 
 import (
 	"fmt"
+
 	"rectablet/src/shared/ui"
 	"rectablet/src/workflows/swimming/navigation"
 )
@@ -38,7 +39,7 @@ func (c *View) ComposeClassChecklist(rows []navigation.Row) ui.BodyComposer {
 		var lastWidth, lastHeight float32
 		for i, row := range rows {
 			index, row := i, row
-			button := surface.Button("row:"+row.ID, row.Label, func() { _ = c.Controller.Select(row.ID) })
+			button := surface.Button("row:"+row.ID, row.Label, func() { _ = c.Actions.Select(row.ID) })
 			button.Compact, button.MaxLabelLines = true, -1
 			if index%2 == 1 {
 				button.Fill = ui.Navy

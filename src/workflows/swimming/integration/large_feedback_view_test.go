@@ -42,7 +42,7 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 	f.c.ConfigureDisplay(ui.DisplayLarge, nil)
 	f.row(t, 0)
 	f.tap(t, "row:feedback_swimmers")
-	if f.c.State.Screen != "feedback_swimmers" || f.c.Frame().Person != person.ID || f.c.State.PageSize != 6 {
+	if f.c.Snapshot().Screen != "feedback_swimmers" || f.c.Frame().Person != person.ID || f.c.Snapshot().PageSize != 6 {
 		t.Fatalf("large feedback did not select first swimmer: %+v", f.c.Frame())
 	}
 	if f.view.Buttons["row:"+person.ID] == nil || !f.view.Buttons["row:"+person.ID].Selected {
@@ -69,12 +69,12 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 	f.shot(t, "large-feedback-scrolled")
 
 	f.tap(t, firstAction)
-	if f.c.State.Screen != "attempts" || f.c.Frame().Person != person.ID || f.c.Frame().Skill != entries[0].Skill.ID || f.c.Frame().Version != entries[0].Version {
+	if f.c.Snapshot().Screen != "attempts" || f.c.Frame().Person != person.ID || f.c.Frame().Skill != entries[0].Skill.ID || f.c.Frame().Version != entries[0].Version {
 		t.Fatalf("attempts lost selected context: %+v", f.c.Frame())
 	}
 	f.shot(t, "large-feedback-attempts")
 	f.tap(t, "back")
-	if f.c.State.Screen != "feedback_swimmers" || f.c.Frame().Person != person.ID {
+	if f.c.Snapshot().Screen != "feedback_swimmers" || f.c.Frame().Person != person.ID {
 		t.Fatalf("attempts did not return to selected feedback: %+v", f.c.Frame())
 	}
 

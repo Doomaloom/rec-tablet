@@ -41,7 +41,7 @@ func longAssessmentPerson(t *testing.T, f *uiFixture, courseID string) string {
 
 func largeModeSwitch(t *testing.T, f *uiFixture, label string) string {
 	t.Helper()
-	for i, option := range f.c.State.HeaderSwitch {
+	for i, option := range f.c.Snapshot().HeaderSwitch {
 		if option.Label == label {
 			return "header-switch-" + string(rune('0'+i))
 		}
@@ -112,13 +112,13 @@ func TestLargeSingleDraftSwitchAndCorrectionRoundtrip(t *testing.T) {
 	f.shot(t, "large-audit-skills")
 	assertLargeSwimmerLabelFits(t, f, longAssessmentPerson(t, f, course.ID), longAssessmentSwimmer)
 	f.tap(t, "row:"+first.ID)
-	if f.c.State.Screen != "assessment" {
-		t.Fatalf("first swimmer opened %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "assessment" {
+		t.Fatalf("first swimmer opened %s", f.c.Snapshot().Screen)
 	}
 	f.shot(t, "large-audit-single")
 	assertLargeSwimmerLabelFits(t, f, longAssessmentPerson(t, f, course.ID), longAssessmentSwimmer)
 	firstAttempt := f.c.Frame().Attempt
-	criterionID := f.c.State.Rows[0].ID
+	criterionID := f.c.Snapshot().Rows[0].ID
 	f.tap(t, "criterion:"+criterionID)
 	f.tap(t, "row:"+second.ID)
 	if f.c.Frame().Person != second.ID || f.c.Frame().Attempt == firstAttempt {
@@ -128,12 +128,12 @@ func TestLargeSingleDraftSwitchAndCorrectionRoundtrip(t *testing.T) {
 		t.Fatalf("first draft lost mark: %+v", draft)
 	}
 	f.tap(t, "row:"+first.ID)
-	if f.c.Frame().Attempt != firstAttempt || f.c.State.Rows[0].Status != "successful" {
+	if f.c.Frame().Attempt != firstAttempt || f.c.Snapshot().Rows[0].Status != "successful" {
 		t.Fatal("returning to swimmer did not restore saved draft")
 	}
 	f.tap(t, "home") // Submit this incomplete attempt.
-	if f.c.State.Screen != "skills" {
-		t.Fatalf("save returned to %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "skills" {
+		t.Fatalf("save returned to %s", f.c.Snapshot().Screen)
 	}
 	f.tap(t, "back")
 	f.tap(t, "row:feedback_swimmers")
@@ -145,30 +145,30 @@ func TestLargeSingleDraftSwitchAndCorrectionRoundtrip(t *testing.T) {
 		t.Fatalf("saved attempt produced %d feedback entries", len(entries))
 	}
 	f.tap(t, "feedback-attempts:"+skill.ID+":"+entries[0].Version)
-	if f.c.State.Screen != "attempts" {
-		t.Fatalf("attempt action opened %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "attempts" {
+		t.Fatalf("attempt action opened %s", f.c.Snapshot().Screen)
 	}
 	f.row(t, 0)
-	if f.c.State.Screen != "assessment" || !f.c.Frame().Review {
+	if f.c.Snapshot().Screen != "assessment" || !f.c.Frame().Review {
 		t.Fatal("attempt did not open for correction")
 	}
-	for _, row := range append([]ui.Item(nil), f.c.State.Rows...) {
+	for _, row := range append([]ui.Item(nil), f.c.Snapshot().Rows...) {
 		if row.Status != "successful" {
 			f.tap(t, "criterion:"+row.ID)
 		}
 	}
-	if !f.c.State.CanSubmit {
+	if !f.c.Snapshot().CanSubmit {
 		t.Fatal("complete correction cannot be submitted")
 	}
 	f.tap(t, "submit")
-	if f.c.State.Screen != "attempts" {
-		t.Fatalf("correction returned to %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "attempts" {
+		t.Fatalf("correction returned to %s", f.c.Snapshot().Screen)
 	}
 	if progress := must(f.s.Progress(first.ID, skill.ID, course.CurriculumVersion)); progress.Successes != 1 {
 		t.Fatalf("correction did not update progress: %+v", progress)
 	}
 	f.tap(t, "back")
-	if f.c.State.Screen != "feedback_swimmers" || f.c.Frame().Person != first.ID {
+	if f.c.Snapshot().Screen != "feedback_swimmers" || f.c.Frame().Person != first.ID {
 		t.Fatal("correction lost selected feedback swimmer")
 	}
 }
@@ -190,22 +190,22 @@ func TestLargeClassMarksAndKeepsSavedStudentWhenDiscardingRemainder(t *testing.T
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	f.tap(t, largeModeSwitch(t, f, "Class"))
-	if f.c.State.Screen != "class_assessment" {
-		t.Fatalf("class switch opened %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "class_assessment" {
+		t.Fatalf("class switch opened %s", f.c.Snapshot().Screen)
 	}
 	f.shot(t, "large-audit-class")
 	longPersonID := longAssessmentPerson(t, f, course.ID)
 	assertLargeSwimmerLabelFits(t, f, longPersonID, longAssessmentSwimmer)
-	if f.c.State.Title != longAssessmentSwimmer {
+	if f.c.Snapshot().Title != longAssessmentSwimmer {
 		f.tap(t, "row:"+longPersonID)
 	}
-	current := f.c.State.Title
-	criterionID := f.c.State.Rows[0].ID
+	current := f.c.Snapshot().Title
+	criterionID := f.c.Snapshot().Rows[0].ID
 	f.tap(t, "criterion:"+criterionID)
 	f.tap(t, "save-student")
 	assertLargeSwimmerLabelFits(t, f, longPersonID, longAssessmentSwimmer)
 	f.shot(t, "large-audit-class-saved-long-name")
-	if f.c.State.Screen != "class_assessment" {
+	if f.c.Snapshot().Screen != "class_assessment" {
 		t.Fatal("saving one student closed pending class batch")
 	}
 	var savedID string
@@ -225,8 +225,8 @@ func TestLargeClassMarksAndKeepsSavedStudentWhenDiscardingRemainder(t *testing.T
 		t.Fatal("saved student should be displayed as saved and unavailable in pending class batch")
 	}
 	f.tap(t, "discard-all")
-	if f.c.State.Screen != "skill_swimmers" {
-		t.Fatalf("discarding pending batch returned to %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "skill_swimmers" {
+		t.Fatalf("discarding pending batch returned to %s", f.c.Snapshot().Screen)
 	}
 	if saved := must(f.s.ListAttempts(savedID, skill.ID, course.CurriculumVersion)); len(saved) != 1 || saved[0].SubmittedAt == nil {
 		t.Fatal("discarding remaining students removed an already saved attempt")
@@ -253,13 +253,13 @@ func TestLargeMultiAssignMarkAndSaveOneGroup(t *testing.T) {
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	f.tap(t, largeModeSwitch(t, f, "Multi"))
-	if f.c.State.Screen != "multi_group_count" {
-		t.Fatalf("multi switch opened %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "multi_group_count" {
+		t.Fatalf("multi switch opened %s", f.c.Snapshot().Screen)
 	}
 	f.tap(t, "multi-count-plus")
 	f.tap(t, "submit")
-	if f.c.State.Screen != "multi_selection" {
-		t.Fatalf("group count opened %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "multi_selection" {
+		t.Fatalf("group count opened %s", f.c.Snapshot().Screen)
 	}
 	for _, person := range people[:2] {
 		f.tap(t, "row:"+person.ID)
@@ -268,33 +268,33 @@ func TestLargeMultiAssignMarkAndSaveOneGroup(t *testing.T) {
 	for _, person := range people[2:4] {
 		f.tap(t, "row:"+person.ID)
 	}
-	if !f.c.State.CanSubmit {
+	if !f.c.Snapshot().CanSubmit {
 		t.Fatal("fully assigned groups cannot start marking")
 	}
 	f.shot(t, "large-audit-multi-assignment")
 	assertLargeSwimmerLabelFits(t, f, longAssessmentPerson(t, f, course.ID), longAssessmentSwimmer)
 	f.tap(t, "submit")
-	if f.c.State.Screen != "multi_assessment" {
-		t.Fatalf("group assignment opened %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "multi_assessment" {
+		t.Fatalf("group assignment opened %s", f.c.Snapshot().Screen)
 	}
 	f.shot(t, "large-audit-multi-marking")
 	f.tap(t, "multi-pass:"+people[0].ID)
 	f.tap(t, "multi-fail:"+people[1].ID)
-	if f.c.State.Screen != "multi_student" {
+	if f.c.Snapshot().Screen != "multi_student" {
 		t.Fatal("incomplete action did not open student criteria")
 	}
-	f.tap(t, "criterion:"+f.c.State.Rows[0].ID)
+	f.tap(t, "criterion:"+f.c.Snapshot().Rows[0].ID)
 	f.tap(t, "home")
-	if f.c.State.Screen != "multi_assessment" {
+	if f.c.Snapshot().Screen != "multi_assessment" {
 		t.Fatal("saving student criteria did not return to group")
 	}
 	f.tap(t, "save-group")
-	if f.c.State.Screen != "multi_assessment" {
+	if f.c.Snapshot().Screen != "multi_assessment" {
 		t.Fatal("saving first group closed second pending group")
 	}
 	f.tap(t, "discard-group")
-	if f.c.State.Screen != "skill_swimmers" {
-		t.Fatalf("discarding final group returned to %s", f.c.State.Screen)
+	if f.c.Snapshot().Screen != "skill_swimmers" {
+		t.Fatalf("discarding final group returned to %s", f.c.Snapshot().Screen)
 	}
 	for _, person := range people[:2] {
 		attempts := must(f.s.ListAttempts(person.ID, skill.ID, course.CurriculumVersion))
@@ -338,11 +338,11 @@ func TestLargeSkillPageSurvivesBackAndCourseSwitchUsesNewRoster(t *testing.T) {
 		t.Fatal("second page skill was not selected")
 	}
 	f.tap(t, "row:"+firstPeople[0].ID)
-	if f.c.State.Screen != "assessment" {
+	if f.c.Snapshot().Screen != "assessment" {
 		t.Fatal("selected skill did not open single assessment")
 	}
 	f.tap(t, "back")
-	if f.c.State.Screen != "skills" {
+	if f.c.Snapshot().Screen != "skills" {
 		t.Fatal("discarding draft did not return to Skills")
 	}
 	if button := f.view.Buttons["row:"+secondPageSkill]; button == nil || !button.Selected {

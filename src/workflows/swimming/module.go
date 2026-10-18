@@ -3,6 +3,7 @@ package swimming
 
 import (
 	"rectablet/src/shared/ui"
+	"rectablet/src/shell"
 	"rectablet/src/workflows/swimming/assessment"
 	"rectablet/src/workflows/swimming/attendance"
 	"rectablet/src/workflows/swimming/classes"
@@ -12,45 +13,51 @@ import (
 	"rectablet/src/workflows/swimming/setup"
 )
 
+// Controller assembles the workflow and exposes the actions used by the shell.
+// Navigation and every feature are named dependencies, rather than embedded APIs.
 type Controller struct {
-	*navigation.Controller
-	setup *setup.Controller
+	navigation *navigation.Controller
+	classes    *classes.Component
+	attendance *attendance.Component
+	assessment *assessment.Component
+	feedback   *feedback.Component
+	setup      *setup.Component
 }
+
+var _ shell.Presenter = (*Controller)(nil)
 
 // ConfigureDisplay applies a device preference independently of the active dataset.
 func (c *Controller) ConfigureDisplay(mode ui.DisplayMode, save func(ui.DisplayMode)) {
-	c.DisplayMode = mode.Normalize()
+	c.navigation.DisplayMode = mode.Normalize()
 	c.setup.SaveDisplayMode = save
 	_ = c.Refresh()
 }
 
-func New(s *repository.Store) *Controller {
+func New(store *repository.Store) *Controller {
 	nav := navigation.New()
-	classesFeature := classes.New(nav, s)
-	nav.Features[navigation.Classes] = classesFeature
-	nav.Features[navigation.Dates] = classesFeature
-	nav.Features[navigation.Class] = classesFeature
-	attendanceFeature := attendance.New(nav, s)
-	nav.Features[navigation.Attendance] = attendanceFeature
-	assessmentFeature := assessment.New(nav, s)
-	nav.Features[navigation.Skills] = assessmentFeature
-	nav.Features[navigation.SkillSwimmers] = assessmentFeature
-	nav.Features[navigation.MultiGroupCount] = assessmentFeature
-	nav.Features[navigation.MultiStudent] = assessmentFeature
-	nav.Features[navigation.MultiSelection] = assessmentFeature
-	nav.Features[navigation.MultiAssessment] = assessmentFeature
-	nav.Features[navigation.ClassAssessment] = assessmentFeature
-	nav.Features[navigation.TimedLaps] = assessmentFeature
-	nav.Features[navigation.TimedHeat] = assessmentFeature
-	nav.Features[navigation.Attempts] = assessmentFeature
-	nav.Features[navigation.Assessment] = assessmentFeature
-	feedbackFeature := feedback.New(nav, s)
-	nav.Features[navigation.FeedbackSwimmers] = feedbackFeature
-	nav.Features[navigation.Feedback] = feedbackFeature
-	nav.Features[navigation.FeedbackDetail] = feedbackFeature
-	setupFeature := setup.New(nav, s)
-	nav.Features[navigation.Maintenance] = setupFeature
-	c := &Controller{nav, setupFeature}
+	c := &Controller{
+		navigation: nav,
+		classes:    classes.New(nav, store),
+		attendance: attendance.New(nav, store),
+		assessment: assessment.New(nav, store),
+		feedback:   feedback.New(nav, store),
+		setup:      setup.New(nav, store),
+	}
+	register := func(feature navigation.Feature, routes ...navigation.Route) {
+		for _, route := range routes {
+			nav.Features[route] = feature
+		}
+	}
+	register(c.classes, navigation.Classes, navigation.Dates, navigation.Class)
+	register(c.attendance, navigation.Attendance)
+	register(c.assessment,
+		navigation.Skills, navigation.SkillSwimmers, navigation.MultiGroupCount,
+		navigation.MultiStudent, navigation.MultiSelection, navigation.MultiAssessment,
+		navigation.ClassAssessment, navigation.TimedLaps, navigation.TimedHeat,
+		navigation.Attempts, navigation.Assessment,
+	)
+	register(c.feedback, navigation.FeedbackSwimmers, navigation.Feedback, navigation.FeedbackDetail)
+	register(c.setup, navigation.Maintenance)
 	_ = c.Refresh()
 	return c
 }

@@ -263,7 +263,7 @@ func Run(options Options) error {
 			profileOptions = append(profileOptions, setup.ProfileOption{Key: item.Key, Label: item.Label})
 		}
 		if dates, err := s.Dates(); err == nil {
-			controller.Date = nearestLessonDate(dates, time.Now().Format("2006-01-02"))
+			controller.SetDate(nearestLessonDate(dates, time.Now().Format("2006-01-02")))
 		}
 		controller.ConfigureDeviceSessions(joinShare, profileOptions, switchProfile, profiles.shareServer(options.ShareServer), profiles.setShareServer, cancelCurrentImport)
 		view = shell.New(controller, w)

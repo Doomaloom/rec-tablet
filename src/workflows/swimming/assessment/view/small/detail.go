@@ -1,8 +1,10 @@
 package small
 
 import (
-	"fyne.io/fyne/v2/container"
 	"image/color"
+
+	"fyne.io/fyne/v2/container"
+
 	"rectablet/src/shared/components/card"
 	"rectablet/src/shared/ui"
 )

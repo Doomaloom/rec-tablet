@@ -29,7 +29,7 @@ func TestLargeTimedSetupAndHeatPaging(t *testing.T) {
 	if !f.view.Buttons["timed-create-heat"].Disabled {
 		t.Fatal("heat enabled without swimmers/laps")
 	}
-	people := append([]navigation.Row(nil), f.c.State.Rows...)
+	people := append([]navigation.Row(nil), f.c.Snapshot().Rows...)
 	for i := 0; i < 12; i++ {
 		f.tap(t, "row:"+people[i].ID)
 	}
@@ -43,8 +43,8 @@ func TestLargeTimedSetupAndHeatPaging(t *testing.T) {
 	f.tap(t, "timed-digit:2")
 	f.shot(t, "large-timed-setup")
 	f.tap(t, "timed-create-heat")
-	if f.c.State.Screen != "timed_heat" || f.c.State.RowCount != 13 {
-		t.Fatalf("heat = %s/%d", f.c.State.Screen, f.c.State.RowCount)
+	if f.c.Snapshot().Screen != "timed_heat" || f.c.Snapshot().RowCount != 13 {
+		t.Fatalf("heat = %s/%d", f.c.Snapshot().Screen, f.c.Snapshot().RowCount)
 	}
 	f.shot(t, "large-timed-heat")
 	f.tap(t, "header-action-0")
@@ -52,7 +52,7 @@ func TestLargeTimedSetupAndHeatPaging(t *testing.T) {
 	f.tap(t, "timed-heat-swimmers-page-1")
 	f.tap(t, "row:timed-lap:"+people[12].ID)
 	f.tap(t, "timed-heat-swimmers-page--1")
-	if f.c.State.Rows[0].ProgressValue != 1 || f.c.State.Rows[12].ProgressValue != 1 {
+	if f.c.Snapshot().Rows[0].ProgressValue != 1 || f.c.Snapshot().Rows[12].ProgressValue != 1 {
 		t.Fatal("paging lost lap counts")
 	}
 	f.tap(t, "header-action-0")

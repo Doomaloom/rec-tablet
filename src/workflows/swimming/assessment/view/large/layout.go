@@ -2,6 +2,7 @@ package large
 
 import (
 	"fmt"
+
 	"rectablet/src/shared/ui"
 )
 
@@ -37,7 +38,7 @@ func (c *View) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.
 		for direction, caption := range map[int]string{-1: "‹", 1: "›"} {
 			direction, caption := direction, caption
 			button := surface.Button(fmt.Sprintf("%s-page-%d", key, direction), caption, func() {
-				_ = c.Run(func() error { *page = max(0, min(*page+direction, pageCount-1)); return nil })
+				_ = c.Actions.Run(func() error { *page = max(0, min(*page+direction, pageCount-1)); return nil })
 			})
 			button.Fill, button.Ink, button.FontSize = ui.Rail, ui.Blue, 26
 			surface.AddNamed(fmt.Sprintf("%s-page-button-%d", key, direction), button, func(w, h float32) (float32, float32, float32, float32) {

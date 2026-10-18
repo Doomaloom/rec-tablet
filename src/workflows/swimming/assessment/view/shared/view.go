@@ -3,7 +3,6 @@ package shared
 import (
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
-	"rectablet/src/workflows/swimming/navigation"
 )
 
 func (c *View) ComposeSkillListBody(state shell.State) ui.BodyComposer {
@@ -22,13 +21,13 @@ func (c *View) ComposeAssessmentListBody(state shell.State) ui.BodyComposer {
 			ui.Empty(surface, snapshot.Empty)
 			return
 		}
-		ui.List(surface, snapshot.Rows, func(id string) { _ = c.Controller.Select(id) })
+		ui.List(surface, snapshot.Rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 
-// View renders common assessment content using navigation and feature callbacks.
+// View renders common assessment content using explicit feature actions.
 type View struct {
-	*navigation.Controller
+	Actions      Actions
 	AdjustGroups func(int) error
 	PageGroup    func(int) error
 	PassStudent  func(string) error
@@ -38,4 +37,12 @@ type View struct {
 type MultiStudentSnapshot struct {
 	PersonID, Name, Status string
 	Passed, Total          int
+}
+
+// Actions contains only the operations that rendering controls can emit.
+type Actions struct {
+	Select func(string) error
+	Mark   func(string) error
+	Submit func() error
+	Run    func(func() error) error
 }
