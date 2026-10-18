@@ -14,6 +14,9 @@ import (
 
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
+	"rectablet/src/workflows/swimming/assessment/classassessment"
+	"rectablet/src/workflows/swimming/assessment/multiassessment"
+	"rectablet/src/workflows/swimming/assessment/singleassessment"
 	"rectablet/src/workflows/swimming/assessment/view/large"
 	"rectablet/src/workflows/swimming/curriculum"
 	"rectablet/src/workflows/swimming/domain"
@@ -112,14 +115,14 @@ func TestLargeReturnToSwimmersPagesWholeRoster(t *testing.T) {
 		state.Rows = append(state.Rows, ui.Item{ID: fmt.Sprint(i), Label: fmt.Sprintf("Swimmer %d", i)})
 	}
 	state.RowCount = len(state.Rows)
-	state.ComposeBody = c.skillPicker.composeSwimmerListBody(state)
+	state.ComposeBody = c.skillPicker.ComposeSwimmers(state)
 	p := &largePresenter{state: state}
 	view := shell.New(p, window)
 	defer view.Close()
 	if view.Buttons["row:11"] == nil || view.Buttons["row:12"] != nil || view.Buttons["large-return-swimmers-page-1"] == nil {
 		t.Fatal("returned roster must show twelve swimmers and offer local paging")
 	}
-	c.skillPicker.rosterPage = 1
+	c.skillPicker.State.RosterPage = 1
 	view.Render()
 	if view.Buttons["row:12"] == nil || view.Buttons["row:0"] != nil {
 		t.Fatal("last swimmer is not reachable on the second page")
@@ -150,7 +153,6 @@ func TestLargeChecklistFitsEveryCatalogSkillWithSidebar(t *testing.T) {
 	app.Settings().SetTheme(ui.AppTheme{})
 	window := app.NewWindow("large checklist")
 	defer window.Close()
-	controller := New(navigation.New(), nil)
 	presenter := &largePresenter{state: shell.State{DisplayMode: ui.DisplayLarge}}
 	view := shell.New(presenter, window)
 	defer view.Close()
@@ -165,10 +167,10 @@ func TestLargeChecklistFitsEveryCatalogSkillWithSidebar(t *testing.T) {
 				SplitHeader: &shell.SplitHeader{Left: skill.Number + ". " + skill.Name, Right: "A Long Swimmer Name"},
 				PrimaryInfo: "Saturday morning swimming group · 9:00 AM",
 			}
-			configureLargeClassHeader(&state, skill, domain.Course{Name: "Saturday morning swimming group", Time: "9:00 AM"})
+			classassessment.ConfigureLargeHeader(&state, skill, domain.Course{Name: "Saturday morning swimming group", Time: "9:00 AM"})
 			state.ComposeBody = func(surface *ui.Surface) {
 				_, right := large.Split(surface, .28)
-				controller.single.large.RenderLargeChecklist(right, rows, nil)
+				(&large.View{}).RenderLargeChecklist(right, rows, nil)
 			}
 			presenter.state = state
 			composition := shell.ComposeScreen(view, state)
@@ -248,7 +250,6 @@ func TestLargeSingleAndCorrectionShowFullTitlesAndAllCriteria(t *testing.T) {
 	presenter := &largePresenter{state: shell.State{DisplayMode: ui.DisplayLarge}}
 	view := shell.New(presenter, window)
 	defer view.Close()
-	c := New(navigation.New(), nil)
 	for _, level := range curriculum.Bundled().Levels {
 		for _, skill := range level.Skills {
 			rows := make([]navigation.Row, 0, len(skill.Subskills))
@@ -257,17 +258,17 @@ func TestLargeSingleAndCorrectionShowFullTitlesAndAllCriteria(t *testing.T) {
 			}
 			for _, correction := range []bool{false, true} {
 				state := shell.State{DisplayMode: ui.DisplayLarge, Screen: "assessment", SplitHeader: &shell.SplitHeader{Left: "A Long Swimmer Name", Right: skill.Name}}
-				configureLargeAssessmentHeader(&state, skill)
+				singleassessment.ConfigureLargeHeader(&state, skill)
 				if correction {
 					state.FooterAction = "Save correction"
 				}
 				state.ComposeBody = func(surface *ui.Surface) {
 					if correction {
-						c.single.large.RenderLargeChecklist(surface, rows, nil)
+						(&large.View{}).RenderLargeChecklist(surface, rows, nil)
 						return
 					}
 					_, right := large.Split(surface, .28)
-					c.single.large.RenderLargeChecklist(right, rows, nil)
+					(&large.View{}).RenderLargeChecklist(right, rows, nil)
 				}
 				presenter.state = state
 				composition := shell.ComposeScreen(view, state)
@@ -337,9 +338,9 @@ func TestLargeClassRosterShowsSavedDiscardedAndPendingSessions(t *testing.T) {
 	nav := navigation.New()
 	nav.Push(navigation.ClassAssessment, nil)
 	c := New(nav, nil)
-	c.class.roster, c.class.attempts, c.class.status = people, people[1:2], map[string]string{"a": "Saved", "c": "Discarded"}
+	c.class.State.Roster, c.class.State.Attempts, c.class.State.Status = people, people[1:2], map[string]string{"a": "Saved", "c": "Discarded"}
 	rows := []navigation.Row{{ID: "criterion", Label: "Can swim"}}
-	state := shell.State{DisplayMode: ui.DisplayLarge, Screen: "class", HideFooter: true, ComposeBody: c.class.large.ComposeLargeClassBody(rows)}
+	state := shell.State{DisplayMode: ui.DisplayLarge, Screen: "class", HideFooter: true, ComposeBody: c.class.Compose(rows, ui.DisplayLarge)}
 	presenter := &largePresenter{state: state}
 	view := shell.New(presenter, window)
 	defer view.Close()
@@ -366,7 +367,7 @@ func TestLargeClassRosterShowsSavedDiscardedAndPendingSessions(t *testing.T) {
 	if len(want) > 0 {
 		t.Fatalf("missing class roster entries: %v", want)
 	}
-	if len(c.class.attempts) != 1 || c.class.attempts[0].PersonID != "b" {
+	if len(c.class.State.Attempts) != 1 || c.class.State.Attempts[0].PersonID != "b" {
 		t.Fatal("rendering changed the pending batch")
 	}
 }
@@ -405,25 +406,25 @@ func TestLargeClassSaveKeepsSessionStatusAndPendingBatch(t *testing.T) {
 	nav.Push(navigation.ClassAssessment, func(f *navigation.Frame) { f.Course, f.Skill, f.Version = "course", skill.ID, catalog.Version })
 	c := New(nav, store)
 	nav.Features[navigation.ClassAssessment] = c
-	c.class.attempts = append([]domain.MultiAttempt(nil), people...)
-	c.class.roster = append([]domain.MultiAttempt(nil), people...)
-	c.class.status = make(map[string]string)
+	c.class.State.Attempts = append([]domain.MultiAttempt(nil), people...)
+	c.class.State.Roster = append([]domain.MultiAttempt(nil), people...)
+	c.class.State.Status = make(map[string]string)
 	store.failSubmit = errors.New("write failed")
-	if err := c.SaveClassStudent(); !errors.Is(err, store.failSubmit) {
+	if err := c.class.SaveClassStudent(); !errors.Is(err, store.failSubmit) {
 		t.Fatalf("failed save error = %v", err)
 	}
-	if len(c.class.attempts) != 2 || len(c.class.status) != 0 {
+	if len(c.class.State.Attempts) != 2 || len(c.class.State.Status) != 0 {
 		t.Fatal("failed save changed the pending batch")
 	}
 	store.failSubmit = nil
-	if err := c.SaveClassStudent(); err != nil {
+	if err := c.class.SaveClassStudent(); err != nil {
 		t.Fatal(err)
 	}
-	if len(c.class.attempts) != 1 || c.class.attempts[0].PersonID != "b" {
-		t.Fatalf("pending batch = %+v", c.class.attempts)
+	if len(c.class.State.Attempts) != 1 || c.class.State.Attempts[0].PersonID != "b" {
+		t.Fatalf("pending batch = %+v", c.class.State.Attempts)
 	}
-	if c.class.status["a"] != "Saved" || c.class.status["b"] != "" {
-		t.Fatalf("session statuses = %+v", c.class.status)
+	if c.class.State.Status["a"] != "Saved" || c.class.State.Status["b"] != "" {
+		t.Fatalf("session statuses = %+v", c.class.State.Status)
 	}
 	if nav.Frame().Page != 0 {
 		t.Fatalf("current pending page = %d", nav.Frame().Page)
@@ -459,14 +460,14 @@ func TestLargeSingleSwitchPreservesEachSwimmerDraft(t *testing.T) {
 	if store.answers[first][criterion] != "successful" {
 		t.Fatal("first swimmer answer was not saved in draft")
 	}
-	c.switchLargeAssessmentPerson("b")
+	c.single.SwitchPerson("b")
 	if nav.Frame().Person != "b" || nav.Frame().Attempt != "draft-b" {
 		t.Fatalf("switch to Blair failed: %+v", nav.Frame())
 	}
 	if len(store.answers["draft-b"]) != 0 {
 		t.Fatal("second swimmer inherited first swimmer answers")
 	}
-	c.switchLargeAssessmentPerson("a")
+	c.single.SwitchPerson("a")
 	if nav.Frame().Person != "a" || nav.Frame().Attempt != first {
 		t.Fatalf("switch back did not reuse draft: %+v", nav.Frame())
 	}
@@ -489,11 +490,11 @@ func TestLargeMultiTablePageDoesNotChangeSavedGroupScope(t *testing.T) {
 	nav.Push(navigation.MultiAssessment, func(f *navigation.Frame) { f.Skill, f.Version = skill.ID, catalog.Version })
 	c := New(nav, store)
 	nav.Features[navigation.Skills], nav.Features[navigation.MultiAssessment] = c, c
-	group := multiGroup{Number: 1, Capacity: 11}
+	group := multiassessment.Group{Number: 1, Capacity: 11}
 	for i := 0; i < 11; i++ {
 		group.Attempts = append(group.Attempts, domain.MultiAttempt{AttemptID: fmt.Sprintf("attempt-%d", i), PersonID: fmt.Sprintf("p%d", i), Name: fmt.Sprintf("Swimmer %d", i)})
 	}
-	c.multi.session = &multiSession{Skill: skill, GroupCount: 1, Groups: []multiGroup{group}}
+	c.multi.State.Session = &multiassessment.Session{Skill: skill, GroupCount: 1, Groups: []multiassessment.Group{group}}
 	if err := nav.Refresh(); err != nil {
 		t.Fatal(err)
 	}
@@ -505,10 +506,10 @@ func TestLargeMultiTablePageDoesNotChangeSavedGroupScope(t *testing.T) {
 		t.Fatal("missing local table paging button")
 	}
 	next.OnTap()
-	if c.multi.tablePage != 1 || nav.Frame().Page != 0 || len(c.multi.session.Groups[0].Attempts) != 11 {
-		t.Fatalf("table page changed group scope: local=%d route=%d attempts=%d", c.multi.tablePage, nav.Frame().Page, len(c.multi.session.Groups[0].Attempts))
+	if c.multi.State.TablePage != 1 || nav.Frame().Page != 0 || len(c.multi.State.Session.Groups[0].Attempts) != 11 {
+		t.Fatalf("table page changed group scope: local=%d route=%d attempts=%d", c.multi.State.TablePage, nav.Frame().Page, len(c.multi.State.Session.Groups[0].Attempts))
 	}
-	if err := c.SaveMultiGroup(); err != nil {
+	if err := c.multi.SaveMultiGroup(); err != nil {
 		t.Fatal(err)
 	}
 	if len(store.submitted) != 1 || len(store.submitted[0]) != 11 {

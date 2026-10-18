@@ -3,6 +3,7 @@ package assessment
 import (
 	"testing"
 
+	"rectablet/src/workflows/swimming/assessment/internal/common"
 	"rectablet/src/workflows/swimming/curriculum"
 	"rectablet/src/workflows/swimming/navigation"
 )
@@ -23,7 +24,7 @@ func TestModeAvailability(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			skill := curriculum.Skill{Name: tc.name, Subskills: make([]curriculum.Subskill, tc.count)}
-			if got := allowsMultiMode(skill); got != tc.multi {
+			if got := common.AllowsMultiMode(skill); got != tc.multi {
 				t.Fatalf("Multi available = %v, want %v", got, tc.multi)
 			}
 			c := New(navigation.New(), nil)

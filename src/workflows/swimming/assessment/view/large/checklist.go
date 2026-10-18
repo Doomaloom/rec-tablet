@@ -11,7 +11,6 @@ func (c *View) ComposeLargeChecklistBody(rows []navigation.Row, selectRow func(s
 
 // Every checklist criterion is visible at once. Twelve criteria use two columns
 // of six, leaving at least a 48 pixel target in the large shell body.
-
 func (c *View) RenderLargeChecklist(surface *ui.Surface, rows []navigation.Row, selectRow func(string)) {
 	if len(rows) == 0 {
 		ui.Empty(surface, "No criteria available.")

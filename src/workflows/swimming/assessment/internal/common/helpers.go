@@ -1,6 +1,6 @@
-package assessment
+package common
 
-func containsString(values []string, target string) bool {
+func Contains(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {
 			return true
@@ -9,7 +9,7 @@ func containsString(values []string, target string) bool {
 	return false
 }
 
-func removeString(values []string, target string) []string {
+func Remove(values []string, target string) []string {
 	out := values[:0]
 	for _, value := range values {
 		if value != target {

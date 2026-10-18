@@ -1,10 +1,11 @@
-package assessment
+package singleassessment
 
 import (
 	"time"
 
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
+	"rectablet/src/workflows/swimming/assessment/internal/common"
 	"rectablet/src/workflows/swimming/assessment/view/large"
 	"rectablet/src/workflows/swimming/assessment/view/shared"
 	"rectablet/src/workflows/swimming/assessment/view/small"
@@ -13,40 +14,65 @@ import (
 	"rectablet/src/workflows/swimming/navigation"
 )
 
-// SingleAssessment owns its mode state and presentation. Data and actions arrive as callbacks.
-type SingleAssessment struct {
-	rosterPage int
-	data       singleAssessmentData
-	actions    singleAssessmentActions
+// Component owns individual assessment state and presentation through explicit data and action callbacks.
+type Component struct {
+	progress   common.ProgressActions
+	navigation common.Navigation
+	State      State
+	storage    Storage
 	paginate   func(*navigation.State, []navigation.Row)
 	small      *small.View
 	large      *large.View
 	shared     *shared.View
 }
 
-type singleAssessmentData struct {
-	Draft         func(string) (map[string]string, error)
-	GetAttempt    func(string) (domain.Attempt, error)
-	GetEnrollment func(string) (domain.Enrollment, error)
-	ListAttempts  func(string, string, string) ([]domain.Attempt, error)
-	Progress      func(string, string, string) (domain.Progress, error)
-	Skill         func(string, string) (curriculum.Skill, error)
+// State holds mode session and paging state.
+type State struct {
+	RosterPage int
 }
 
-type singleAssessmentActions struct {
-	DiscardAttempt                func() error
-	RemoveLatestSuccess           func(string, string, string) error
-	SaveAttempt                   func() error
-	toggleLargeCorrectionSubskill func(string) error
+// Storage contains only the data operations consumed by this mode.
+type Storage struct {
+	DiscardAttempt      func(string) error
+	Draft               func(string) (map[string]string, error)
+	EditAttempt         func(string) error
+	GetAttempt          func(string) (domain.Attempt, error)
+	GetEnrollment       func(string) (domain.Enrollment, error)
+	ListAttempts        func(string, string, string) ([]domain.Attempt, error)
+	Mark                func(string, string, string) error
+	NewAttempt          func(string, string, string) (string, error)
+	Progress            func(string, string, string) (domain.Progress, error)
+	RemoveLatestSuccess func(string, string, string) error
+	Skill               func(string, string) (curriculum.Skill, error)
+	Submit              func(string) (bool, error)
 }
 
-func (c *SingleAssessment) build(input modeInput) (navigation.State, error) {
-	state := input.state
-	f := input.frame
-	roster := input.roster
-	version := input.course.CurriculumVersion
+// Options provides storage and navigation operations without a parent-component dependency.
+type Options struct {
+	Navigation  common.Navigation
+	Storage     Storage
+	ViewActions shared.Actions
+	Paginate    func(*navigation.State, []navigation.Row)
+}
+
+func New(options Options) *Component {
+	c := &Component{navigation: options.Navigation, storage: options.Storage, paginate: options.Paginate}
+	c.progress = common.ProgressActions{Navigation: options.Navigation, Remove: options.Storage.RemoveLatestSuccess}
+	c.small = &small.View{Actions: options.ViewActions}
+	c.shared = &shared.View{Actions: options.ViewActions}
+	c.large = &large.View{Actions: options.ViewActions,
+		Shared: c.shared, Pages: large.Pages{Roster: &c.State.RosterPage}, SwitchPerson: c.SwitchPerson,
+	}
+	return c
+}
+
+func (c *Component) Build(input common.Input) (navigation.State, error) {
+	state := input.State
+	f := input.Frame
+	roster := input.Roster
+	version := input.Course.CurriculumVersion
 	rows := []navigation.Row{}
-	s := c.data
+	s := c.storage
 	switch f.Screen {
 	case navigation.Attempts:
 		p, e := s.GetEnrollment(f.Person)
@@ -114,7 +140,7 @@ func (c *SingleAssessment) build(input modeInput) (navigation.State, error) {
 		state.PrimaryInfo = ""
 		state.Progress = ""
 		if state.DisplayMode.IsLarge() {
-			configureLargeAssessmentHeader(&state, skill)
+			ConfigureLargeHeader(&state, skill)
 		}
 		for _, subskill := range skill.Subskills {
 			status := answers[subskill.ID]
@@ -128,14 +154,14 @@ func (c *SingleAssessment) build(input modeInput) (navigation.State, error) {
 			state.CanSubmit = len(answers) == len(rows)
 			state.PageSize = 1
 		} else {
-			state.HomeRailAction = saveRailAction(c.actions.SaveAttempt)
-			state.BackRailAction = discardRailAction(c.actions.DiscardAttempt)
+			state.HomeRailAction = common.SaveRailAction(c.SaveAttempt)
+			state.BackRailAction = common.DiscardRailAction(c.DiscardAttempt)
 			state.PageSize = 3
 		}
 		if state.DisplayMode.IsLarge() {
 			state.PageSize = max(1, len(rows))
 			if f.Review {
-				state.ComposeBody = c.large.ComposeLargeChecklistBody(rows, func(id string) { _ = c.actions.toggleLargeCorrectionSubskill(id) })
+				state.ComposeBody = c.large.ComposeLargeChecklistBody(rows, func(id string) { _ = c.ToggleCorrection(id) })
 			} else {
 				var swimmers []navigation.Row
 				for _, person := range roster {
@@ -152,7 +178,7 @@ func (c *SingleAssessment) build(input modeInput) (navigation.State, error) {
 					}
 					if progress.Successes > 0 {
 						student := person.ID
-						row.OnHold = func() { _ = c.actions.RemoveLatestSuccess(student, skill.ID, a.CurriculumVersion) }
+						row.OnHold = func() { _ = c.progress.RemoveLatestSuccess(student, skill.ID, a.CurriculumVersion) }
 						row.HoldDuration = 2 * time.Second
 					}
 					swimmers = append(swimmers, row)
@@ -168,7 +194,7 @@ func (c *SingleAssessment) build(input modeInput) (navigation.State, error) {
 	return state, nil
 }
 
-func configureLargeAssessmentHeader(state *navigation.State, skill curriculum.Skill) {
+func ConfigureLargeHeader(state *navigation.State, skill curriculum.Skill) {
 	if ui.WrappedTextHeight(skill.Name, 450, 16, true) <= shell.SplitHeaderHeight {
 		return
 	}
@@ -177,7 +203,7 @@ func configureLargeAssessmentHeader(state *navigation.State, skill curriculum.Sk
 	state.PrimaryInfoFontSize = 16
 }
 
-func (c *SingleAssessment) compose(state *shell.State, f navigation.Frame) {
+func (c *Component) compose(state *shell.State, f navigation.Frame) {
 	if state.HeaderAction != "" {
 		state.HeaderWidth = 134
 	}

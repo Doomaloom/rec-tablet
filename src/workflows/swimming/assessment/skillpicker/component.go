@@ -1,10 +1,11 @@
-package assessment
+package skillpicker
 
 import (
 	"time"
 
 	"rectablet/src/shared/ui"
 	"rectablet/src/shell"
+	"rectablet/src/workflows/swimming/assessment/internal/common"
 	"rectablet/src/workflows/swimming/assessment/view/large"
 	"rectablet/src/workflows/swimming/assessment/view/shared"
 	"rectablet/src/workflows/swimming/curriculum"
@@ -12,36 +13,72 @@ import (
 	"rectablet/src/workflows/swimming/navigation"
 )
 
-// SkillPicker owns its mode state and presentation. Data and actions arrive as callbacks.
-type SkillPicker struct {
-	selectedID            string
-	skillPage, rosterPage int
-	data                  skillPickerData
-	actions               skillPickerActions
-	paginate              func(*navigation.State, []navigation.Row)
-	large                 *large.View
-	shared                *shared.View
+// Component owns skill selection state and presentation through explicit data and action callbacks.
+type Component struct {
+	progress   common.ProgressActions
+	navigation common.Navigation
+	State      State
+	storage    Storage
+	actions    Actions
+	paginate   func(*navigation.State, []navigation.Row)
+	large      *large.View
+	shared     *shared.View
 }
 
-type skillPickerData struct {
-	CatalogFor func(string) (curriculum.Catalog, error)
-	Progress   func(string, string, string) (domain.Progress, error)
-	Skill      func(string, string) (curriculum.Skill, error)
+// State holds mode session and paging state.
+type State struct {
+	SelectedID            string
+	SkillPage, RosterPage int
 }
 
-type skillPickerActions struct {
-	RemoveLatestSuccess   func(string, string, string) error
-	openLargeSelectedMode func(string) error
-	skillModeSwitch       func(curriculum.Skill, bool) []shell.HeaderSwitchOption
+// Storage contains only the data operations consumed by this mode.
+type Storage struct {
+	CatalogFor          func(string) (curriculum.Catalog, error)
+	Progress            func(string, string, string) (domain.Progress, error)
+	RemoveLatestSuccess func(string, string, string) error
+	Skill               func(string, string) (curriculum.Skill, error)
 }
 
-func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
-	state := input.state
-	f := input.frame
-	roster := input.roster
-	version := input.course.CurriculumVersion
+type Actions struct {
+	OpenSelectedMode func(string) error
+	ModeSwitch       func(curriculum.Skill, bool) []shell.HeaderSwitchOption
+	OpenTimedSkill   func(string) error
+	OpenSkillSwimmer func(navigation.Row, string) error
+}
+
+// Options provides storage and navigation operations without a parent-component dependency.
+type Options struct {
+	Navigation  common.Navigation
+	Storage     Storage
+	Actions     Actions
+	ViewActions shared.Actions
+	Paginate    func(*navigation.State, []navigation.Row)
+}
+
+func New(options Options) *Component {
+	c := &Component{navigation: options.Navigation, storage: options.Storage, actions: options.Actions, paginate: options.Paginate}
+	c.progress = common.ProgressActions{Navigation: options.Navigation, Remove: options.Storage.RemoveLatestSuccess}
+	c.shared = &shared.View{Actions: options.ViewActions}
+	c.large = &large.View{Actions: options.ViewActions,
+		Shared:           c.shared,
+		Pages:            large.Pages{Skill: &c.State.SkillPage, Roster: &c.State.RosterPage},
+		IsTimed:          func(id string) bool { _, ok := common.BenchmarkFor(id); return ok },
+		OpenTimedSkill:   c.actions.OpenTimedSkill,
+		OpenSkillSwimmer: c.actions.OpenSkillSwimmer,
+		SelectSkill: func(id string) error {
+			return options.ViewActions.Run(func() error { c.State.SelectedID = id; c.State.RosterPage = 0; return nil })
+		},
+	}
+	return c
+}
+
+func (c *Component) Build(input common.Input) (navigation.State, error) {
+	state := input.State
+	f := input.Frame
+	roster := input.Roster
+	version := input.Course.CurriculumVersion
 	rows := []navigation.Row{}
-	s := c.data
+	s := c.storage
 	switch f.Screen {
 	case navigation.Skills:
 		state.Title = "Choose a Skill"
@@ -63,7 +100,7 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 			}
 			for _, skill := range level.Skills {
 				label := skill.Number + ". " + curriculum.CompactTitle(skill)
-				if benchmark, ok := benchmarkFor(skill.ID); ok {
+				if benchmark, ok := common.BenchmarkFor(skill.ID); ok {
 					label += " · Timed heat · " + benchmark.Description
 				}
 				rows = append(rows, navigation.Row{ID: skill.ID, Label: label, Data: navigation.Parameters{Level: p.Level, Version: version}})
@@ -74,7 +111,7 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 			state.PageSize = max(1, len(rows))
 			var selected navigation.Row
 			for _, row := range rows {
-				if row.ID == c.selectedID && !row.Disabled {
+				if row.ID == c.State.SelectedID && !row.Disabled {
 					selected = row
 					break
 				}
@@ -87,7 +124,7 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 					}
 				}
 			}
-			c.selectedID = selected.ID
+			c.State.SelectedID = selected.ID
 			var swimmers []navigation.Row
 			if selected.ID != "" {
 				params := navigation.Destination(selected)
@@ -102,18 +139,18 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 					row := navigation.Row{ID: person.ID, Label: person.Name, ProgressSegments: min(3, max(0, progress.Successes))}
 					if progress.Successes > 0 {
 						student, skillID := person.ID, selected.ID
-						row.OnHold = func() { _ = c.actions.RemoveLatestSuccess(student, skillID, version) }
+						row.OnHold = func() { _ = c.progress.RemoveLatestSuccess(student, skillID, version) }
 						row.HoldDuration = 2 * time.Second
 					}
 					swimmers = append(swimmers, row)
 				}
 				if skill, err := s.Skill(version, selected.ID); err == nil {
-					if _, timed := benchmarkFor(skill.ID); !timed {
-						state.HeaderSwitch = []shell.HeaderSwitchOption{{Label: "Single", Selected: true, Run: func() error { return c.actions.openLargeSelectedMode("single") }}}
-						if allowsMultiMode(skill) {
-							state.HeaderSwitch = append(state.HeaderSwitch, shell.HeaderSwitchOption{Label: "Multi", Run: func() error { return c.actions.openLargeSelectedMode("multi") }})
+					if _, timed := common.BenchmarkFor(skill.ID); !timed {
+						state.HeaderSwitch = []shell.HeaderSwitchOption{{Label: "Single", Selected: true, Run: func() error { return c.actions.OpenSelectedMode("single") }}}
+						if common.AllowsMultiMode(skill) {
+							state.HeaderSwitch = append(state.HeaderSwitch, shell.HeaderSwitchOption{Label: "Multi", Run: func() error { return c.actions.OpenSelectedMode("multi") }})
 						}
-						state.HeaderSwitch = append(state.HeaderSwitch, shell.HeaderSwitchOption{Label: "Class", Run: func() error { return c.actions.openLargeSelectedMode("class") }})
+						state.HeaderSwitch = append(state.HeaderSwitch, shell.HeaderSwitchOption{Label: "Class", Run: func() error { return c.actions.OpenSelectedMode("class") }})
 					}
 				}
 			}
@@ -130,7 +167,7 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 		}
 		state.Title = "Choose a Swimmer"
 
-		state.HeaderSwitch = c.actions.skillModeSwitch(skill, false)
+		state.HeaderSwitch = c.actions.ModeSwitch(skill, false)
 		for _, p := range roster {
 			if !p.Active || p.Level != f.Level {
 				continue
@@ -147,7 +184,7 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 			}
 			if progress.Successes > 0 {
 				person, skillID, curriculumVersion := p.ID, skill.ID, version
-				row.OnHold = func() { _ = c.actions.RemoveLatestSuccess(person, skillID, curriculumVersion) }
+				row.OnHold = func() { _ = c.progress.RemoveLatestSuccess(person, skillID, curriculumVersion) }
 				row.HoldDuration = 2 * time.Second
 			}
 			rows = append(rows, row)
@@ -165,16 +202,16 @@ func (c *SkillPicker) build(input modeInput) (navigation.State, error) {
 	return state, nil
 }
 
-func (c *SkillPicker) compose(state *shell.State, f navigation.Frame) {
+func (c *Component) compose(state *shell.State, f navigation.Frame) {
 	switch f.Screen {
 	case navigation.Skills:
 		state.ComposeBody = c.shared.ComposeSkillListBody(*state)
 	case navigation.SkillSwimmers:
-		state.ComposeBody = c.composeSwimmerListBody(*state)
+		state.ComposeBody = c.ComposeSwimmers(*state)
 	}
 }
 
-func (c *SkillPicker) composeSwimmerListBody(state shell.State) ui.BodyComposer {
+func (c *Component) ComposeSwimmers(state shell.State) ui.BodyComposer {
 	if state.DisplayMode.IsLarge() {
 		return c.large.ComposeLargeSwimmerListBody(state)
 	}

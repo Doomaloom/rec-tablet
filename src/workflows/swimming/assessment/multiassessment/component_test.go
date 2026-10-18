@@ -1,4 +1,4 @@
-package assessment
+package multiassessment
 
 import (
 	"reflect"
@@ -19,16 +19,16 @@ func TestBalancedMultiGroups(t *testing.T) {
 		{1, 1, []int{1}, "1 group of 1"},
 		{0, 1, nil, ""}, {4, 5, nil, ""}, {4, 0, nil, ""},
 	} {
-		if got := balancedMultiSizes(tc.students, tc.groups); !reflect.DeepEqual(got, tc.sizes) {
+		if got := BalancedSizes(tc.students, tc.groups); !reflect.DeepEqual(got, tc.sizes) {
 			t.Fatalf("split %d/%d: %v", tc.students, tc.groups, got)
 		}
-		if got := multiSplitLabel(tc.students, tc.groups); got != tc.label {
+		if got := SplitLabel(tc.students, tc.groups); got != tc.label {
 			t.Fatalf("label: %q, want %q", got, tc.label)
 		}
 	}
 	for students := 1; students <= 50; students++ {
 		for groups := 1; groups <= students; groups++ {
-			sizes := balancedMultiSizes(students, groups)
+			sizes := BalancedSizes(students, groups)
 			total := 0
 			for _, size := range sizes {
 				total += size
@@ -44,42 +44,42 @@ func TestBalancedMultiGroups(t *testing.T) {
 }
 
 func TestMultiAssignmentConstraintsAndReassignment(t *testing.T) {
-	c := &MultiAssessment{session: &multiSession{
+	c := &Component{State: State{Session: &Session{
 		Roster: []domain.Enrollment{{ID: "a"}, {ID: "b"}, {ID: "c"}},
-		Groups: []multiGroup{{Number: 1, Capacity: 2}, {Number: 2, Capacity: 1}},
-	}}
+		Groups: []Group{{Number: 1, Capacity: 2}, {Number: 2, Capacity: 1}},
+	}}}
 	for _, id := range []string{"a", "b", "c", "outsider"} {
-		if err := c.toggleMultiMember(id); err != nil {
+		if err := c.ToggleMember(id); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if !reflect.DeepEqual(c.session.Groups[0].Members, []string{"a", "b"}) || c.multiReady() {
+	if !reflect.DeepEqual(c.State.Session.Groups[0].Members, []string{"a", "b"}) || c.Ready() {
 		t.Fatal("group capacity not enforced")
 	}
-	c.session.AssignmentGroup = 1
-	_ = c.toggleMultiMember("a")
-	if len(c.session.Groups[1].Members) != 0 {
+	c.State.Session.AssignmentGroup = 1
+	_ = c.ToggleMember("a")
+	if len(c.State.Session.Groups[1].Members) != 0 {
 		t.Fatal("duplicate assignment accepted")
 	}
-	_ = c.toggleMultiMember("c")
-	if !c.multiReady() {
+	_ = c.ToggleMember("c")
+	if !c.Ready() {
 		t.Fatal("complete assignment rejected")
 	}
-	_ = c.toggleMultiMember("c")
-	c.session.AssignmentGroup = 0
-	_ = c.toggleMultiMember("b")
-	_ = c.toggleMultiMember("c")
-	c.session.AssignmentGroup = 1
-	_ = c.toggleMultiMember("b")
-	if !c.multiReady() {
+	_ = c.ToggleMember("c")
+	c.State.Session.AssignmentGroup = 0
+	_ = c.ToggleMember("b")
+	_ = c.ToggleMember("c")
+	c.State.Session.AssignmentGroup = 1
+	_ = c.ToggleMember("b")
+	if !c.Ready() {
 		t.Fatal("reassignment failed")
 	}
-	c.session.Groups[1].Members = []string{"outsider"}
-	if c.multiReady() {
+	c.State.Session.Groups[1].Members = []string{"outsider"}
+	if c.Ready() {
 		t.Fatal("ineligible student accepted")
 	}
-	c.session.Groups[1].Members = []string{"a"}
-	if c.multiReady() {
+	c.State.Session.Groups[1].Members = []string{"a"}
+	if c.Ready() {
 		t.Fatal("duplicate assignment accepted by final validation")
 	}
 }

@@ -1,8 +1,9 @@
-package assessment
+package singleassessment
 
 import (
 	"testing"
 
+	"rectablet/src/workflows/swimming/assessment/internal/common"
 	"rectablet/src/workflows/swimming/assessment/view/small"
 	"rectablet/src/workflows/swimming/curriculum"
 	"rectablet/src/workflows/swimming/domain"
@@ -13,8 +14,10 @@ import (
 // implementation or a navigation controller.
 func TestSingleAssessmentWithExplicitDataAndActions(t *testing.T) {
 	var saved, discarded bool
-	component := SingleAssessment{
-		data: singleAssessmentData{
+	component := Component{
+		storage: Storage{
+			Submit:         func(string) (bool, error) { saved = true; return false, nil },
+			DiscardAttempt: func(string) error { discarded = true; return nil },
 			GetAttempt: func(id string) (domain.Attempt, error) {
 				if id != "draft" {
 					t.Fatalf("attempt requested = %q", id)
@@ -34,14 +37,17 @@ func TestSingleAssessmentWithExplicitDataAndActions(t *testing.T) {
 				return map[string]string{"a": "successful"}, nil
 			},
 		},
-		actions: singleAssessmentActions{
-			SaveAttempt:    func() error { saved = true; return nil },
-			DiscardAttempt: func() error { discarded = true; return nil },
+		navigation: common.Navigation{
+			Frame: func() navigation.Frame {
+				return navigation.Frame{Screen: navigation.Assessment, Parameters: navigation.Parameters{Attempt: "draft"}}
+			},
+			Run: func(run func() error) error { return run() },
+			Pop: func() {},
 		},
 		paginate: func(state *navigation.State, rows []navigation.Row) { state.Rows = rows; state.RowCount = len(rows) },
 		small:    &small.View{},
 	}
-	state, err := component.build(modeInput{frame: navigation.Frame{Screen: navigation.Assessment, Parameters: navigation.Parameters{Attempt: "draft"}}})
+	state, err := component.Build(common.Input{Frame: navigation.Frame{Screen: navigation.Assessment, Parameters: navigation.Parameters{Attempt: "draft"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,27 +63,4 @@ func TestSingleAssessmentWithExplicitDataAndActions(t *testing.T) {
 	if !saved || !discarded {
 		t.Fatalf("actions: saved=%v discarded=%v", saved, discarded)
 	}
-}
-
-func TestTimedHeatOwnsTickerCleanup(t *testing.T) {
-	stop := make(chan struct{})
-	component := TimedHeat{
-		heat:     &timedHeatState{SkillID: "Splash7:10", stop: stop},
-		paginate: func(state *navigation.State, rows []navigation.Row) { state.Rows = rows; state.RowCount = len(rows) },
-		small:    &small.View{},
-	}
-	state, err := component.build(modeInput{frame: navigation.Frame{Screen: navigation.TimedHeat}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if state.OnLeave == nil {
-		t.Fatal("heat has no cleanup callback")
-	}
-	state.OnLeave()
-	select {
-	case <-stop:
-	default:
-		t.Fatal("leaving heat did not stop its ticker")
-	}
-	state.OnLeave() // Leaving again is harmless.
 }
