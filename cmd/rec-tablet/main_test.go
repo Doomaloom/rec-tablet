@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"errors"
 	"flag"
 
@@ -11,7 +10,6 @@ import (
 	"testing"
 
 	store "rectablet/src/workflows/swimming/repository"
-
 )
 
 func TestCLIValidation(t *testing.T) {
@@ -20,6 +18,7 @@ func TestCLIValidation(t *testing.T) {
 		{"unexpected"},
 		{"adapt-rosters"},
 		{"extract-curriculum"},
+		{"--ui", "unknown"},
 	} {
 		if err := run(args); err == nil {
 			t.Fatalf("accepted invalid arguments: %v", args)

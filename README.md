@@ -6,6 +6,12 @@ New to the codebase? Open the standalone [developer code guide](docs/code-guide.
 
 ## Code organization
 
+The default UI now lives in [`next/`](next/README.md), alongside the original implementation. Run `make run` for the new tree or `make run ARGS='--ui=legacy'` to compare the original. Both use the same data formats and preferences.
+
+`next/app/layout.go` composes the persistent background, header, rails, feature content, and footer. Each component and feature has its own directory with `template.go` and `controller.go`; feature roots select compact/large composition and supply explicit settings to children. See the [ownership guide](next/README.md#where-changes-belong) for where to make changes.
+
+### Original implementation (`--ui=legacy`)
+
 The code is grouped by workflow and feature. Under `src/workflows/swimming`, `classes`, `attendance`, `assessment`, `feedback`, and `setup` each contain their model/repository interface, controller, view, and tests. Swimming's `domain` contains typed entities and rules; its `repository` owns SQL and the unchanged v1 schema. `module.go` constructs the features and registers their routes.
 
 Repeated generic filenames carry a descriptive owner prefix: `setup_component.go`, `feedback_model.go`, and `classes_view.go`. Corresponding tests use the same prefix. Assessment rendering packages add display context, such as `assessment_large_class.go` and `assessment_small_class.go`; shared rendering uses `assessment_shared_`. Already descriptive filenames and conventional command entrypoints (`main.go`) keep their names. Setup keeps a single view because its layout is shared across display sizes. Assembled workflow interaction tests live in `src/workflows/swimming/integration`; feature unit tests stay with their feature.

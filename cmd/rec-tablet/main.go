@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	nextapp "rectablet/next/runtime"
 	application "rectablet/src/app"
 
 	"os"
@@ -46,6 +47,7 @@ func run(args []string) error {
 	}
 	shareServer := flags.String("share-server", shareServerDefault, "temporary data share server URL")
 	fullscreen := flags.Bool("fullscreen", false, "start fullscreen")
+	implementation := flags.String("ui", "next", "UI implementation: next or legacy")
 	smoke := flags.Bool("smoke-test", false, "render briefly and exit")
 	screenshot := flags.String("screenshot", "", "PNG output during --smoke-test")
 	if e = flags.Parse(args); e != nil {
@@ -56,6 +58,12 @@ func run(args []string) error {
 	}
 	if *screenshot != "" && !*smoke {
 		return fmt.Errorf("--screenshot requires --smoke-test")
+	}
+	if *implementation != "next" && *implementation != "legacy" {
+		return fmt.Errorf("unknown UI implementation %q: choose next or legacy", *implementation)
+	}
+	if *implementation == "next" {
+		return nextapp.Run(nextapp.Options{Database: *database, ShareServer: *shareServer, Fullscreen: *fullscreen, SmokeTest: *smoke, Screenshot: *screenshot})
 	}
 	return application.Run(application.Options{Database: *database, ShareServer: *shareServer, Fullscreen: *fullscreen, SmokeTest: *smoke, Screenshot: *screenshot})
 }
