@@ -76,16 +76,10 @@ The database snapshot is read in one transaction, serialized to a temporary file
 
 ## Curriculum extraction review
 
-Each level includes a source filename/hash; each skill preserves its source number, text lines, and assessable leaf criteria with group paths. The catalog version is a hash of extracted content. Re-extraction is deterministic and tested against the sister templates when available.
+Always use front-page marking columns for skill names and printed numbers, then the back page for subskills. See the [attendance template skill audit](skill-audit.md) for all 353 skills, their back-page requirements, compact titles, and source discrepancies.
 
-The extractor accounts for these source conventions and exceptions:
+The extractor selects the matching stroke, position, entry, or Water Smart group and retains shared requirements on relevant columns. Each skill stores its back-page source ID, heading, and lines. A back-page requirement without a corresponding front-page column is preserved in `unmappedSubskills` and identified in the audit, rather than silently assigned to another skill.
 
-- Back-page headings are the canonical skill units; front-page Water Smart a/b/c/d columns summarize grouped criteria.
-- Splash 2B has two distinct skills numbered 8; their IDs are `Splash2B:8` and `Splash2B:8-2`. The original display numbering is retained.
-- Splash 8 places skills 12a, 12b, and 12c inside one paragraph; they are separate assessable skills.
-- Splash 7 skill 16 splits its heading across two bold elements; the heading is rejoined.
-- Stroke names, workout phases, and Water Smart headings remain context on leaf criteria. HTML source wrapping does not split a criterion; deliberate line continuations are rejoined.
-- Participation requirements remain assessable criteria alongside individual Water Smart messages.
-- SplashPrivate contains a reference list, not an independent curriculum. Actual assessment uses each swimmer's level, including Splash 2A or 2B rather than inferring from the private sheet's generic Splash 2 label.
+Printed letter suffixes are retained. Splash9 repeats number 9 on its three stroke columns, which remain separate skills with stable internal IDs. TeenAdult3's eggbeater/scissor OR skill remains one front-page skill. SplashPrivate is a level reference, not an independent curriculum. SkillMarking.html is a dynamic sheet with no curriculum.
 
-Automated checks verify all 23 source hashes, unique identifiers, populated criteria, preservation of source words, known extraction exceptions, and deterministic regeneration. Source wording has not been rewritten or independently certified as current curriculum; instructors should review program content before operational adoption.
+The bundled catalog is generated directly by `extract-curriculum`; no manual splitting step is needed. Tests compare the complete generated catalog against the current shared template directory, verify component filtering and preservation of source requirements, and measure all compact labels against the existing header width. These local templates are the authority for this audit; the audit does not certify them against newer external curriculum standards.

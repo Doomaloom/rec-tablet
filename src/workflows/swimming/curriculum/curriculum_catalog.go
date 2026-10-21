@@ -19,20 +19,23 @@ type Catalog struct {
 	Levels        []Level `json:"levels"`
 }
 type Level struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Source       string   `json:"source"`
-	SourceSHA256 string   `json:"sourceSha256"`
-	Skills       []Skill  `json:"skills"`
-	Kind         string   `json:"kind"`
-	References   []string `json:"references,omitempty"`
+	ID                string     `json:"id"`
+	Name              string     `json:"name"`
+	Source            string     `json:"source"`
+	SourceSHA256      string     `json:"sourceSha256"`
+	Skills            []Skill    `json:"skills"`
+	Kind              string     `json:"kind"`
+	References        []string   `json:"references,omitempty"`
+	UnmappedSubskills []Subskill `json:"unmappedSubskills,omitempty"`
 }
 type Skill struct {
-	ID          string     `json:"id"`
-	Number      string     `json:"number"`
-	Name        string     `json:"name"`
-	SourceLines []string   `json:"sourceLines"`
-	Subskills   []Subskill `json:"subskills"`
+	ID            string     `json:"id"`
+	Number        string     `json:"number"`
+	Name          string     `json:"name"`
+	SourceSkillID string     `json:"sourceSkillId"`
+	SourceName    string     `json:"sourceName"`
+	SourceLines   []string   `json:"sourceLines"`
+	Subskills     []Subskill `json:"subskills"`
 }
 type Subskill struct {
 	ID    string   `json:"id"`

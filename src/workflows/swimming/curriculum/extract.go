@@ -44,7 +44,7 @@ type section struct {
 	lines        []string
 }
 
-func Extract(path string) (Level, error) {
+func extractBack(path string) (Level, error) {
 	raw, e := os.ReadFile(path)
 	if e != nil {
 		return Level{}, e
@@ -124,17 +124,23 @@ func Extract(path string) (Level, error) {
 				if i+1 < len(part.lines) {
 					nextMarker = markerOf(part.lines[i+1])
 				}
-				if plainGroups[strings.ToLower(label)] || (marker == "•" && nextMarker == "-" && !waterSmart) {
+				// TeenAdult2's back-crawl kick has a top-level bullet in the
+				// source, followed by a dash for breathing. Both are criteria.
+				malformedKick := skillID == "TeenAdult2:14" && strings.HasPrefix(label, "Continuous, rhythmic flutter kick") && marker == "•"
+				// A repeated Water Smart message is assessable text, not
+				// another heading (TeenAdult3:14, "Check the ice").
+				repeatedMessage := waterSmart && marker != "" && len(group) > 0 && strings.EqualFold(group[0], label)
+				if !repeatedMessage && !malformedKick && (plainGroups[strings.ToLower(label)] || (marker == "•" && nextMarker == "-" && !waterSmart)) {
 					group = []string{label}
 					groupMarker = marker
 					newGroup = true
 					continue
 				}
-				if marker == "" && len(s.Subskills) > 0 && !newGroup && !strings.HasPrefix(strings.ToLower(label), "participation") {
+				if marker == "" && label != "Selection of appropriate procedures:" && len(s.Subskills) > 0 && !newGroup && !strings.HasPrefix(strings.ToLower(label), "participation") {
 					s.Subskills[len(s.Subskills)-1].Text += " " + label
 					continue
 				}
-				if marker != "" && marker == groupMarker && !waterSmart {
+				if marker != "" && marker == groupMarker && !waterSmart && !malformedKick {
 					group = []string{}
 					groupMarker = ""
 				}
@@ -329,6 +335,10 @@ func ExtractDirectory(dir string) (Catalog, error) {
 	sort.Strings(paths)
 	levels := []Level{}
 	for _, p := range paths {
+		// The dynamic weekly marking sheet has no curriculum of its own.
+		if filepath.Base(p) == "SkillMarking.html" {
+			continue
+		}
 		l, e := Extract(p)
 		if e != nil {
 			return Catalog{}, e
