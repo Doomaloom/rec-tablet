@@ -41,13 +41,21 @@ func (c *LargeTemplate) ComposeLargeSkillsBody(skills []navigation.Row, selected
 				_ = c.SelectSkill(id)
 			})
 		} else {
-			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", skillRows, 2, halfSkills, c.Pages.Skill, func(id string) {
-				if c.IsTimed(id) {
-					_ = c.OpenTimedSkill(id)
-					return
-				}
-				_ = c.SelectSkill(id)
-			})
+			for column := range 2 {
+				panel := ui.Panel(surface, func(w, h float32) (float32, float32, float32, float32) {
+					x, y, width, height := surface.BodyBounds(w, h)
+					cellWidth := (width - ui.Gap) / 2
+					return x + float32(column)*(cellWidth+ui.Gap), y, cellWidth, height
+				})
+				start := column * halfSkills
+				c.largePagedGrid(ui.SelectableSurface(panel), "large-skills", skillRows[start:min(start+halfSkills, len(skillRows))], 1, halfSkills, c.Pages.Skill, func(id string) {
+					if c.IsTimed(id) {
+						_ = c.OpenTimedSkill(id)
+						return
+					}
+					_ = c.SelectSkill(id)
+				})
+			}
 		}
 	}
 }
