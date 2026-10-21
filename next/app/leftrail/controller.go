@@ -8,6 +8,9 @@ import (
 type Controller struct{}
 
 func (Controller) Compose(c *contracts.RenderContext) {
+	if c.State.HideLeftRail {
+		return
+	}
 	if c.State.LeftRailActions != nil {
 		renderActionRailComponents(c)
 	} else {

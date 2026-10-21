@@ -27,6 +27,7 @@ type Item struct {
 	Data                         any
 	Fill                         color.Color
 	ProgressSegments             int
+	SuccessChecks                int
 	ProgressValue, ProgressTotal int
 	OnHold                       func()
 	HoldDuration                 time.Duration
@@ -53,6 +54,7 @@ func Grid(surface *Surface, rows []Item, columns, rowsPerPage int, selectRow fun
 		b.OnHold = row.OnHold
 		b.HoldDuration = row.HoldDuration
 		b.ProgressSegments = row.ProgressSegments
+		b.SuccessChecks = row.SuccessChecks
 		b.ProgressValue = row.ProgressValue
 		b.ProgressTotal = row.ProgressTotal
 		if row.Fill != nil {

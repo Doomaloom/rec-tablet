@@ -30,9 +30,12 @@ func (c Controller) RenderGrid(surface *ui.Surface, rows []navigation.Row, selec
 		ui.Empty(surface, "No criteria available.")
 		return
 	}
-	columns := 1
-	if len(rows) > 6 {
-		columns = 2
+	columns := c.Columns
+	if columns <= 0 {
+		columns = 1
+		if len(rows) > 6 {
+			columns = 2
+		}
 	}
 	visualRows := (len(rows) + columns - 1) / columns
 	var lastWidth, lastHeight, sharedFont float32
@@ -46,6 +49,12 @@ func (c Controller) RenderGrid(surface *ui.Surface, rows []navigation.Row, selec
 		button.Compact, button.MaxLabelLines = true, -1
 		button.Fill = ui.Rail
 		button.Ink = ui.Navy
+		if c.Fill != nil {
+			button.Fill = c.Fill
+		}
+		if c.Ink != nil {
+			button.Ink = c.Ink
+		}
 		if row.Status == "successful" {
 			button.Fill, button.Ink, button.Selected = ui.Green, ui.White, true
 		}

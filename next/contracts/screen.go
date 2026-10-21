@@ -67,6 +67,9 @@ type State struct {
 	HeaderActions       []HeaderAction
 	HeaderSwitch        []HeaderSwitchOption
 	HeaderTitleFontSize float32
+	// HeaderStartFraction aligns the header after a leading body column.
+	HeaderStartFraction float32
+	HideLeftRail        bool
 	SplitHeader         *SplitHeader
 	FitHeader           bool
 	HideFooter          bool

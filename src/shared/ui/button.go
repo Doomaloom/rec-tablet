@@ -15,15 +15,17 @@ import (
 
 // Compatibility names for workflow status colors; visual tokens come from COB.
 var (
-	Navy       = design.Secondary
-	Blue       = design.Primary
-	Rail       = design.Background
-	Muted      = design.Alpha(design.Secondary, 179)
-	Green      = color.NRGBA{R: 23, G: 103, B: 93, A: 255}
-	Red        = design.Danger
-	Amber      = design.Header
-	White      = design.White
-	Background = design.Background
+	Navy                     = design.Secondary
+	Blue                     = design.Primary
+	Rail                     = design.Background
+	Muted                    = design.Alpha(design.Secondary, 179)
+	Green                    = color.NRGBA{R: 23, G: 103, B: 93, A: 255}
+	Red                      = design.Danger
+	Amber                    = design.Header
+	White                    = design.White
+	Background               = design.Background
+	successCheckIcon         = fyne.NewStaticResource("success-check.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="#17675d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`))
+	selectedSuccessCheckIcon = fyne.NewStaticResource("selected-success-check.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`))
 )
 
 type TouchButton struct {
@@ -38,6 +40,7 @@ type TouchButton struct {
 	MaxLabelLines                         int
 	HoldDuration                          time.Duration
 	ProgressSegments                      int
+	SuccessChecks                         int
 	ProgressValue, ProgressTotal          int
 	Disabled, Selected, Outlined, focused bool
 	hovered                               bool
@@ -145,6 +148,13 @@ func (b *TouchButton) CreateRenderer() fyne.WidgetRenderer {
 		r.progressSegments[i] = segment
 		r.objects = append(r.objects, segment)
 	}
+	for i := range r.successChecks {
+		check := canvas.NewImageFromResource(successCheckIcon)
+		check.FillMode = canvas.ImageFillContain
+		check.Hide()
+		r.successChecks[i] = check
+		r.objects = append(r.objects, check)
+	}
 	r.objects = append(r.objects, r.label)
 	if b.Icon != nil {
 		r.icon = canvas.NewImageFromResource(b.Icon)
@@ -160,6 +170,7 @@ type buttonRenderer struct {
 	label            *TextBlock
 	icon             *canvas.Image
 	progressSegments [3]*canvas.Rectangle
+	successChecks    [3]*canvas.Image
 	objects          []fyne.CanvasObject
 }
 
@@ -171,6 +182,9 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 	s := b.ScaleFactor
 	for _, segment := range r.progressSegments {
 		segment.Hide()
+	}
+	for _, check := range r.successChecks {
+		check.Hide()
 	}
 	r.bg.Resize(size)
 	ink := actionbutton.PaintSurface(r.bg, actionbutton.SurfaceStyle{
@@ -191,6 +205,24 @@ func (r *buttonRenderer) Layout(size fyne.Size) {
 		pad = 2 * s
 	}
 	available := max(1, size.Width-2*x)
+	checkCount := min(3, max(0, b.SuccessChecks))
+	if checkCount > 0 {
+		checkSize := min(22*s, max(1, size.Height-4*s))
+		gap := 3 * s
+		checksWidth := float32(checkCount)*checkSize + float32(checkCount-1)*gap
+		available = max(1, available-checksWidth-ButtonPadding*s)
+		for i := 0; i < checkCount; i++ {
+			check := r.successChecks[i]
+			check.Resource = successCheckIcon
+			if b.Selected && !b.Disabled {
+				check.Resource = selectedSuccessCheckIcon
+			}
+			check.Resize(fyne.NewSize(checkSize, checkSize))
+			check.Move(fyne.NewPos(size.Width-x-checksWidth+float32(i)*(checkSize+gap), (size.Height-checkSize)/2))
+			check.Show()
+			check.Refresh()
+		}
+	}
 	r.label.MaxLines = 2
 	if b.MaxLabelLines != 0 {
 		r.label.MaxLines = b.MaxLabelLines

@@ -57,6 +57,13 @@ func (c *Component) enter(f navigation.Frame) error {
 	})
 }
 
+func (c *Component) classRailActions() []contracts.RailAction {
+	confirm, cancel := *common.SaveRailAction(c.SaveClass), *common.DiscardRailAction(c.DiscardClass)
+	confirm.ID, confirm.Label = "confirm-class", "Confirm class"
+	cancel.ID, cancel.Label = "cancel-class", "Cancel class"
+	return []contracts.RailAction{confirm, cancel}
+}
+
 func (c *Component) railActions() []contracts.RailAction {
 	save, discard := *common.SaveRailAction(c.SaveClassStudent), *common.DiscardRailAction(c.DiscardClassStudent)
 	save.ID, save.Label = "save-student", "Save current student"

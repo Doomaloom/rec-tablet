@@ -27,6 +27,7 @@ type Component struct {
 type State struct {
 	Attempts, Roster []domain.MultiAttempt
 	Status           map[string]string
+	Successes        map[string]int
 	RosterPage       int
 }
 
@@ -37,6 +38,7 @@ type Storage struct {
 	ListRoster        func(string) ([]domain.Enrollment, error)
 	Mark              func(string, string, string) error
 	OpenMultiAttempts func([]string, string, string) ([]domain.MultiAttempt, error)
+	Progress          func(string, string, string) (domain.Progress, error)
 	Skill             func(string, string) (curriculum.Skill, error)
 	SubmitAttempts    func([]string) error
 }
@@ -83,7 +85,16 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 	state.SplitHeader = &contracts.SplitHeader{Left: skill.Number + ". " + curriculum.CompactTitle(skill), Right: student.Name}
 	state.PrimaryInfo = fmt.Sprintf("%s · %s", course.Name, course.Time)
 	if c.Layout.Panels {
-		ConfigureLargeHeader(&state, skill, course)
+		successes := make(map[string]int, len(c.State.Roster))
+		for _, person := range c.State.Roster {
+			progress, err := c.storage.Progress(person.PersonID, f.Skill, f.Version)
+			if err != nil {
+				return state, err
+			}
+			successes[person.PersonID] = min(3, max(0, progress.Successes))
+		}
+		c.State.Successes = successes
+		ConfigureLargeHeader(&state, skill)
 	} else {
 		navigation.AppendPrimaryInfo(&state, fmt.Sprintf("%s. %s", skill.Number, skill.Name))
 		lineHeight := ui.WrappedTextHeight("Ag", 680, 20, true)
@@ -92,7 +103,12 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 		}
 	}
 	state.HideFooter = true
-	state.LeftRailActions = c.railActions()
+	if c.Layout.Panels {
+		state.HideLeftRail = true
+		state.RightRailActions = c.classRailActions()
+	} else {
+		state.LeftRailActions = c.railActions()
+	}
 	for _, subskill := range skill.Subskills {
 		state.Rows = append(state.Rows, navigation.Row{ID: subskill.ID, Label: subskill.Text, Status: answers[subskill.ID]})
 	}
@@ -104,12 +120,10 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 func (c *Component) rosterRows(page int) []ui.Item {
 	var rows []ui.Item
 	current := c.State.Attempts[page].PersonID
-	for _, student := range c.State.Roster {
-		status := c.State.Status[student.PersonID]
-		if status == "" {
-			status = "Pending"
-		}
-		row := ui.Item{ID: student.PersonID, Label: student.Name + " · " + status, Selected: student.PersonID == current, Disabled: status != "Pending"}
+	labels := studentLabels(c.State.Roster)
+	for i, student := range c.State.Roster {
+		row := ui.Item{ID: student.PersonID, Label: labels[i], Selected: student.PersonID == current, Disabled: c.State.Status[student.PersonID] != ""}
+		row.SuccessChecks = c.State.Successes[student.PersonID]
 		if row.Selected {
 			row.Fill = ui.Green
 		}

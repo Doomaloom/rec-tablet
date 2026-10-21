@@ -74,13 +74,12 @@ func renderHeaderComponents(builder *contracts.RenderContext) {
 		actionWidth = switchWidth
 	}
 
-	left := ui.ContentInset
 	fontSize := float32(25)
 	if state.HeaderTitleFontSize > 0 {
 		fontSize = state.HeaderTitleFontSize
 	}
 	position := func(width, height float32) (float32, float32, float32, float32) {
-		x, y, w, _ := geometry.HeaderTitleSlot(width, height, left, actionWidth)
+		x, y, w, _ := geometry.HeaderTitleSlot(width, height, geometry.HeaderLeft(state, width), actionWidth)
 		return x, y, w, geometry.HeaderHeight(state)
 	}
 	if state.HoldTitle != nil {
@@ -154,6 +153,7 @@ func renderPrimaryInfoComponent(builder *contracts.RenderContext) {
 	info := ui.NewText(text, geometry.PrimaryInfoFontSize(builder.State), ui.Navy)
 	info.Bold = true
 	builder.Add("primary-info", info, func(width, _ float32) (float32, float32, float32, float32) {
-		return ui.ContentInset, ui.OuterMargin + geometry.HeaderHeight(builder.State) + ui.Gap, width - 2*ui.ContentInset, geometry.PrimaryInfoHeight(builder.State, width)
+		left := geometry.HeaderLeft(builder.State, width)
+		return left, ui.OuterMargin + geometry.HeaderHeight(builder.State) + ui.Gap, width - ui.ContentInset - left, geometry.PrimaryInfoHeight(builder.State, width)
 	})
 }

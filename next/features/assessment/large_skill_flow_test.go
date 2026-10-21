@@ -99,6 +99,13 @@ func TestLargeSkillTapOpensClassAndReturnsToSkills(t *testing.T) {
 			if f.Screen != navigation.ClassAssessment || f.Skill != "Splash7:1" || f.Level != "Splash7" || f.Version != store.catalog.Version || f.Lesson != "lesson" {
 				t.Fatalf("class destination = %+v; notice = %s", f, nav.State.Notice)
 			}
+			if !nav.State.HideLeftRail || len(nav.State.RightRailActions) != 2 {
+				t.Fatalf("class rails = left hidden %v, right %+v", nav.State.HideLeftRail, nav.State.RightRailActions)
+			}
+			confirm, cancel := nav.State.RightRailActions[0], nav.State.RightRailActions[1]
+			if confirm.ID != "confirm-class" || cancel.ID != "cancel-class" || confirm.Icon.Name() != "assessment-save.svg" || cancel.Icon.Name() != "assessment-discard.svg" {
+				t.Fatalf("class actions must use single check/cross icons: %+v, %+v", confirm, cancel)
+			}
 			if len(c.class.State.Attempts) != 2 || c.class.State.Attempts[0].PersonID != "a" || c.class.State.Attempts[1].PersonID != "b" {
 				t.Fatalf("class participants = %+v", c.class.State.Attempts)
 			}
@@ -108,12 +115,12 @@ func TestLargeSkillTapOpensClassAndReturnsToSkills(t *testing.T) {
 			var err error
 			switch exit {
 			case "save":
-				err = c.class.SaveClass()
+				err = confirm.Run()
 				if len(store.submitted) != 1 || len(store.submitted[0]) != 2 {
 					t.Fatalf("submitted = %v", store.submitted)
 				}
 			case "discard":
-				err = c.class.DiscardClass()
+				err = cancel.Run()
 				if len(store.discarded) != 1 || len(store.discarded[0]) != 2 {
 					t.Fatalf("discarded = %v", store.discarded)
 				}

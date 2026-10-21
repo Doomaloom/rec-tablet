@@ -89,6 +89,30 @@ func HeaderTitleSlot(width, _ float32, left, actionWidth float32) (float32, floa
 	return left, ui.OuterMargin, width - ui.ContentInset - left - actionWidth - gap, ui.HeaderHeight
 }
 
+func bodyWidth(state contracts.State, width float32) float32 {
+	available := width - contentLeft(state) - ui.ContentInset
+	if state.PageCount > 1 && state.RightRailActions == nil {
+		available -= PagePositionBodyReserve
+	}
+	return available
+}
+
+func contentLeft(state contracts.State) float32 {
+	if state.HideLeftRail {
+		return ui.OuterMargin
+	}
+	return ui.ContentInset
+}
+
+func HeaderLeft(state contracts.State, width float32) float32 {
+	if state.HeaderStartFraction <= 0 {
+		return contentLeft(state)
+	}
+	// Give reclaimed left-rail space to the leading column, preserving the header's start.
+	reclaimed := ui.ContentInset - contentLeft(state)
+	return ui.ContentInset + (bodyWidth(state, width)-reclaimed-ui.Gap)*state.HeaderStartFraction + ui.Gap
+}
+
 func HeaderHeight(state contracts.State) float32 {
 	if state.SplitHeader != nil {
 		return SplitHeaderHeight
@@ -118,7 +142,7 @@ func PrimaryInfoHeight(state contracts.State, width float32) float32 {
 	if text == "" {
 		return 0
 	}
-	return max(float32(30), ui.WrappedTextHeight(text, width-2*ui.ContentInset, PrimaryInfoFontSize(state), true)+4)
+	return max(float32(30), ui.WrappedTextHeight(text, width-ui.ContentInset-HeaderLeft(state, width), PrimaryInfoFontSize(state), true)+4)
 }
 
 func PrimaryInfoFontSize(state contracts.State) float32 {
@@ -144,11 +168,7 @@ func BodySlot(state contracts.State) ui.Bounds {
 		if infoHeight > 0 {
 			top += infoHeight + ui.Gap
 		}
-		bodyWidth := width - 2*ui.ContentInset
-		if state.PageCount > 1 {
-			bodyWidth -= PagePositionBodyReserve
-		}
-		return ui.ContentInset, top, bodyWidth, height - top - ui.OuterMargin - FooterHeight(state)
+		return contentLeft(state), top, bodyWidth(state, width), height - top - ui.OuterMargin - FooterHeight(state)
 	}
 }
 func SubmitFooterSlot(width, height float32) (float32, float32, float32, float32) {

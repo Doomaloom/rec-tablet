@@ -15,6 +15,7 @@ import (
 	host "rectablet/next/app"
 	"rectablet/next/contracts"
 	"rectablet/next/features/assessment/classassessment"
+	"rectablet/next/features/assessment/internal/common"
 	"rectablet/next/features/assessment/internal/panels"
 	"rectablet/next/features/assessment/multiassessment"
 	"rectablet/next/features/assessment/singleassessment"
@@ -169,18 +170,49 @@ func TestLargeChecklistFitsEveryCatalogSkillWithSidebar(t *testing.T) {
 				SplitHeader: &contracts.SplitHeader{Left: skill.Number + ". " + skill.Name, Right: "A Long Swimmer Name"},
 				PrimaryInfo: "Saturday morning swimming group · 9:00 AM",
 			}
-			classassessment.ConfigureLargeHeader(&state, skill, domain.Course{Name: "Saturday morning swimming group", Time: "9:00 AM"})
-			state.ComposeBody = func(surface *ui.Surface) {
-				_, right := panels.Split(surface, .28)
-				(&singleassessment.LargeTemplate{}).RenderLargeChecklist(right, rows, nil)
+			classassessment.ConfigureLargeHeader(&state, skill)
+			state.HideLeftRail = true
+			confirm, cancel := *common.SaveRailAction(nil), *common.DiscardRailAction(nil)
+			confirm.ID, cancel.ID = "confirm-class", "cancel-class"
+			state.RightRailActions = []contracts.RailAction{confirm, cancel}
+			page := 0
+			var swimmers []ui.Item
+			for i := 0; i < 12; i++ {
+				swimmers = append(swimmers, ui.Item{ID: fmt.Sprint(i), Label: fmt.Sprintf("Student %d", i), SuccessChecks: i % 4})
 			}
+			state.ComposeBody = (&classassessment.LargeTemplate{
+				Pages:       classassessment.Pages{Class: &page},
+				ClassRoster: func() []ui.Item { return swimmers },
+			}).ComposeLargeClassBody(rows)
 			presenter.state = state
 			composition := host.ComposeScreen(view, state)
 			seen := 0
+			var headerX, headerBottom, rosterRight, rosterTop, rosterBottom, checklistX, checklistTop float32
 			for _, component := range composition.Components {
-				if component.Name == "header-half-0" {
+				if strings.HasPrefix(component.Name, "header-half-") {
+					t.Fatalf("%s: class marking still uses a split header", skill.ID)
+				}
+				if component.Name == "home-rail" || component.Name == "back-button" || component.Name == "previous-page" || component.Name == "next-page" || component.Name == "page-position-track" || component.Name == "page-position-thumb" {
+					t.Fatalf("%s: unwanted rail control %s", skill.ID, component.Name)
+				}
+				if component.Name == "feature-list-row-0" {
+					x, y, width, _ := component.Position(1024, 600)
+					if x != ui.OuterMargin || width < (1024-2*ui.ContentInset-ui.Gap)*.28+ui.ContentInset-ui.OuterMargin-0.01 {
+						t.Fatalf("%s: student column did not reclaim the left rail: x=%v width=%v", skill.ID, x, width)
+					}
+					rosterRight, rosterTop = x+width, y
+				}
+				if component.Name == "feature-list-row-11" {
+					_, y, _, height := component.Position(1024, 600)
+					rosterBottom = y + height
+				}
+				if component.Name == "screen-title" {
 					header := component.Object.(*ui.TextBlock)
-					_, _, width, height := component.Position(1024, 600)
+					x, y, width, height := component.Position(1024, 600)
+					headerX, headerBottom = x, y+height
+					if header.Text != skill.Number+". "+skill.Name {
+						t.Fatalf("%s: header = %q", skill.ID, header.Text)
+					}
 					header.Resize(fyne.NewSize(width, height))
 					header.Refresh()
 					if header.Truncated {
@@ -203,9 +235,15 @@ func TestLargeChecklistFitsEveryCatalogSkillWithSidebar(t *testing.T) {
 				if !ok {
 					t.Fatalf("%s: criterion is not a button", skill.ID)
 				}
-				_, _, width, height := component.Position(1024, 600)
-				if height < 48 {
-					t.Fatalf("%s: target height %.1f < 48", skill.ID, height)
+				x, y, width, height := component.Position(1024, 600)
+				if seen == 0 {
+					checklistX, checklistTop = x, y
+				}
+				if x != checklistX || y < checklistTop+float32(seen)*(height+ui.Gap)-0.01 {
+					t.Fatalf("%s: criteria must form one column in curriculum order", skill.ID)
+				}
+				if height <= 0 {
+					t.Fatalf("%s: invalid criterion height %.1f", skill.ID, height)
 				}
 				if button.FontSize < 18 {
 					t.Fatalf("%s: font %.1f < 18", skill.ID, button.FontSize)
@@ -215,6 +253,9 @@ func TestLargeChecklistFitsEveryCatalogSkillWithSidebar(t *testing.T) {
 					t.Fatalf("%s: criterion %q clips: %.1f > %.1f", skill.ID, button.Text, needed+4, height)
 				}
 				seen++
+			}
+			if headerX != checklistX || headerX < rosterRight+ui.Gap || rosterTop > ui.OuterMargin+ui.Gap || rosterTop >= headerBottom || rosterBottom < 600-ui.OuterMargin-0.01 || checklistTop < headerBottom+ui.Gap {
+				t.Fatalf("%s: header/checklist/roster misaligned: header x=%v bottom=%v, checklist x=%v top=%v, roster right=%v top=%v bottom=%v", skill.ID, headerX, headerBottom, checklistX, checklistTop, rosterRight, rosterTop, rosterBottom)
 			}
 			if seen != len(rows) {
 				t.Fatalf("%s: rendered %d of %d criteria", skill.ID, seen, len(rows))
@@ -352,9 +393,9 @@ func TestLargeClassRosterShowsSavedDiscardedAndPendingSessions(t *testing.T) {
 		label    string
 		disabled bool
 	}{
-		"feature-list-row-a": {"Alex · Saved", true},
-		"feature-list-row-b": {"Blair · Pending", false},
-		"feature-list-row-c": {"Casey · Discarded", true},
+		"feature-list-row-a": {"Alex", true},
+		"feature-list-row-b": {"Blair", false},
+		"feature-list-row-c": {"Casey", true},
 	}
 	for _, component := range composition.Components {
 		expected, ok := want[component.Name]
