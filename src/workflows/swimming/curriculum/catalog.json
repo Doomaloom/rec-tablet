@@ -3727,7 +3727,7 @@
           "sourceSkillId": "Splash2A:8",
           "sourceName": "Front Crawl and Back Crawl (5 m)",
           "sourceLines": [
-            "• Minimum distance completed (for both strokes)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Body on front",
             "• Alternate arm action",
@@ -3743,7 +3743,7 @@
           "subskills": [
             {
               "id": "Splash2A:8-front-crawl:1",
-              "text": "Minimum distance completed (for both strokes)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -3783,7 +3783,7 @@
           "sourceSkillId": "Splash2A:8",
           "sourceName": "Front Crawl and Back Crawl (5 m)",
           "sourceLines": [
-            "• Minimum distance completed (for both strokes)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Body on front",
             "• Alternate arm action",
@@ -3799,7 +3799,7 @@
           "subskills": [
             {
               "id": "Splash2A:8-back-crawl:1",
-              "text": "Minimum distance completed (for both strokes)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -4290,7 +4290,7 @@
           "sourceSkillId": "Splash2B:8",
           "sourceName": "Front crawl and Back Crawl (10 m)",
           "sourceLines": [
-            "• Minimum distance completed (for both strokes)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Body on front",
             "• Alternate arm action",
@@ -4305,7 +4305,7 @@
           "subskills": [
             {
               "id": "Splash2B:8-front-crawl:1",
-              "text": "Minimum distance completed (for both strokes)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -4345,7 +4345,7 @@
           "sourceSkillId": "Splash2B:8",
           "sourceName": "Front crawl and Back Crawl (10 m)",
           "sourceLines": [
-            "• Minimum distance completed (for both strokes)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Body on front",
             "• Alternate arm action",
@@ -4360,7 +4360,7 @@
           "subskills": [
             {
               "id": "Splash2B:8-back-crawl:1",
-              "text": "Minimum distance completed (for both strokes)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -4832,7 +4832,7 @@
           "sourceSkillId": "Splash3:10",
           "sourceName": "Front Crawl and Back Crawl 15 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull",
@@ -4848,7 +4848,7 @@
           "subskills": [
             {
               "id": "Splash3:10-front-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -4888,7 +4888,7 @@
           "sourceSkillId": "Splash3:10",
           "sourceName": "Front Crawl and Back Crawl 15 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull",
@@ -4904,7 +4904,7 @@
           "subskills": [
             {
               "id": "Splash3:10-back-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -5279,7 +5279,7 @@
           "sourceSkillId": "Splash4:7",
           "sourceName": "Front Crawl and Back Crawl 25 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull",
@@ -5295,7 +5295,7 @@
           "subskills": [
             {
               "id": "Splash4:7-front-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -5335,7 +5335,7 @@
           "sourceSkillId": "Splash4:7",
           "sourceName": "Front Crawl and Back Crawl 25 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull",
@@ -5351,7 +5351,7 @@
           "subskills": [
             {
               "id": "Splash4:7-back-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -5782,7 +5782,7 @@
           "sourceSkillId": "Splash5:8",
           "sourceName": "Front Crawl and Back Crawl 50 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull below body",
@@ -5801,7 +5801,7 @@
           "subskills": [
             {
               "id": "Splash5:8-front-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -5855,7 +5855,7 @@
           "sourceSkillId": "Splash5:8",
           "sourceName": "Front Crawl and Back Crawl 50 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull below body",
@@ -5874,7 +5874,7 @@
           "subskills": [
             {
               "id": "Splash5:8-back-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -6440,7 +6440,7 @@
           "sourceSkillId": "Splash6:8",
           "sourceName": "Front Crawl and Back Crawl 100 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull below body",
@@ -6459,7 +6459,7 @@
           "subskills": [
             {
               "id": "Splash6:8-front-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -6513,7 +6513,7 @@
           "sourceSkillId": "Splash6:8",
           "sourceName": "Front Crawl and Back Crawl 100 m each",
           "sourceLines": [
-            "• Minimum Distance completed (for both strokes)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Body on front; streamlined and horizontal",
             "• Alternate arm action with overarm recovery and underwater pull below body",
@@ -6532,7 +6532,7 @@
           "subskills": [
             {
               "id": "Splash6:8-back-crawl:1",
-              "text": "Minimum Distance completed (for both strokes)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -7025,7 +7025,7 @@
           "sourceSkillId": "Splash7:8",
           "sourceName": "Swim Each of the Following Strokes 50 m or yd Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum Distance completed (for each stroke)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Alternate arm action with overarm recovery and underwater pull",
             "• Hand entry beyond shoulder; pull past hip",
@@ -7048,7 +7048,7 @@
           "subskills": [
             {
               "id": "Splash7:8-front-crawl:1",
-              "text": "Minimum Distance completed (for each stroke)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -7102,7 +7102,7 @@
           "sourceSkillId": "Splash7:8",
           "sourceName": "Swim Each of the Following Strokes 50 m or yd Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum Distance completed (for each stroke)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Alternate arm action with overarm recovery and underwater pull",
             "• Hand entry beyond shoulder; pull past hip",
@@ -7125,7 +7125,7 @@
           "subskills": [
             {
               "id": "Splash7:8-back-crawl:1",
-              "text": "Minimum Distance completed (for each stroke)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -7172,7 +7172,7 @@
           "sourceSkillId": "Splash7:8",
           "sourceName": "Swim Each of the Following Strokes 50 m or yd Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum Distance completed (for each stroke)",
+            "• Minimum Distance completed",
             "Front Crawl",
             "• Alternate arm action with overarm recovery and underwater pull",
             "• Hand entry beyond shoulder; pull past hip",
@@ -7195,7 +7195,7 @@
           "subskills": [
             {
               "id": "Splash7:8-breaststroke:1",
-              "text": "Minimum Distance completed (for each stroke)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -7728,7 +7728,7 @@
           "sourceSkillId": "Splash8:7",
           "sourceName": "Swim Each of the Following Strokes 75 m or yd: Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum distance completed (for each stroke)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Alternate arm action with overarm recovery and underwater pull",
             "• Hand entry beyond shoulder; pull past hip",
@@ -7752,7 +7752,7 @@
           "subskills": [
             {
               "id": "Splash8:7-front-crawl:1",
-              "text": "Minimum distance completed (for each stroke)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -7806,7 +7806,7 @@
           "sourceSkillId": "Splash8:7",
           "sourceName": "Swim Each of the Following Strokes 75 m or yd: Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum distance completed (for each stroke)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Alternate arm action with overarm recovery and underwater pull",
             "• Hand entry beyond shoulder; pull past hip",
@@ -7830,7 +7830,7 @@
           "subskills": [
             {
               "id": "Splash8:7-back-crawl:1",
-              "text": "Minimum distance completed (for each stroke)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -7877,7 +7877,7 @@
           "sourceSkillId": "Splash8:7",
           "sourceName": "Swim Each of the Following Strokes 75 m or yd: Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum distance completed (for each stroke)",
+            "• Minimum distance completed",
             "Front Crawl",
             "• Alternate arm action with overarm recovery and underwater pull",
             "• Hand entry beyond shoulder; pull past hip",
@@ -7901,7 +7901,7 @@
           "subskills": [
             {
               "id": "Splash8:7-breaststroke:1",
-              "text": "Minimum distance completed (for each stroke)",
+              "text": "Minimum distance completed",
               "group": []
             },
             {
@@ -8631,7 +8631,7 @@
           "sourceSkillId": "Splash9:9",
           "sourceName": "Swim Each of the Following Strokes 100 m or yd: Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum Distance completed (for each stroke)",
+            "• Minimum Distance completed",
             "• Front Crawl",
             "- Alternate arm action with overarm recovery and underwater pull",
             "- Hand entry beyond shoulder, pull past hip",
@@ -8655,7 +8655,7 @@
           "subskills": [
             {
               "id": "Splash9:9-front-crawl:1",
-              "text": "Minimum Distance completed (for each stroke)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -8709,7 +8709,7 @@
           "sourceSkillId": "Splash9:9",
           "sourceName": "Swim Each of the Following Strokes 100 m or yd: Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum Distance completed (for each stroke)",
+            "• Minimum Distance completed",
             "• Front Crawl",
             "- Alternate arm action with overarm recovery and underwater pull",
             "- Hand entry beyond shoulder, pull past hip",
@@ -8733,7 +8733,7 @@
           "subskills": [
             {
               "id": "Splash9:9-back-crawl:1",
-              "text": "Minimum Distance completed (for each stroke)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
@@ -8780,7 +8780,7 @@
           "sourceSkillId": "Splash9:9",
           "sourceName": "Swim Each of the Following Strokes 100 m or yd: Front Crawl, Back Crawl, Breaststroke",
           "sourceLines": [
-            "• Minimum Distance completed (for each stroke)",
+            "• Minimum Distance completed",
             "• Front Crawl",
             "- Alternate arm action with overarm recovery and underwater pull",
             "- Hand entry beyond shoulder, pull past hip",
@@ -8804,7 +8804,7 @@
           "subskills": [
             {
               "id": "Splash9:9-breaststroke:1",
-              "text": "Minimum Distance completed (for each stroke)",
+              "text": "Minimum Distance completed",
               "group": []
             },
             {
