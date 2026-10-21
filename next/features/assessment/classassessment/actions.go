@@ -11,8 +11,22 @@ func (c *Component) Enter() error {
 	if c.navigation.Frame().Screen != navigation.SkillSwimmers && c.navigation.Frame().Screen != navigation.MultiSelection && c.navigation.Frame().Screen != navigation.MultiGroupCount {
 		return nil
 	}
+	return c.enter(c.navigation.Frame())
+}
+
+// OpenSkill enters class marking directly, keeping the skill picker as the back destination.
+func (c *Component) OpenSkill(skill navigation.Row) error {
+	f := c.navigation.Frame()
+	if f.Screen != navigation.Skills || skill.Disabled {
+		return nil
+	}
+	params := navigation.Destination(skill)
+	f.Skill, f.Level, f.Version = skill.ID, params.Level, params.Version
+	return c.enter(f)
+}
+
+func (c *Component) enter(f navigation.Frame) error {
 	return c.navigation.Run(func() error {
-		f := c.navigation.Frame()
 		roster, err := c.storage.ListRoster(f.Course)
 		if err != nil {
 			return err
@@ -36,7 +50,9 @@ func (c *Component) Enter() error {
 		c.State.Attempts = attempts
 		c.State.Roster = append([]domain.MultiAttempt(nil), attempts...)
 		c.State.Status = make(map[string]string, len(attempts))
-		c.navigation.Push(navigation.ClassAssessment, nil)
+		c.navigation.Push(navigation.ClassAssessment, func(frame *navigation.Frame) {
+			frame.Skill, frame.Level, frame.Version = f.Skill, f.Level, f.Version
+		})
 		return nil
 	})
 }

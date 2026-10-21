@@ -4,7 +4,6 @@ import (
 	"rectablet/next/contracts"
 	"rectablet/next/features/assessment/internal/common"
 	"rectablet/next/features/assessment/internal/pagedgrid"
-	"rectablet/next/features/assessment/internal/panels"
 	"rectablet/next/navigation"
 	"rectablet/src/shared/ui"
 	"rectablet/src/workflows/swimming/curriculum"
@@ -22,7 +21,7 @@ type LargeTemplate struct {
 
 func (c *LargeTemplate) ComposeLargeSkillsBody(skills []navigation.Row, selected navigation.Row, swimmers []navigation.Row) ui.BodyComposer {
 	return func(surface *ui.Surface) {
-		left, right := panels.Split(surface, .46)
+		halfSkills := (len(skills) + 1) / 2
 		if len(skills) == 0 {
 			ui.Empty(surface, "No skills available.")
 			return
@@ -33,16 +32,23 @@ func (c *LargeTemplate) ComposeLargeSkillsBody(skills []navigation.Row, selected
 				skillRows[i].Selected = true
 			}
 		}
-		c.largePagedGrid(ui.SelectableSurface(left), "large-skills", "Skills", skillRows, 1, 6, c.Pages.Skill, func(id string) {
-			if c.IsTimed(id) {
-				_ = c.OpenTimedSkill(id)
-				return
-			}
-			_ = c.SelectSkill(id)
-		})
-		c.largePagedGrid(right, "large-skill-swimmers", selected.Label, swimmers, 2, 6, c.Pages.Roster, func(id string) {
-			_ = c.OpenSkillSwimmer(selected, id)
-		})
+		if len(skillRows) <= 6 {
+			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", "Skills", skillRows, 1, len(skills), c.Pages.Skill, func(id string) {
+				if c.IsTimed(id) {
+					_ = c.OpenTimedSkill(id)
+					return
+				}
+				_ = c.SelectSkill(id)
+			})
+		} else {
+			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", "Skills", skillRows, 2, halfSkills, c.Pages.Skill, func(id string) {
+				if c.IsTimed(id) {
+					_ = c.OpenTimedSkill(id)
+					return
+				}
+				_ = c.SelectSkill(id)
+			})
+		}
 	}
 }
 func (c *LargeTemplate) ComposeLargeSwimmerListBody(state contracts.State) ui.BodyComposer {
@@ -124,7 +130,7 @@ func (c *Component) buildSkills(state *navigation.State, input common.Input) ([]
 		if err != nil {
 			return nil, err
 		}
-		c.configureSelectedModes(state, selection.skill)
+		state.HeaderSwitch = nil
 		state.ComposeBody = c.large.ComposeLargeSkillsBody(rows, selection.selected, selection.swimmers)
 	}
 	return rows, nil
@@ -147,22 +153,6 @@ func (c *Component) buildSwimmers(state *navigation.State, input common.Input) (
 		state.PageSize = max(1, len(rows))
 	}
 	return rows, nil
-}
-
-func (c *Component) configureSelectedModes(state *navigation.State, skill *curriculum.Skill) {
-	if skill == nil {
-		return
-	}
-	if _, timed := common.BenchmarkFor(skill.ID); timed {
-		return
-	}
-	state.HeaderSwitch = []contracts.HeaderSwitchOption{
-		{Label: "Single", Selected: true, Run: func() error { return c.actions.OpenSelectedMode("single") }},
-	}
-	if common.AllowsMultiMode(*skill) {
-		state.HeaderSwitch = append(state.HeaderSwitch, contracts.HeaderSwitchOption{Label: "Multi", Run: func() error { return c.actions.OpenSelectedMode("multi") }})
-	}
-	state.HeaderSwitch = append(state.HeaderSwitch, contracts.HeaderSwitchOption{Label: "Class", Run: func() error { return c.actions.OpenSelectedMode("class") }})
 }
 
 func missingCurriculumRow(level string) navigation.Row {

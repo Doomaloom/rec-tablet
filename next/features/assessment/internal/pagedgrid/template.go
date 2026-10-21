@@ -10,19 +10,8 @@ func (c Controller) Render(surface *ui.Surface, key, title string, rows []ui.Ite
 	capacity := columns * rowCount
 	pageCount := max(1, (len(rows)+capacity-1)/capacity)
 	*page = max(0, min(*page, pageCount-1))
-	label := ui.NewText(fmt.Sprintf("%s · %d/%d", title, *page+1, pageCount), 19, ui.Navy)
-	label.Bold, label.MaxLines, label.MinimumFont = true, -1, 16
-	titleHeight := float32(34)
-	if len(title) > 32 {
-		titleHeight = 62
-	}
-	surface.AddNamed(key+"-title", label, func(w, h float32) (float32, float32, float32, float32) {
-		x, y, width, _ := surface.BodyBounds(w, h)
-		return x + ui.ButtonPadding, y, width - 2*ui.ButtonPadding, titleHeight
-	})
 	if pageCount > 1 {
 		for direction, caption := range map[int]string{-1: "‹", 1: "›"} {
-			direction, caption := direction, caption
 			button := surface.Button(fmt.Sprintf("%s-page-%d", key, direction), caption, func() {
 				_ = c.Run(func() error { *page = max(0, min(*page+direction, pageCount-1)); return nil })
 			})
@@ -42,7 +31,7 @@ func (c Controller) Render(surface *ui.Surface, key, title string, rows []ui.Ite
 		if pageCount > 1 {
 			bottom = 48
 		}
-		return x, y + titleHeight + ui.Gap, width, height - titleHeight - ui.Gap - bottom
+		return x, y + ui.Gap, width, height - ui.Gap - bottom
 	})
 	start := *page * capacity
 	visible := rows[start:min(start+capacity, len(rows))]

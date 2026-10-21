@@ -63,7 +63,9 @@ func New(options Options) *Component {
 		OpenTimedSkill:   c.actions.OpenTimedSkill,
 		OpenSkillSwimmer: c.actions.OpenSkillSwimmer,
 		SelectSkill: func(id string) error {
-			return options.ViewActions.Run(func() error { c.State.SelectedID = id; c.State.RosterPage = 0; return nil })
+			c.State.SelectedID = id
+			c.State.RosterPage = 0
+			return c.actions.OpenSelectedMode("class")
 		},
 	}
 	return c

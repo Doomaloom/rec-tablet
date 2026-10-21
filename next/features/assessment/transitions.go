@@ -40,7 +40,7 @@ func (c *Component) openLargeSelectedMode(mode string) error {
 	if c.navigation.Frame().Screen != navigation.Skills {
 		return nil
 	}
-	if mode == "single" {
+	if mode != "class" {
 		return nil
 	}
 	var chosen navigation.Row
@@ -53,20 +53,8 @@ func (c *Component) openLargeSelectedMode(mode string) error {
 	if chosen.ID == "" {
 		return nil
 	}
-	params := navigation.Destination(chosen)
-	if err := c.navigation.Run(func() error {
-		c.navigation.Push(navigation.SkillSwimmers, func(f *navigation.Frame) {
-			f.Skill, f.Level, f.Version = chosen.ID, params.Level, params.Version
-		})
-		return nil
-	}); err != nil {
-		return err
+	if _, timed := common.BenchmarkFor(chosen.ID); timed {
+		return c.openLargeTimedSkill(chosen.ID)
 	}
-	switch mode {
-	case "multi":
-		return c.EnterMultiMode()
-	case "class":
-		return c.EnterClassMode()
-	}
-	return nil
+	return c.class.OpenSkill(chosen)
 }
