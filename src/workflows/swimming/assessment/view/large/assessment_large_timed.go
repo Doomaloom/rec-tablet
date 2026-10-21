@@ -8,13 +8,13 @@ import (
 )
 
 func (c *View) RenderLargeTimedSelection(surface *ui.Surface, rows []ui.Item) {
-	c.largePagedGrid(surface, "timed-selection", "Swimmers in heat", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
+	c.largePagedGrid(surface, "timed-selection", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 }
 
 func (c *View) ComposeLargeTimedSetup(state navigation.State, rows []navigation.Row) ui.BodyComposer {
 	return func(surface *ui.Surface) {
 		left, right := Split(surface, .5)
-		c.largePagedGrid(left, "timed-setup-swimmers", "Select swimmers", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(left, "timed-setup-swimmers", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 		c.largeLapKeypad(right)
 	}
 }
@@ -62,7 +62,7 @@ func (c *View) ComposeLargeTimedLapsBody(state navigation.State) ui.BodyComposer
 	return func(surface *ui.Surface) {
 		left, right := Split(surface, .5)
 		swimmers := c.SelectedSwimmers()
-		c.largePagedGrid(left, "timed-setup-swimmers", "Selected swimmers", swimmers, 1, 6, c.Pages.Roster, func(string) {})
+		c.largePagedGrid(left, "timed-setup-swimmers", swimmers, 1, 6, c.Pages.Roster, func(string) {})
 		c.largeLapKeypad(right)
 	}
 }
@@ -75,6 +75,6 @@ func (c *View) ComposeLargeTimedHeatBody(state navigation.State) ui.BodyComposer
 				rows[i].Fill, rows[i].Selected = ui.Green, true
 			}
 		}
-		c.largePagedGrid(surface, "timed-heat-swimmers", "Tap a swimmer to record a lap", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(surface, "timed-heat-swimmers", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
 	}
 }

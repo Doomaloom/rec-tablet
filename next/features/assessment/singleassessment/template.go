@@ -28,15 +28,15 @@ func (c *LargeTemplate) ComposeLargeChecklistBody(rows []navigation.Row, selectR
 func (c *LargeTemplate) ComposeLargeSingleBody(rows []navigation.Row, swimmers []navigation.Row) ui.BodyComposer {
 	return func(surface *ui.Surface) {
 		left, right := panels.Split(surface, .28)
-		c.largePagedGrid(left, "large-single-roster", "Swimmers", swimmers, 1, 6, c.Pages.Roster, c.SwitchPerson)
+		c.largePagedGrid(left, "large-single-roster", swimmers, 1, 6, c.Pages.Roster, c.SwitchPerson)
 		c.RenderLargeChecklist(right, rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 func (c *LargeTemplate) RenderLargeChecklist(surface *ui.Surface, rows []navigation.Row, selectRow func(string)) {
 	checklist.Controller{}.RenderGrid(surface, rows, selectRow)
 }
-func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
-	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, title, rows, columns, rowCount, page, selectRow)
+func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
+	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, rows, columns, rowCount, page, selectRow)
 }
 
 type Pages struct{ Roster *int }

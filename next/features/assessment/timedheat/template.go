@@ -30,7 +30,7 @@ func (c *LargeTemplate) ComposeLargeTimedHeatBody(state navigation.State) ui.Bod
 				rows[i].Fill, rows[i].Selected = ui.Green, true
 			}
 		}
-		c.largePagedGrid(surface, "timed-heat-swimmers", "Tap a swimmer to record a lap", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(surface, "timed-heat-swimmers", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 
@@ -39,19 +39,19 @@ func (c *LargeTemplate) ComposeLargeTimedLapsBody(state navigation.State) ui.Bod
 	return func(surface *ui.Surface) {
 		left, right := panels.Split(surface, .5)
 		swimmers := c.SelectedSwimmers()
-		c.largePagedGrid(left, "timed-setup-swimmers", "Selected swimmers", swimmers, 1, 6, c.Pages.Roster, func(string) {})
+		c.largePagedGrid(left, "timed-setup-swimmers", swimmers, 1, 6, c.Pages.Roster, func(string) {})
 		c.largeLapKeypad(right)
 	}
 }
 func (c *LargeTemplate) ComposeLargeTimedSetup(state navigation.State, rows []navigation.Row) ui.BodyComposer {
 	return func(surface *ui.Surface) {
 		left, right := panels.Split(surface, .5)
-		c.largePagedGrid(left, "timed-setup-swimmers", "Select swimmers", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(left, "timed-setup-swimmers", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 		c.largeLapKeypad(right)
 	}
 }
 func (c *LargeTemplate) RenderLargeTimedSelection(surface *ui.Surface, rows []ui.Item) {
-	c.largePagedGrid(surface, "timed-selection", "Swimmers in heat", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
+	c.largePagedGrid(surface, "timed-selection", rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 }
 func (c *LargeTemplate) largeLapKeypad(surface *ui.Surface) {
 	display := ui.NewText("Laps needed: "+c.LapsInput(), 24, ui.Navy)
@@ -90,8 +90,8 @@ func (c *LargeTemplate) largeLapKeypad(surface *ui.Surface) {
 		return x, y + height - 48, width, 48
 	})
 }
-func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
-	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, title, rows, columns, rowCount, page, selectRow)
+func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
+	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, rows, columns, rowCount, page, selectRow)
 }
 
 type Pages struct{ Roster, Heat *int }

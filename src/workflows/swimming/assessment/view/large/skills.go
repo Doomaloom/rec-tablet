@@ -19,14 +19,14 @@ func (c *View) ComposeLargeSkillsBody(skills []navigation.Row, selected navigati
 				skillRows[i].Selected = true
 			}
 		}
-		c.largePagedGrid(ui.SelectableSurface(left), "large-skills", "Skills", skillRows, 1, 6, c.Pages.Skill, func(id string) {
+		c.largePagedGrid(ui.SelectableSurface(left), "large-skills", skillRows, 1, 6, c.Pages.Skill, func(id string) {
 			if c.IsTimed(id) {
 				_ = c.OpenTimedSkill(id)
 				return
 			}
 			_ = c.SelectSkill(id)
 		})
-		c.largePagedGrid(right, "large-skill-swimmers", selected.Label, swimmers, 2, 6, c.Pages.Roster, func(id string) {
+		c.largePagedGrid(right, "large-skill-swimmers", swimmers, 2, 6, c.Pages.Roster, func(id string) {
 			_ = c.OpenSkillSwimmer(selected, id)
 		})
 	}
@@ -35,13 +35,13 @@ func (c *View) ComposeLargeSkillsBody(skills []navigation.Row, selected navigati
 func (c *View) ComposeLargeSingleBody(rows []navigation.Row, swimmers []navigation.Row) ui.BodyComposer {
 	return func(surface *ui.Surface) {
 		left, right := Split(surface, .28)
-		c.largePagedGrid(left, "large-single-roster", "Swimmers", swimmers, 1, 6, c.Pages.Roster, c.SwitchPerson)
+		c.largePagedGrid(left, "large-single-roster", swimmers, 1, 6, c.Pages.Roster, c.SwitchPerson)
 		c.RenderLargeChecklist(right, rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 
 func (c *View) ComposeLargeSwimmerListBody(state shell.State) ui.BodyComposer {
 	return func(surface *ui.Surface) {
-		c.largePagedGrid(surface, "large-return-swimmers", "Swimmers", state.Rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(surface, "large-return-swimmers", state.Rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 	}
 }

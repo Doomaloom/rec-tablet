@@ -21,9 +21,9 @@ func (c *View) ComposeLargeMultiSelectionBody(state navigation.State, group, cou
 			return x, y + upper + ui.Gap, width, height - upper - ui.Gap
 		})
 		groups, members := c.MultiRows(group, count)
-		c.largePagedGrid(groupsPanel, "multi-groups", "Groups", groups, 1, 2, c.Pages.Group, c.SelectGroup)
-		c.largePagedGrid(membersPanel, "multi-group-members", "Group members", members, 1, 3, c.Pages.Member, func(id string) { _ = c.Actions.Select(id) })
-		c.largePagedGrid(right, "multi-assign-roster", "Assign swimmers", state.Rows, 2, 5, c.Pages.MultiRoster, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(groupsPanel, "multi-groups", groups, 1, 2, c.Pages.Group, c.SelectGroup)
+		c.largePagedGrid(membersPanel, "multi-group-members", members, 1, 3, c.Pages.Member, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(right, "multi-assign-roster", state.Rows, 2, 5, c.Pages.MultiRoster, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"rectablet/src/shared/ui"
 )
 
-func (c Controller) Render(surface *ui.Surface, key, title string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
+func (c Controller) Render(surface *ui.Surface, key string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
 	capacity := columns * rowCount
 	pageCount := max(1, (len(rows)+capacity-1)/capacity)
 	*page = max(0, min(*page, pageCount-1))

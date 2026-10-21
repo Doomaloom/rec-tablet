@@ -20,20 +20,10 @@ func Split(surface *ui.Surface, leftFraction float32) (*ui.Surface, *ui.Surface)
 	return left, right
 }
 
-func (c *View) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
+func (c *View) largePagedGrid(surface *ui.Surface, key string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
 	capacity := columns * rowCount
 	pageCount := max(1, (len(rows)+capacity-1)/capacity)
 	*page = max(0, min(*page, pageCount-1))
-	label := ui.NewText(fmt.Sprintf("%s · %d/%d", title, *page+1, pageCount), 19, ui.Navy)
-	label.Bold, label.MaxLines, label.MinimumFont = true, -1, 16
-	titleHeight := float32(34)
-	if len(title) > 32 {
-		titleHeight = 62
-	}
-	surface.AddNamed(key+"-title", label, func(w, h float32) (float32, float32, float32, float32) {
-		x, y, width, _ := surface.BodyBounds(w, h)
-		return x + ui.ButtonPadding, y, width - 2*ui.ButtonPadding, titleHeight
-	})
 	if pageCount > 1 {
 		for direction, caption := range map[int]string{-1: "‹", 1: "›"} {
 			direction, caption := direction, caption
@@ -56,7 +46,7 @@ func (c *View) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.
 		if pageCount > 1 {
 			bottom = 48
 		}
-		return x, y + titleHeight + ui.Gap, width, height - titleHeight - ui.Gap - bottom
+		return x, y + ui.Gap, width, height - ui.Gap - bottom
 	})
 	start := *page * capacity
 	visible := rows[start:min(start+capacity, len(rows))]

@@ -23,15 +23,15 @@ func (c *LargeTemplate) ComposeLargeClassBody(rows []navigation.Row) ui.BodyComp
 	return func(surface *ui.Surface) {
 		left, right := panels.Split(surface, .28)
 		swimmers := c.ClassRoster()
-		c.largePagedGrid(left, "large-class-roster", "Class", swimmers, 1, 5, c.Pages.Class, c.SelectClassPerson)
+		c.largePagedGrid(left, "large-class-roster", swimmers, 1, 12, c.Pages.Class, c.SelectClassPerson)
 		c.RenderLargeChecklist(right, rows, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 func (c *LargeTemplate) RenderLargeChecklist(surface *ui.Surface, rows []navigation.Row, selectRow func(string)) {
 	checklist.Controller{}.RenderGrid(surface, rows, selectRow)
 }
-func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
-	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, title, rows, columns, rowCount, page, selectRow)
+func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
+	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, rows, columns, rowCount, page, selectRow)
 }
 
 type Pages struct{ Class *int }

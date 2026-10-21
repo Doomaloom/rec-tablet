@@ -33,7 +33,7 @@ func (c *LargeTemplate) ComposeLargeSkillsBody(skills []navigation.Row, selected
 			}
 		}
 		if len(skillRows) <= 6 {
-			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", "Skills", skillRows, 1, len(skills), c.Pages.Skill, func(id string) {
+			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", skillRows, 1, len(skills), c.Pages.Skill, func(id string) {
 				if c.IsTimed(id) {
 					_ = c.OpenTimedSkill(id)
 					return
@@ -41,7 +41,7 @@ func (c *LargeTemplate) ComposeLargeSkillsBody(skills []navigation.Row, selected
 				_ = c.SelectSkill(id)
 			})
 		} else {
-			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", "Skills", skillRows, 2, halfSkills, c.Pages.Skill, func(id string) {
+			c.largePagedGrid(ui.SelectableSurface(surface), "large-skills", skillRows, 2, halfSkills, c.Pages.Skill, func(id string) {
 				if c.IsTimed(id) {
 					_ = c.OpenTimedSkill(id)
 					return
@@ -53,11 +53,11 @@ func (c *LargeTemplate) ComposeLargeSkillsBody(skills []navigation.Row, selected
 }
 func (c *LargeTemplate) ComposeLargeSwimmerListBody(state contracts.State) ui.BodyComposer {
 	return func(surface *ui.Surface) {
-		c.largePagedGrid(surface, "large-return-swimmers", "Swimmers", state.Rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(surface, "large-return-swimmers", state.Rows, 2, 6, c.Pages.Roster, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
-func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key, title string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
-	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, title, rows, columns, rowCount, page, selectRow)
+func (c *LargeTemplate) largePagedGrid(surface *ui.Surface, key string, rows []ui.Item, columns, rowCount int, page *int, selectRow func(string)) {
+	pagedgrid.Controller{Run: c.Actions.Run}.Render(surface, key, rows, columns, rowCount, page, selectRow)
 }
 
 type Pages struct{ Skill, Roster *int }
