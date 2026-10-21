@@ -76,7 +76,9 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
 	if err != nil {
 		return fail(err)
 	}
-	if _, err = db.Exec("INSERT OR IGNORE INTO curricula VALUES (?,?)", c.Version, string(body)); err != nil {
+	// Refresh wording edits within the same version while keeping assessment IDs
+	// and their saved results intact. Structural changes still use a new version.
+	if _, err = db.Exec("INSERT INTO curricula VALUES (?,?) ON CONFLICT(version) DO UPDATE SET body=excluded.body", c.Version, string(body)); err != nil {
 		return fail(err)
 	}
 	if err = s.resetMarkingDataForCatalogChange(c.Version); err != nil {

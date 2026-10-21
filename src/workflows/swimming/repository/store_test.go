@@ -527,6 +527,35 @@ func TestAbruptExitPreservesDraft(t *testing.T) {
 		t.Fatal(integrity)
 	}
 }
+func TestCurriculumWordingRefreshPreservesMarking(t *testing.T) {
+	f := setup(t)
+	f.attempt(t, true, "")
+	draft := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:1"))
+	check(t, f.s.Mark(draft, "Splash1:1:1", "successful"))
+	check(t, f.s.SetAttendance(f.person.String("id"), f.course.String("lesson_id"), "present"))
+	before := must(f.s.Snapshot())
+	updated := curriculum.Bundled()
+	for i := range updated.Levels {
+		for j := range updated.Levels[i].Skills {
+			if updated.Levels[i].Skills[j].ID == "Splash1:1" {
+				updated.Levels[i].Skills[j].Subskills[0].Text = "Updated criterion wording"
+			}
+		}
+	}
+	check(t, f.s.Close())
+	f.s = must(OpenWithCatalog(f.path, updated))
+	skill := must(f.s.Skill(updated.Version, "Splash1:1"))
+	if skill.Subskills[0].Text != "Updated criterion wording" {
+		t.Fatal("stored curriculum still uses old wording")
+	}
+	after := must(f.s.Snapshot())
+	for _, table := range []string{"courses", "enrollments", "attendance", "attempts", "results", "drafts", "revisions", "timed_attempts"} {
+		if !reflect.DeepEqual(before.Tables[table], after.Tables[table]) {
+			t.Fatalf("wording refresh changed %s", table)
+		}
+	}
+}
+
 func TestCurriculumChangeResetsMarkingAndMovesCourses(t *testing.T) {
 	f := setup(t)
 	f.attempt(t, true, "")
