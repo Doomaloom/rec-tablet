@@ -72,6 +72,10 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
 			return fail(err)
 		}
 	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS lesson_plans (
+ lesson_id TEXT PRIMARY KEY REFERENCES lessons(id), body TEXT NOT NULL)`); err != nil {
+		return fail(err)
+	}
 	body, err := json.Marshal(c)
 	if err != nil {
 		return fail(err)

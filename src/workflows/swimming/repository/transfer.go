@@ -82,6 +82,9 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 			}
 			seenDates[d] = true
 		}
+		if e = transfer.ValidateLessonPlans(*c); e != nil {
+			return 0, e
+		}
 		if c.Swimmers == nil || len(c.Swimmers) > 500 {
 			return 0, errors.New("swimmers must be a list with at most 500 entries")
 		}
@@ -174,6 +177,21 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 					return e
 				}
 			}
+			if c.LessonPlans != nil {
+				if _, e = q.Exec("DELETE FROM lesson_plans WHERE lesson_id IN (SELECT id FROM lessons WHERE course_id=?)", course.String("id")); e != nil {
+					return e
+				}
+				for _, plan := range *c.LessonPlans {
+					body, err := json.Marshal(plan)
+					if err != nil {
+						return err
+					}
+					if _, e = q.Exec("INSERT INTO lesson_plans(lesson_id,body) SELECT id,? FROM lessons WHERE course_id=? AND date=?", string(body), course.String("id"), plan.Date); e != nil {
+						return e
+					}
+				}
+			}
+
 		}
 		_, e = q.Exec("INSERT OR REPLACE INTO meta VALUES ('last_import',?)", Now())
 		return e

@@ -21,6 +21,7 @@ type ClassPackage struct {
 	Courses       []ClassInput `json:"courses"`
 }
 type ClassInput struct {
+	LessonPlans *[]LessonPlan  `json:"lessonPlans,omitempty"`
 	SourceID    string         `json:"sourceId"`
 	Name        string         `json:"name"`
 	Level       string         `json:"level"`
@@ -94,4 +95,69 @@ func ReadPackage(path string) (ClassPackage, error) {
 		return ClassPackage{}, e
 	}
 	return DecodePackage(data)
+}
+
+// LessonPlan is a read-only snapshot for an exact scheduled lesson date.
+type LessonPlan struct {
+	Date            string       `json:"date"`
+	CurriculumLevel string       `json:"curriculumLevel"`
+	Rows            []PlannedRow `json:"rows"`
+}
+type PlannedRow struct {
+	Skill      string            `json:"skill"`
+	SkillID    string            `json:"skillId,omitempty"`
+	Activity   string            `json:"activity"`
+	Activities []PlannedActivity `json:"activities,omitempty"`
+	Location   string            `json:"location"`
+	Duration   int               `json:"duration"`
+	Equipment  []string          `json:"equipment,omitempty"`
+	Workout    json.RawMessage   `json:"workout,omitempty"`
+}
+type PlannedActivity struct {
+	Kind string `json:"kind"`
+	Text string `json:"text"`
+}
+
+func ValidateLessonPlans(course ClassInput) error {
+	if course.LessonPlans == nil {
+		return nil
+	}
+	if len(*course.LessonPlans) > 366 {
+		return errors.New("too many lesson plans")
+	}
+	dates := map[string]bool{}
+	for _, d := range course.LessonDates {
+		dates[d] = true
+	}
+	seen := map[string]bool{}
+	for _, plan := range *course.LessonPlans {
+		if Date(plan.Date) != nil || !dates[plan.Date] || seen[plan.Date] || len(plan.CurriculumLevel) > 100 || plan.Rows == nil || len(plan.Rows) > 200 {
+			return errors.New("invalid lesson plan date or rows")
+		}
+		seen[plan.Date] = true
+		for _, r := range plan.Rows {
+			if len(r.Skill) > 2000 || len(r.SkillID) > 200 || len(r.Activity) > 10000 || len(r.Location) > 100 || r.Duration < 1 || r.Duration > 240 || len(r.Equipment) > 50 || len(r.Activities) > 100 {
+				return errors.New("invalid planned skill")
+			}
+			equipment := map[string]bool{}
+			for _, item := range r.Equipment {
+				key := strings.ToLower(strings.TrimSpace(item))
+				if key == "" || utf8.RuneCountInString(item) > 100 || equipment[key] {
+					return errors.New("invalid planned equipment")
+				}
+				equipment[key] = true
+			}
+			texts := []string{}
+			for _, a := range r.Activities {
+				if (a.Kind != "library" && a.Kind != "custom") || strings.TrimSpace(a.Text) == "" || len(a.Text) > 10000 {
+					return errors.New("invalid planned activity")
+				}
+				texts = append(texts, a.Text)
+			}
+			if len(texts) > 0 && (strings.Join(texts, "\n\n") != r.Activity || len(r.Workout) > 0) {
+				return errors.New("inconsistent planned activities")
+			}
+		}
+	}
+	return nil
 }

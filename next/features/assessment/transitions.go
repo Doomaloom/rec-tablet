@@ -58,3 +58,20 @@ func (c *Component) openLargeSelectedMode(mode string) error {
 	}
 	return c.class.OpenSkill(chosen)
 }
+
+// OpenPlannedSkill shares the existing assessment sessions with the lesson planner.
+func (c *Component) OpenPlannedSkill(skill navigation.Row) error {
+	if c.navigation.Frame().Screen != navigation.LessonPlanDetail || skill.Disabled {
+		return nil
+	}
+	if _, timed := common.BenchmarkFor(skill.ID); timed {
+		params := navigation.Destination(skill)
+		return c.navigation.Run(func() error {
+			c.timed.State.Selection = nil
+			c.timed.State.LapsInput = ""
+			c.navigation.Push(navigation.SkillSwimmers, func(f *navigation.Frame) { f.Skill, f.Level, f.Version = skill.ID, params.Level, params.Version })
+			return nil
+		})
+	}
+	return c.class.OpenSkill(skill)
+}

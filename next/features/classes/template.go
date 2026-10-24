@@ -36,7 +36,7 @@ func (c *Component) configureLayout(mode ui.DisplayMode) {
 	c.datePicker.Layout = datepicker.Layout{}
 	if mode.IsLarge() {
 		c.classList.Layout = classlist.Layout{Columns: 2, Rows: 3}
-		c.lessonMenu.Layout = lessonmenu.Layout{Columns: 3, Rows: 1}
+		c.lessonMenu.Layout = lessonmenu.Layout{Columns: 2, Rows: 2, Plans: true}
 		c.datePicker.Layout = datepicker.Layout{Calendar: true}
 	}
 }

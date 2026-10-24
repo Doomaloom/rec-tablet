@@ -18,6 +18,8 @@ const (
 	Dates            Route = "dates"
 	Class            Route = "class"
 	Attendance       Route = "attendance"
+	LessonPlan       Route = "lesson_plan"
+	LessonPlanDetail Route = "lesson_plan_detail"
 	Skills           Route = "skills"
 	SkillSwimmers    Route = "skill_swimmers"
 	MultiGroupCount  Route = "multi_group_count"
@@ -36,8 +38,8 @@ const (
 )
 
 type Parameters struct {
-	Course, Lesson, Person, Skill, Level, Version, Attempt string
-	Review                                                 bool
+	Course, Lesson, Person, Skill, Level, Version, Attempt, PlanRow string
+	Review                                                          bool
 }
 type Frame struct {
 	Screen Route

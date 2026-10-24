@@ -29,7 +29,7 @@ func TestIndependentUIAndComponentOwnership(t *testing.T) {
 			if dep == "rectablet/src/app" || dep == "rectablet/src/shell" {
 				t.Errorf("%s imports legacy UI %s", path, dep)
 			}
-			for _, feature := range []string{"classes", "attendance", "assessment", "feedback", "setup", "navigation"} {
+			for _, feature := range []string{"classes", "attendance", "assessment", "feedback", "lessonplan", "setup", "navigation"} {
 				prefix := "rectablet/src/workflows/swimming/" + feature
 				if dep == prefix || strings.HasPrefix(dep, prefix+"/") {
 					t.Errorf("%s imports legacy feature %s", path, dep)
@@ -60,7 +60,7 @@ func TestIndependentUIAndComponentOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, feature := range []string{"classes", "attendance", "assessment", "feedback", "setup"} {
+	for _, feature := range []string{"classes", "attendance", "assessment", "feedback", "lessonplan", "setup"} {
 		err := filepath.WalkDir(filepath.Join("features", feature), func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err

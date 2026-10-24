@@ -17,7 +17,7 @@ func (c *Component) Enter() error {
 // OpenSkill enters class marking directly, keeping the skill picker as the back destination.
 func (c *Component) OpenSkill(skill navigation.Row) error {
 	f := c.navigation.Frame()
-	if f.Screen != navigation.Skills || skill.Disabled {
+	if (f.Screen != navigation.Skills && f.Screen != navigation.LessonPlanDetail) || skill.Disabled {
 		return nil
 	}
 	params := navigation.Destination(skill)

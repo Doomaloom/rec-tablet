@@ -7,6 +7,7 @@ import (
 	"rectablet/next/features/attendance"
 	"rectablet/next/features/classes"
 	"rectablet/next/features/feedback"
+	"rectablet/next/features/lessonplan"
 	"rectablet/next/features/setup"
 	"rectablet/next/navigation"
 	"rectablet/src/shared/ui"
@@ -19,6 +20,7 @@ type Controller struct {
 	navigation *navigation.Controller
 	classes    *classes.Component
 	attendance *attendance.Component
+	lessonPlan *lessonplan.Component
 	assessment *assessment.Component
 	feedback   *feedback.Component
 	setup      *setup.Component
@@ -50,6 +52,8 @@ func New(store *repository.Store) *Controller {
 	}
 	register(c.classes, navigation.Classes, navigation.Dates, navigation.Class)
 	register(c.attendance, navigation.Attendance)
+	c.lessonPlan = lessonplan.New(nav, store, c.assessment.OpenPlannedSkill)
+	register(c.lessonPlan, navigation.LessonPlan, navigation.LessonPlanDetail)
 	register(c.assessment,
 		navigation.Skills, navigation.SkillSwimmers, navigation.MultiGroupCount,
 		navigation.MultiStudent, navigation.MultiSelection, navigation.MultiAssessment,

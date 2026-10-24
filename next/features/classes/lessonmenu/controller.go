@@ -27,12 +27,16 @@ func (c *Component) Configure(state *contracts.State, course domain.Course) []co
 	}
 	state.SplitHeader = &contracts.SplitHeader{Left: level, Right: course.Time}
 	state.PrimaryInfo = ""
-	return []contracts.Row{
-		{ID: "attendance", Label: "Attendance"},
-		{ID: "skills", Label: "Skills"},
-		{ID: "feedback_swimmers", Label: "Feedback"},
+	rows := []contracts.Row{{ID: "attendance", Label: "Attendance"}}
+	if c.Layout.Plans {
+		rows = append(rows, contracts.Row{ID: "lesson_plan", Label: "Lesson Plan"})
 	}
+	rows = append(rows, contracts.Row{ID: "skills", Label: "Skills"}, contracts.Row{ID: "feedback_swimmers", Label: "Feedback"})
+	return rows
 }
 
 // Layout is selected by the feature root, independently of child rendering.
-type Layout struct{ Columns, Rows int }
+type Layout struct {
+	Columns, Rows int
+	Plans         bool
+}

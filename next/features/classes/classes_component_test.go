@@ -61,7 +61,7 @@ func TestLargeClassCardsAndLessonMenuPagination(t *testing.T) {
 	if err := nav.Select("course-6"); err != nil {
 		t.Fatal(err)
 	}
-	if nav.State.PageSize != 3 || len(nav.State.Rows) != 3 || nav.State.PageCount != 1 {
+	if nav.State.PageSize != 4 || len(nav.State.Rows) != 4 || nav.State.PageCount != 1 {
 		t.Fatalf("large lesson menu = %d rows, size %d, pages %d", len(nav.State.Rows), nav.State.PageSize, nav.State.PageCount)
 	}
 }

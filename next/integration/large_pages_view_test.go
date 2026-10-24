@@ -63,7 +63,7 @@ func TestLargeClassesCalendarMenuAndAttendancePages(t *testing.T) {
 		t.Fatal("scheduled calendar date did not return to classes")
 	}
 	selectClassStartingWith(t, f, "Splash 1 ·")
-	assertLargeCards(t, f, 3, 1, 3)
+	assertLargeCards(t, f, 2, 2, 4)
 	f.shot(t, "large-lesson-menu")
 	f.tap(t, "row:attendance")
 	if f.c.Snapshot().RowCount != 13 || f.c.Snapshot().PageCount != 2 || len(f.c.Snapshot().Rows) != 12 {
