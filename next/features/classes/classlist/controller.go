@@ -32,7 +32,7 @@ func (c *Component) Configure(state *contracts.State, courses []domain.Course, d
 	}
 	state.Empty = "No classes scheduled. Choose Date to view other lessons."
 	if len(dates) == 0 {
-		state.Empty = "No classes loaded. Hold My Classes for 3 seconds to import a class package."
+		state.Empty = "No classes available for this instructor."
 	}
 	rows := make([]contracts.Row, 0, len(courses))
 	for _, course := range courses {

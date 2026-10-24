@@ -10,9 +10,16 @@ import (
 )
 
 func (m *Modal) build() {
-	m.close = actionbutton.New("×", actionbutton.Options{Variant: actionbutton.Outline}, m.Hide)
-	m.close.SetRadius(999)
-	heading := container.NewBorder(nil, nil, nil, m.close, design.Label(m.options.Title, 24, design.Secondary, true))
+	titleSize := m.options.TitleSize
+	if titleSize <= 0 {
+		titleSize = 24
+	}
+	heading := design.Label(m.options.Title, titleSize, design.Secondary, true)
+	if !m.options.HideClose {
+		m.close = actionbutton.New("×", actionbutton.Options{Variant: actionbutton.Outline}, m.Hide)
+		m.close.SetRadius(999)
+		heading = container.NewBorder(nil, nil, nil, m.close, heading)
+	}
 	items := []fyne.CanvasObject{heading}
 	if m.options.Description != "" {
 		items = append(items, design.Label(m.options.Description, 14, design.Secondary, false))
@@ -20,7 +27,9 @@ func (m *Modal) build() {
 	if m.options.Notice != nil {
 		items = append(items, m.options.Notice)
 	}
-	items = append(items, m.content)
+	if m.content != nil {
+		items = append(items, m.content)
+	}
 	m.body = design.Column(16, items...)
 	var footer fyne.CanvasObject
 	if m.options.Footer != nil {

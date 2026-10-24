@@ -39,7 +39,7 @@ func renderActionRailComponents(c *contracts.RenderContext) {
 func renderPagingRailComponents(builder *contracts.RenderContext) {
 	state := builder.State
 	previousButton := builder.Button("up", "↑", func() { _ = builder.Controller.Page(-1) })
-	previousButton.Fill = ui.Rail
+	previousButton.Fill = ui.NavigationRailFill
 	previousButton.Ink = ui.Blue
 	previousButton.FontSize = 58
 	previousButton.Disabled = state.Page == 0
@@ -48,7 +48,7 @@ func renderPagingRailComponents(builder *contracts.RenderContext) {
 	builder.Add("previous-page", previousButton, geometry.PreviousPageSlot)
 
 	nextButton := builder.Button("down", "↓", func() { _ = builder.Controller.Page(1) })
-	nextButton.Fill = ui.Rail
+	nextButton.Fill = ui.NavigationRailFill
 	nextButton.Ink = ui.Blue
 	nextButton.FontSize = 58
 	nextButton.Disabled = state.Page+1 >= state.PageCount

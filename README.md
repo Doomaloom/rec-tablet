@@ -63,15 +63,25 @@ The short form is `make qa-setup`, `make qa-start`, and `make qa-stop`.
 
 ## Display profiles
 
-Compact is the default profile. To select a profile, hold **My Classes** for three seconds to open the hidden Device Setup screen, then choose **Display**. The preference is saved on the device independently of the active lesson dataset. Rec Tablet does not switch profiles automatically when the monitor or window size changes; choose the profile that matches the device.
+Compact is the default profile. To select a profile, hold **Clear** on the login keypad or **My Classes** for three seconds to open the hidden Device Setup screen, then choose **Display**. The preference is saved on the device independently of the active lesson dataset. Rec Tablet does not switch profiles automatically when the monitor or window size changes; choose the profile that matches the device.
 
 The large profile provides six class cards in a two-column grid, a Sunday-first calendar with scheduled lesson dates, three side-by-side lesson choices, and attendance pages with twelve swimmers in two columns. Skills appear beside their swimmers; Single and Class marking keep a roster beside the complete checklist. Multi group assignment shows groups and swimmers together, while group marking uses a full-width table. Timed heat setup combines swimmer selection and lap entry. Feedback keeps swimmers beside their scrollable assessment details. Attempt history and Device Setup show six rows per page.
 
 Private-level redesign is deferred. Private-lesson swimmers assigned a standard curriculum level continue using that level's assessment flow; unassigned swimmers cannot be assessed. All standard checklists fit without scrolling in the large profile.
 
-The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling back to `~/.local/share/rec-tablet/lessons.sqlite3`. Use `--database /path/to/lessons.sqlite3` for an isolated dataset. Close the old Python app before opening the same database in Go. Existing databases are read directly: no re-import or reset is required. A per-database process lock prevents concurrent app instances.
+The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling back to `~/.local/share/rec-tablet/lessons.sqlite3`. Use `--database /path/to/lessons.sqlite3` for an isolated dataset. Close the old Python app before opening the same database in Go. Existing databases and their saved work are retained; the current UI requires a verified export-code login before opening instructor data. A per-database process lock prevents concurrent app instances.
 
-## Try the sample classes
+## Shift login and logout
+
+Every launch of the current UI opens **Log in**. Enter the instructor's six-digit device export code from COB-Aquatics-SPA **Device Exports**, then tap **Log in**. Leading zeroes are significant. The tablet needs a connection and active SPA sharing for every login; after login, lesson work stays local and works offline. Invalid codes, ended sharing, connection errors, or failed imports keep the tablet on the login screen with an error and retry.
+
+On **My Classes**, tap **Log out**, then confirm **Log out**. Cancel and Escape leave the shift open. Logout keeps saved attendance, assessments, and persisted drafts on the tablet, separated by dataset and instructor. Re-login verifies the code again and merges the roster into that instructor's existing database. Logout does not upload results or end SPA sharing. Closing or restarting the app requires login again.
+
+Hold **Clear** on the login keypad for three seconds, or press **Ctrl+Shift+M**, to configure the share server and display before login. Signed-in Device Setup also provides **Export Data**. Manual imports and saved-instructor switching are available only in the optional legacy UI.
+
+## Try the sample classes in the legacy UI
+
+Run `make run ARGS='--ui=legacy'` for the file-import development flow:
 
 1. Hold **My Classes** for three seconds, or press **Ctrl+Shift+M**.
 2. Choose **Import Class Data**, then [examples/classes.json](examples/classes.json).
@@ -114,9 +124,9 @@ Both development tools now run in Go. Flags come **before** positional arguments
 
 The extractor preserves the previous JSON content, identifiers, and version hash. Compare a regenerated catalog before replacing the embedded file, then rebuild the app. The bundled file also contains app-specific multi-component splits; regenerating it from the sister repository produces the unsplit source catalog and those overrides must be reapplied. The sister repository is read only.
 
-The sister app's **Device Exports** page can publish a temporary share for its selected, loaded session. Review each instructor's roster, levels, and lesson dates, start sharing, then enter that instructor's six digit code from **Import from Session Code** in the hidden Device Setup menu. The tablet downloads and imports the package, then opens that instructor's saved session automatically. Codes work while the host page is open and expire after a minute without a host heartbeat. The host can end sharing at any time; roster changes require ending and starting a new share.
+The sister app's **Device Exports** page can publish a temporary share for its selected, loaded session. Review each instructor's roster, levels, and lesson dates, start sharing, then enter that instructor's six-digit code on **Log in** in the current UI. The tablet verifies, downloads, and imports the package before opening My Classes. Codes work while the host page is open and expire after a minute without a host heartbeat. The host can end sharing at any time; roster changes require ending and starting a new share.
 
-Each dataset and instructor has a separate SQLite database under `<database-directory>/<database-name>.sessions/`. The app records saved profiles and the active profile in `<database-path>.profiles.json`; the original database remains in place and is registered as a profile when it already contains an instructor dataset. Use the hidden **Switch Session** rows during development to change profiles. The active profile opens automatically on the next launch. Use **Configure Share Server** in the code keypad for development servers; the default is the hosted sister-app server. `REC_TABLET_SHARE_SERVER` or `--share-server URL` sets the initial server. HTTP is accepted only for localhost; remote servers must use HTTPS. Import and export files continue to operate on the active profile.
+Each dataset and instructor has a separate SQLite database under `<database-directory>/<database-name>.sessions/`. The app records saved profiles and the active profile in `<database-path>.profiles.json`; the original database remains in place and is registered as a profile when it already contains an instructor dataset. The current UI requires a fresh code verification to open any saved profile, including after a restart. The optional legacy UI retains hidden **Switch Session** rows and automatic resume. Use **Configure Share Server** in Device Setup for development servers; the default is the hosted sister-app server. `REC_TABLET_SHARE_SERVER` or `--share-server URL` sets the initial server. HTTP is accepted only for localhost; remote servers must use HTTPS. Data export operates on the signed-in profile. Manual file imports are restricted to the legacy UI.
 
 See [data and architecture](docs/native-poc.md) for the unchanged import/export contract and identity details.
 

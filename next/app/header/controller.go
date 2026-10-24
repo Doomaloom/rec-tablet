@@ -8,6 +8,9 @@ import (
 type Controller struct{}
 
 func (Controller) Compose(c *contracts.RenderContext) {
+	if c.State.HideHeader {
+		return
+	}
 	renderHeaderComponents(c)
 	renderPrimaryInfoComponent(c)
 }

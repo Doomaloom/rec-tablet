@@ -57,9 +57,20 @@ func New(controller contracts.Presenter, window fyne.Window) *View {
 	window.SetContent(view.Root)
 	window.Resize(mode.Size())
 	controller.Subscribe(view.Render)
-	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) { _ = controller.OpenSetup() })
-	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyLeft, Modifier: fyne.KeyModifierAlt}, func(fyne.Shortcut) { _ = controller.Back() })
+	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) {
+		if !view.closed {
+			_ = controller.OpenSetup()
+		}
+	})
+	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyLeft, Modifier: fyne.KeyModifierAlt}, func(fyne.Shortcut) {
+		if !view.closed {
+			_ = controller.Back()
+		}
+	})
 	window.Canvas().SetOnTypedKey(func(event *fyne.KeyEvent) {
+		if view.closed {
+			return
+		}
 		switch event.Name {
 		case fyne.KeyF11:
 			window.SetFullScreen(!window.FullScreen())
@@ -76,6 +87,19 @@ func (view *View) Close() {
 		return
 	}
 	view.closed = true
+	if controller, ok := view.Controller.(interface{ Deactivate() }); ok {
+		controller.Deactivate()
+	}
+	// Hide through each overlay's lifecycle so modal key handlers and focus are
+	// restored before a replacement view installs its own handlers.
+	for _, overlay := range view.Window.Canvas().Overlays().List() {
+		if modal, ok := overlay.(interface{ Hide() }); ok {
+			modal.Hide()
+		}
+	}
+	view.Window.Canvas().RemoveShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift})
+	view.Window.Canvas().RemoveShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyLeft, Modifier: fyne.KeyModifierAlt})
+	view.Window.Canvas().SetOnTypedKey(nil)
 	view.Controller.Subscribe(nil)
 	if view.onLeave != nil {
 		view.onLeave()
@@ -89,7 +113,7 @@ func (view *View) releaseButtons() {
 		button.CanActivate = func() bool { return false }
 	}
 }
-func (view *View) Ready() bool { return time.Now().After(view.readyAt) }
+func (view *View) Ready() bool { return !view.closed && time.Now().After(view.readyAt) }
 
 func (view *View) Render() {
 	if view.closed {

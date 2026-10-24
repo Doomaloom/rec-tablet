@@ -10,6 +10,14 @@ make run ARGS='--ui=next --database /tmp/comparison.sqlite3'
 
 Both implementations use the existing database schema, import/export formats, profile index, and display preference. They cannot open the same database simultaneously because the existing process lock still applies. Use separate database copies to compare them side by side.
 
+## Shift sessions
+
+Every process launch mounts `features/login` through the normal shell. The login keypad verifies the six-digit SPA device export code online. `runtime/session.go` fetches the package asynchronously, imports into the existing instructor/dataset profile, and opens the workflow only after successful activation. The profile index's active key is storage metadata, not authorization to resume.
+
+My Classes exposes a confirmed **Log out** action through `ConfigureSession`. Logout closes the workflow and instructor database, releases its additional process lock, and mounts a fresh login presenter. Local work is retained. The base database lock remains held for the process lifetime so a signed-out instance cannot race another instance over the profile index. Pending requests are cancelled and stale completions ignored; detached presenters, controls, and keyboard handlers are deactivated.
+
+Logged-out Device Setup exposes server and display settings. Signed-in setup adds data export. Manual import and saved-profile switching are blocked in this UI. The legacy implementation keeps its existing development tools. No database-schema, package-format, or server-API changes are required.
+
 ## Where changes belong
 
 | Change | Owner |

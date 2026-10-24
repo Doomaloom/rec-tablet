@@ -48,19 +48,7 @@ func TestSetupBindingsUseConfiguredCallbacksAndPreserveErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Device callbacks arrive after the component is constructed.
-	var joined, switched string
-	failure := errors.New("download failed")
-	component.JoinShare = func(code string, done func(error)) { joined = code; done(failure) }
-	component.SwitchProfile = func(key string) error { switched = key; return nil }
-	if err := component.sessionSharing.SubmitCode("001234"); err != nil {
-		t.Fatal(err)
-	}
-	if joined != "001234" || !nav.State.Error || nav.State.Notice != failure.Error() {
-		t.Fatalf("download status = %+v, code %q", nav.State, joined)
-	}
-	if err := component.profilePicker.Select("profile:saved-session"); err != nil || switched != "saved-session" {
-		t.Fatalf("profile callback: key %q, error %v", switched, err)
-	}
+	failure := errors.New("settings write failed")
 	component.ShareServer = "https://old.example"
 	component.SaveShareServer = func(string) error { return failure }
 	if err := component.sessionSharing.SaveServer("https://new.example/"); !errors.Is(err, failure) || component.ShareServer != "https://old.example" {
@@ -70,14 +58,16 @@ func TestSetupBindingsUseConfiguredCallbacksAndPreserveErrors(t *testing.T) {
 	if err := component.sessionSharing.SaveServer("https://new.example/"); err != nil || component.sessionSharing.Server() != "https://new.example" {
 		t.Fatalf("server was not updated: %q, error %v", component.ShareServer, err)
 	}
-	var cancelled bool
-	component.CancelShare = func() { cancelled = true }
 	state, err := component.Build()
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.OnLeave()
-	if !cancelled {
-		t.Fatal("leaving setup did not cancel the session download")
+	if len(state.Rows) != 3 {
+		t.Fatalf("unexpected setup controls: %+v", state.Rows)
+	}
+	for _, row := range state.Rows {
+		if row.ID != "export" && row.ID != "server" && row.ID != "display" {
+			t.Fatalf("login bypass exposed: %s", row.ID)
+		}
 	}
 }

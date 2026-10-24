@@ -62,6 +62,7 @@ type Controller struct {
 	History     *contracts.History[Frame]
 	Date        string
 	State       State
+	Closed      bool
 	OnChange    func()
 	Features    map[Route]Feature
 }
@@ -107,6 +108,9 @@ func (c *Controller) Fail(err error) error {
 // the refreshed screen rather than a transient popup.
 func (c *Controller) Saved(string) { c.State.Notice = ""; c.State.Error = false }
 func (c *Controller) Run(fn func() error) error {
+	if c.Closed {
+		return nil
+	}
 	before := append([]Frame{}, c.History.Frames...)
 	date := c.Date
 	err := fn()
@@ -170,6 +174,9 @@ func (c *Controller) Mark(status string) error {
 }
 func (c *Controller) Submit() error { return c.dispatch(func(f Feature) error { return f.Submit() }) }
 func (c *Controller) Refresh() error {
+	if c.Closed {
+		return nil
+	}
 	feature, err := c.active()
 	if err != nil {
 		return c.Fail(err)

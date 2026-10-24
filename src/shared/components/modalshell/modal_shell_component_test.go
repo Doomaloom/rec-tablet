@@ -4,6 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
+	"rectablet/src/shared/components/actionbutton"
 	"rectablet/src/shared/components/design"
 	"rectablet/src/shared/components/textinput"
 	"testing"
@@ -78,5 +79,28 @@ func TestNoFocusEscapeAndPanelTap(t *testing.T) {
 	w.Canvas().OnTypedKey()(&fyne.KeyEvent{Name: fyne.KeyA})
 	if oldCalls != 1 {
 		t.Fatal("original key handler not restored")
+	}
+}
+
+func TestConfirmationWithoutCloseKeepsSafeFocus(t *testing.T) {
+	a := test.NewApp()
+	defer a.Quit()
+	w := test.NewWindow(widget.NewLabel("Background"))
+	defer w.Close()
+	cancel := actionbutton.New("Cancel", actionbutton.Options{}, nil)
+	m := New(w, nil, Options{Title: "Confirm Log Out", TitleSize: 32, HideClose: true, Footer: cancel, InitialFocus: cancel})
+	m.Show()
+	if m.close != nil || w.Canvas().Focused() != cancel {
+		t.Fatal("confirmation exposed a close button or lost initial focus")
+	}
+	child := New(w, widget.NewLabel("Nested"), Options{Title: "Nested"})
+	child.Show()
+	child.Hide()
+	if w.Canvas().Focused() != cancel {
+		t.Fatal("returning to confirmation lost safe focus")
+	}
+	cancel.TypedKey(&fyne.KeyEvent{Name: fyne.KeyEscape})
+	if m.Visible() {
+		t.Fatal("Escape did not cancel confirmation")
 	}
 }

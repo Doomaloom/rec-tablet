@@ -9,6 +9,7 @@ import (
 
 // Component coordinates class browsing through explicitly owned child components.
 type Component struct {
+	Logout     func()
 	navigation *navigation.Controller
 	store      Repository
 	classList  *classlist.Component

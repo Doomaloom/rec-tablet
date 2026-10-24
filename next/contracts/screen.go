@@ -72,6 +72,7 @@ type State struct {
 	HideLeftRail        bool
 	SplitHeader         *SplitHeader
 	FitHeader           bool
+	HideHeader          bool
 	HideFooter          bool
 	ComposeBody         ui.BodyComposer
 }

@@ -3,8 +3,6 @@ package leftrail
 import (
 	"image/color"
 
-	"fyne.io/fyne/v2/theme"
-
 	"rectablet/next/app/internal/geometry"
 	"rectablet/next/app/internal/icons"
 	"rectablet/next/contracts"
@@ -37,14 +35,14 @@ func renderHomeRailComponent(builder *contracts.RenderContext) {
 	action := builder.State.HomeRailAction
 	label := "Home"
 	callback := func() { _ = builder.Controller.Home() }
-	var fill, ink color.Color = ui.Rail, ui.Blue
+	var fill, ink color.Color = ui.NavigationRailFill, ui.Blue
 	fontSize := float32(17)
 	if action != nil {
 		label = action.Label
 		callback = func() { _ = action.Run() }
 		fill, ink, fontSize = action.Fill, action.Ink, action.FontSize
 		if fill == nil {
-			fill = ui.Rail
+			fill = ui.NavigationRailFill
 		}
 		if ink == nil {
 			ink = ui.Blue
@@ -58,7 +56,7 @@ func renderHomeRailComponent(builder *contracts.RenderContext) {
 	homeButton.Ink = ink
 	homeButton.FontSize = fontSize
 	if action == nil {
-		homeButton.Icon = theme.NewPrimaryThemedResource(theme.HomeIcon())
+		homeButton.Icon = ui.RailIcon("home", false)
 		homeButton.IconOnly = true
 	} else if action.Icon != nil {
 		homeButton.Icon = action.Icon
@@ -78,14 +76,14 @@ func renderBackButtonComponent(builder *contracts.RenderContext) {
 	action := builder.State.BackRailAction
 	label := "‹"
 	callback := func() { _ = builder.Controller.Back() }
-	var fill, ink color.Color = ui.Rail, ui.Blue
+	var fill, ink color.Color = ui.NavigationRailFill, ui.Blue
 	fontSize := float32(36)
 	if action != nil {
 		label = action.Label
 		callback = func() { _ = action.Run() }
 		fill, ink, fontSize = action.Fill, action.Ink, action.FontSize
 		if fill == nil {
-			fill = ui.Rail
+			fill = ui.NavigationRailFill
 		}
 		if ink == nil {
 			ink = ui.Blue

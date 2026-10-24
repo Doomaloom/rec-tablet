@@ -9,12 +9,7 @@ import (
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
 
-	lesson "rectablet/next"
-	"rectablet/next/app"
 	"rectablet/src/shared/components/actionbutton"
-	"rectablet/src/shared/ui"
-	store "rectablet/src/workflows/swimming/repository"
-	"rectablet/src/workflows/swimming/transfer"
 )
 
 // Traverse public canvas/widget APIs so the tests exercise the actual picker
@@ -52,56 +47,16 @@ func dialogWidget[T fyne.CanvasObject](t *testing.T, root fyne.CanvasObject, mat
 	return result
 }
 
-func TestImportThroughFilePicker(t *testing.T) {
-	sources := map[string]string{"sample": "../../examples/classes.json"}
-	if path := os.Getenv("REC_TABLET_IMPORT_FILE"); path != "" {
-		sources["supplied_export"] = path
+func TestSetupDoesNotExposeLoginBypasses(t *testing.T) {
+	f := setupUI(t)
+	check(t, f.c.Maintenance())
+	for _, id := range []string{"row:import", "row:share", "row:profile:saved-session"} {
+		if f.view.Buttons[id] != nil {
+			t.Fatalf("setup exposes %s", id)
+		}
 	}
-	for name, source := range sources {
-		t.Run(name, func(t *testing.T) {
-			home := t.TempDir()
-			t.Setenv("HOME", home)
-			data := must(os.ReadFile(source))
-			check(t, os.WriteFile(filepath.Join(home, "classes.json"), data, 0600))
-			expected := must(transfer.DecodePackage(data))
-			a := test.NewApp()
-			a.Settings().SetTheme(ui.AppTheme{})
-			s := must(store.Open(filepath.Join(t.TempDir(), "lessons.sqlite3")))
-			c := lesson.New(s)
-			w := a.NewWindow("Import test")
-			v := app.New(c, w)
-			w.Show()
-			t.Cleanup(func() { v.Close(); w.Close(); a.Quit(); s.Close() })
-			f := &uiFixture{v, c, s, w}
-			check(t, c.Maintenance())
-			// Before the fix this tap panics inside FileDialog.Resize.
-			f.tap(t, "row:import")
-			overlay := w.Canvas().Overlays().Top()
-			grid := dialogWidget(t, overlay, func(*widget.GridWrap) bool { return true })
-			// The isolated home contains only classes.json plus the parent item.
-			grid.Select(1)
-			open := dialogWidget(t, overlay, func(b *widget.Button) bool { return b.Text == "Open" })
-			if open.Disabled() {
-				t.Fatal("cannot select the class package")
-			}
-			test.Tap(open)
-			if c.Snapshot().Error {
-				t.Fatal(c.Snapshot().Notice)
-			}
-			if w.Canvas().Overlays().Top() != nil {
-				t.Fatal("picker did not close")
-			}
-			var count int
-			check(t, s.DB.QueryRow("SELECT count(*) FROM courses").Scan(&count))
-			if count != len(expected.Courses) {
-				t.Fatalf("imported %d courses; expected %d", count, len(expected.Courses))
-			}
-			f.tap(t, "home")
-			if c.Snapshot().RowCount == 0 {
-				t.Fatal("successful import left the class list empty")
-			}
-			t.Logf("File picker imported %d courses; selected lesson date %s", count, c.Date())
-		})
+	if f.c.Import("../../examples/classes.json") == nil {
+		t.Fatal("manual import bypassed login")
 	}
 }
 
@@ -123,30 +78,5 @@ func TestExportThroughFolderPicker(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(home, "rec-tablet-results.json")); err != nil {
 		t.Fatal("export was not saved in the selected folder:", err)
-	}
-}
-
-func TestSessionCodeTouchKeypadPreservesLeadingZeroes(t *testing.T) {
-	f := setupUI(t)
-	check(t, f.c.Maintenance())
-	var received string
-	f.c.ConfigureDeviceSessions(func(code string, done func(error)) { received = code; done(nil) }, nil, nil, "https://share.example", nil, nil)
-	f.tap(t, "row:share")
-	overlay := f.w.Canvas().Overlays().Top()
-	f.shot(t, "share-code")
-	for _, digit := range []string{"0", "0", "1", "2", "3", "4"} {
-		button := dialogWidget(t, overlay, func(b *actionbutton.Button) bool { return b.AccessibilityLabel() == digit })
-		test.Tap(button)
-	}
-	download := dialogWidget(t, overlay, func(b *actionbutton.Button) bool { return b.AccessibilityLabel() == "Download" })
-	// Confirmation must remain reachable on the 800x480 display even when the
-	// keypad body needs scrolling.
-	position := fyne.CurrentApp().Driver().AbsolutePositionForObject(download)
-	if position.Y < 0 || position.Y+download.Size().Height > f.w.Canvas().Size().Height {
-		t.Fatalf("download action is outside the viewport: %v size %v", position, download.Size())
-	}
-	test.Tap(download)
-	if received != "001234" {
-		t.Fatalf("received instructor code %q", received)
 	}
 }

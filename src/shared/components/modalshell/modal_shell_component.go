@@ -10,6 +10,9 @@ import (
 
 type Options struct {
 	Title, Description string
+	TitleSize          float32
+	HideClose          bool
+	InitialFocus       fyne.Focusable
 	Notice             fyne.CanvasObject
 	// Footer stays visible while long modal content scrolls.
 	Footer   fyne.CanvasObject
@@ -73,7 +76,7 @@ func (m *Modal) Show() {
 		}
 	})
 	c.Overlays().Add(m)
-	c.Focus(m.close)
+	m.focusInitial()
 }
 func (m *Modal) Hide() {
 	if !m.shown {
@@ -112,7 +115,7 @@ func (m *Modal) Hide() {
 	m.BaseWidget.Hide()
 	if top {
 		if len(stack) > 0 {
-			c.Focus(stack[len(stack)-1].close)
+			stack[len(stack)-1].focusInitial()
 		} else if m.previousFocus != nil {
 			c.Focus(m.previousFocus)
 		} else {
@@ -128,5 +131,17 @@ func (m *Modal) Tapped(e *fyne.PointEvent) {
 	p := e.Position
 	if p.X < m.panelPos.X || p.Y < m.panelPos.Y || p.X > m.panelPos.X+m.panelSize.Width || p.Y > m.panelPos.Y+m.panelSize.Height {
 		m.Hide()
+	}
+}
+
+func (m *Modal) focusInitial() {
+	focus := m.options.InitialFocus
+	if focus == nil && m.close != nil {
+		focus = m.close
+	}
+	if focus != nil {
+		m.window.Canvas().Focus(focus)
+	} else {
+		m.window.Canvas().Unfocus()
 	}
 }

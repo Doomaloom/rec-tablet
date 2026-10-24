@@ -163,10 +163,13 @@ func FooterHeight(state contracts.State) float32 {
 }
 func BodySlot(state contracts.State) ui.Bounds {
 	return func(width, height float32) (float32, float32, float32, float32) {
-		top := ui.OuterMargin + HeaderHeight(state) + ui.Gap
-		infoHeight := PrimaryInfoHeight(state, width)
-		if infoHeight > 0 {
-			top += infoHeight + ui.Gap
+		top := ui.OuterMargin
+		if !state.HideHeader {
+			top += HeaderHeight(state) + ui.Gap
+			infoHeight := PrimaryInfoHeight(state, width)
+			if infoHeight > 0 {
+				top += infoHeight + ui.Gap
+			}
 		}
 		return contentLeft(state), top, bodyWidth(state, width), height - top - ui.OuterMargin - FooterHeight(state)
 	}

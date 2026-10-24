@@ -16,19 +16,16 @@ func (c *Component) composeSetupBody(state contracts.State) ui.BodyComposer {
 			return
 		}
 		ui.Grid(surface, state.Rows, 1, max(1, state.PageSize), func(id string) {
+			if c.navigation.Closed {
+				return
+			}
 			switch id {
-			case "import":
-				c.fileTransfer.OpenImport(surface.Window)
 			case "export":
 				c.fileTransfer.OpenExport(surface.Window)
-			case "share":
-				c.sessionSharing.Open(surface.Window)
 			case "server":
 				c.sessionSharing.OpenServer(surface.Window)
 			case "display":
 				c.displayPicker.Open(surface.Window)
-			default:
-				_ = c.profilePicker.Select(id)
 			}
 		})
 	}

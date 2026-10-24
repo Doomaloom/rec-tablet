@@ -2,13 +2,11 @@
 package runtime
 
 import (
-	"context"
 	"fmt"
 	"image"
 	"image/png"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -16,7 +14,8 @@ import (
 
 	swimming "rectablet/next"
 	"rectablet/next/app"
-	"rectablet/next/features/setup"
+	"rectablet/next/contracts"
+	"rectablet/next/features/login"
 	"rectablet/src/platform/instance"
 	"rectablet/src/shared/ui"
 	store "rectablet/src/workflows/swimming/repository"
@@ -61,216 +60,82 @@ func Run(options Options) error {
 	if e = os.MkdirAll(filepath.Dir(path), 0700); e != nil {
 		return e
 	}
-	profiles, e := newProfileManager(path)
-	if e != nil {
-		return e
-	}
 	lock, e := instance.Acquire(path)
 	if e != nil {
 		return e
 	}
-	s, e := store.Open(path)
+	defer lock.Close()
+	profiles, e := newProfileManager(path)
 	if e != nil {
-		lock.Close()
 		return e
 	}
-	if e = profiles.registerStore(s); e != nil {
-		s.Close()
-		lock.Close()
+	// Register an existing base dataset for compatibility, but never resume it
+	// without a newly verified export code.
+	base, e := store.Open(path)
+	if e != nil {
 		return e
 	}
-	if target := profiles.activePath(); target != path {
-		_ = s.Close()
-		_ = lock.Close()
-		if _, e = os.Stat(target); e != nil {
-			return fmt.Errorf("saved session database is missing: %w", e)
-		}
-		lock, e = instance.Acquire(target)
-		if e != nil {
-			return e
-		}
-		s, e = store.Open(target)
-		if e != nil {
-			lock.Close()
-			return e
-		}
+	e = profiles.registerStore(base)
+	closeErr := base.Close()
+	if e != nil {
+		return e
 	}
-	defer func() { _ = s.Close(); _ = lock.Close() }()
+	if closeErr != nil {
+		return closeErr
+	}
 	a := fyneapp.NewWithID("org.rectablet.app")
 	a.Settings().SetTheme(ui.AppTheme{})
 	w := a.NewWindow("Rec Tablet")
+	session := &deviceSession{profiles: profiles, server: options.ShareServer, fetch: transfer.FetchSharedPackage, dispatch: fyne.Do}
+	defer session.close()
 	var view *app.View
-	var mount func()
-	var importMu sync.Mutex
-	var importGeneration uint64
-	var cancelImport context.CancelFunc
-	cancelCurrentImport := func() {
-		importMu.Lock()
-		defer importMu.Unlock()
-		if cancelImport != nil {
-			cancelImport()
-			cancelImport = nil
-		}
+	var mountLogin func(error)
+	var mountWorkflow func()
+	mode := func() ui.DisplayMode {
+		return ui.DisplayMode(a.Preferences().StringWithFallback("display-mode", string(ui.DisplayCompact))).Normalize()
 	}
-	defer cancelCurrentImport()
-	switchProfile := func(key string) error {
-		target, ok := profiles.pathFor(key)
-		if !ok {
-			return fmt.Errorf("saved session is unavailable")
-		}
-		if _, err := os.Stat(target); err != nil {
-			return fmt.Errorf("saved session database is missing: %w", err)
-		}
-		if target == s.DatabasePath() {
-			return profiles.activate(key)
-		}
-		newLock, err := instance.Acquire(target)
-		if err != nil {
-			return err
-		}
-		newStore, err := store.Open(target)
-		if err != nil {
-			newLock.Close()
-			return err
-		}
-		if err = profiles.activate(key); err != nil {
-			newStore.Close()
-			newLock.Close()
-			return err
-		}
+	saveMode := func(value ui.DisplayMode) { a.Preferences().SetString("display-mode", string(value.Normalize())) }
+	mount := func(controller contracts.Presenter) {
 		if view != nil {
 			view.Close()
 		}
-		_ = s.Close()
-		_ = lock.Close()
-		s, lock = newStore, newLock
-		mount()
-		return nil
-	}
-	joinShare := func(code string, done func(error)) {
-		importMu.Lock()
-		if cancelImport != nil {
-			cancelImport()
-		}
-		ctx, cancel := context.WithCancel(context.Background())
-		cancelImport = cancel
-		importGeneration++
-		generation := importGeneration
-		importMu.Unlock()
-		finishImport := func() {
-			importMu.Lock()
-			if importGeneration == generation {
-				cancelImport = nil
-			}
-			importMu.Unlock()
-		}
-		go func() {
-			pkg, err := transfer.FetchSharedPackage(ctx, profiles.shareServer(options.ShareServer), code)
-			if err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				fyne.Do(func() {
-					finishImport()
-					if ctx.Err() == nil {
-						done(err)
-					}
-				})
-				return
-			}
-			if ctx.Err() != nil {
-				return
-			}
-			fyne.Do(func() {
-				defer finishImport()
-				if ctx.Err() != nil {
-					return
-				}
-				dataset, metaErr := s.Meta("dataset_id")
-				if metaErr != nil {
-					done(metaErr)
-					return
-				}
-				instructor, metaErr := s.Meta("instructor")
-				if metaErr != nil {
-					done(metaErr)
-					return
-				}
-				key := profileKey(pkg.DatasetID, pkg.Instructor)
-				profile := savedProfile{Key: key, DatasetID: pkg.DatasetID, Instructor: pkg.Instructor}
-				if dataset == pkg.DatasetID && instructor == pkg.Instructor {
-					if _, err = s.Import(pkg); err == nil {
-						profile, err = profiles.registerPackage(pkg, s.DatabasePath())
-					}
-					if err == nil {
-						err = profiles.activate(profile.Key)
-					}
-					if err != nil {
-						done(err)
-						return
-					}
-					if view != nil {
-						view.Close()
-					}
-					mount()
-					done(nil)
-					return
-				}
-				profilePath := profiles.packagePath(pkg)
-				if openErr := os.MkdirAll(filepath.Dir(profilePath), 0700); openErr != nil {
-					done(openErr)
-					return
-				}
-				newLock, openErr := instance.Acquire(profilePath)
-				if openErr != nil {
-					done(openErr)
-					return
-				}
-				profile, err = profiles.importPackage(pkg)
-				if err != nil {
-					newLock.Close()
-					done(err)
-					return
-				}
-				newStore, openErr := store.Open(profile.Path)
-				if openErr != nil {
-					newLock.Close()
-					done(openErr)
-					return
-				}
-				if err = profiles.activate(profile.Key); err != nil {
-					newStore.Close()
-					newLock.Close()
-					done(err)
-					return
-				}
-				if view != nil {
-					view.Close()
-				}
-				_ = s.Close()
-				_ = lock.Close()
-				s, lock = newStore, newLock
-				mount()
-				done(nil)
-			})
-		}()
-	}
-	mount = func() {
-		controller := swimming.New(s)
-		controller.ConfigureDisplay(ui.DisplayMode(a.Preferences().StringWithFallback("display-mode", string(ui.DisplayCompact))), func(mode ui.DisplayMode) {
-			a.Preferences().SetString("display-mode", string(mode.Normalize()))
-		})
-		profileOptions := make([]setup.ProfileOption, 0)
-		for _, item := range profiles.rows() {
-			profileOptions = append(profileOptions, setup.ProfileOption{Key: item.Key, Label: item.Label})
-		}
-		if dates, err := s.Dates(); err == nil {
-			controller.SetDate(nearestLessonDate(dates, time.Now().Format("2006-01-02")))
-		}
-		controller.ConfigureDeviceSessions(joinShare, profileOptions, switchProfile, profiles.shareServer(options.ShareServer), profiles.setShareServer, cancelCurrentImport)
 		view = app.New(controller, w)
 	}
-	mount()
+	mountLogin = func(loginError error) {
+		controller := login.New(login.Options{
+			DisplayMode: mode(), SaveDisplayMode: saveMode,
+			Server:     func() string { return profiles.shareServer(options.ShareServer) },
+			SaveServer: profiles.setShareServer,
+			Login: func(code string, done func(error)) {
+				session.login(code, func(err error) {
+					done(err)
+					if err == nil {
+						mountWorkflow()
+					}
+				})
+			},
+			Cancel: session.cancelLogin,
+		})
+		if loginError != nil {
+			controller.Fail(loginError)
+		}
+		mount(controller)
+	}
+	mountWorkflow = func() {
+		controller := swimming.New(session.store)
+		controller.ConfigureDisplay(mode(), saveMode)
+		if dates, err := session.store.Dates(); err == nil {
+			controller.SetDate(nearestLessonDate(dates, time.Now().Format("2006-01-02")))
+		}
+		controller.ConfigureSession(func() {
+			if view != nil {
+				view.Close()
+			}
+			mountLogin(session.logout())
+		}, profiles.shareServer(options.ShareServer), profiles.setShareServer)
+		mount(controller)
+	}
+	mountLogin(nil)
 	defer func() {
 		if view != nil {
 			view.Close()

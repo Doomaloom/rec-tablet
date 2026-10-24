@@ -62,14 +62,18 @@ func New(store *repository.Store) *Controller {
 	return c
 }
 
-func (c *Controller) ConfigureDeviceSessions(join func(string, func(error)), profiles []setup.ProfileOption, switchProfile func(string) error, server string, saveServer func(string) error, cancel func()) {
-	c.setup.JoinShare = join
-	c.setup.Profiles = profiles
-	c.setup.SwitchProfile = switchProfile
+// ConfigureSession supplies the signed-in session's logout and device settings.
+func (c *Controller) ConfigureSession(logout func(), server string, saveServer func(string) error) {
+	c.classes.Logout = logout
 	c.setup.ShareServer = server
 	c.setup.SaveShareServer = saveServer
-	c.setup.CancelShare = cancel
 	_ = c.Refresh()
+}
+
+// Deactivate prevents callbacks from a detached workflow from touching storage.
+func (c *Controller) Deactivate() {
+	c.navigation.Closed = true
+	c.navigation.Subscribe(nil)
 }
 func (c *Controller) Import(path string) error { return c.setup.Import(path) }
 func (c *Controller) Export(path string) error { return c.setup.Export(path) }

@@ -30,11 +30,8 @@ func TestTransferActionsPreserveErrorsAndNormalizeExportName(t *testing.T) {
 		t.Fatal("failed import lost error or date")
 	}
 	s.err = nil
-	if err := c.Import("valid.json"); err != nil {
-		t.Fatal(err)
-	}
-	if nav.Date != "2026-09-04" || nav.State.Error {
-		t.Fatal("import did not choose loaded date")
+	if c.Import("valid.json") == nil || nav.Date != "2026-09-11" {
+		t.Fatal("manual import bypassed login")
 	}
 	if err := c.Export("/tmp/results.txt"); err != nil {
 		t.Fatal(err)
