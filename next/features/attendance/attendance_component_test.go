@@ -14,6 +14,7 @@ type attendanceStore struct {
 	person, lesson, status string
 	marks                  map[string]string
 	finalized              bool
+	finalizeCalls          int
 	roster                 []domain.Enrollment
 }
 
@@ -73,6 +74,7 @@ func (s *attendanceStore) SetAttendance(person, lesson, status string) error {
 }
 func (s *attendanceStore) MarkPastAttendanceAbsent(string, string) error {
 	s.finalized = true
+	s.finalizeCalls++
 	return nil
 }
 
@@ -107,5 +109,28 @@ func TestAttendanceControllerToggleAndFailure(t *testing.T) {
 	}
 	if !s.finalized {
 		t.Fatal("past attendance was not finalized")
+	}
+}
+
+func TestAttendanceFinalizationIsNotRepeatedForEveryRefresh(t *testing.T) {
+	nav := navigation.New()
+	store := &attendanceStore{}
+	feature := New(nav, store)
+	nav.Features[navigation.Attendance] = feature
+	nav.Push(navigation.Attendance, func(f *navigation.Frame) { f.Course = "course"; f.Lesson = "lesson" })
+	for i := 0; i < 3; i++ {
+		if err := nav.Refresh(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if store.finalizeCalls != 1 {
+		t.Fatalf("repeated finalization transactions: %d", store.finalizeCalls)
+	}
+	nav.History.Frames[len(nav.History.Frames)-1].Lesson = "another"
+	if err := nav.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	if store.finalizeCalls != 2 {
+		t.Fatal("new lesson was not finalized")
 	}
 }

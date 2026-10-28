@@ -57,6 +57,11 @@ func New(controller contracts.Presenter, window fyne.Window) *View {
 	window.SetContent(view.Root)
 	window.Resize(mode.Size())
 	controller.Subscribe(view.Render)
+	if edits, ok := controller.(interface {
+		SubscribeEdits(func(contracts.ButtonUpdate))
+	}); ok {
+		edits.SubscribeEdits(view.applyButtonUpdate)
+	}
 	window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) {
 		if !view.closed {
 			_ = controller.OpenSetup()
@@ -101,6 +106,11 @@ func (view *View) Close() {
 	view.Window.Canvas().RemoveShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyLeft, Modifier: fyne.KeyModifierAlt})
 	view.Window.Canvas().SetOnTypedKey(nil)
 	view.Controller.Subscribe(nil)
+	if edits, ok := view.Controller.(interface {
+		SubscribeEdits(func(contracts.ButtonUpdate))
+	}); ok {
+		edits.SubscribeEdits(nil)
+	}
 	if view.onLeave != nil {
 		view.onLeave()
 		view.onLeave = nil
@@ -148,5 +158,15 @@ func (view *View) Render() {
 		if !view.Window.FullScreen() {
 			view.Window.Resize(mode.Size())
 		}
+	}
+}
+
+func (view *View) applyButtonUpdate(update contracts.ButtonUpdate) {
+	if view.closed {
+		return
+	}
+	if button := view.Buttons[update.ID]; button != nil {
+		button.Text, button.Fill, button.Ink, button.Selected = update.Text, update.Fill, update.Ink, update.Selected
+		button.Refresh()
 	}
 }

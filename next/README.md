@@ -40,6 +40,10 @@ Feature children take data, narrow storage operations, navigation callbacks, and
 
 `app/` hosts any implementation of `contracts.Presenter`; it does not import the workflow. `runtime/` mounts the workflow into that host and owns window, database, profile, and asynchronous import lifetimes. This keeps the layout independently usable and testable.
 
+Attendance and normal assessment checklist taps use `navigation.Edit` to update the mounted button and its row without rebuilding the screen or reloading roster/progress data. The runtime enables an ordered save worker; write closures capture explicit IDs and statuses and access storage only. Worker completions return through `fyne.Do`. Navigation and submit/discard actions wait for pending writes; logout uses the same barrier, and workflow shutdown drains the worker before closing its database. A failed save reloads persisted values, shows an error, and cancels deferred navigation. SQLite keeps FULL synchronous writes. Multi-student checklists retain their existing in-memory-until-Save behavior.
+
+`go test -tags ci ./next/features/attendance -run '^$' -bench BenchmarkAttendanceTap` compares full-screen and single-button updates with the same twelve-student memory-backed roster. It measures UI work, not storage or hardware touch latency.
+
 ## Feature overrides
 
 Each feature builds a fresh `contracts.State`. Set `HeaderActions`, `HeaderSwitch`, or `SplitHeader` for header customization. Set `HomeRailAction` or `BackRailAction` to customize a default left-rail action, or supply `LeftRailActions` / `RightRailActions` to replace a whole rail in top-to-bottom order. A nil rail uses defaults; an explicit empty slice hides its controls. Overrides expire with the active screen, and detached buttons are released.

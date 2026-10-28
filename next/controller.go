@@ -68,7 +68,12 @@ func New(store *repository.Store) *Controller {
 
 // ConfigureSession supplies the signed-in session's logout and device settings.
 func (c *Controller) ConfigureSession(logout func(), server string, saveServer func(string) error) {
-	c.classes.Logout = logout
+	c.classes.Logout = nil
+	if logout != nil {
+		c.classes.Logout = func() {
+			_ = c.navigation.Run(func() error { logout(); return nil })
+		}
+	}
 	c.setup.ShareServer = server
 	c.setup.SaveShareServer = saveServer
 	_ = c.Refresh()
@@ -77,7 +82,11 @@ func (c *Controller) ConfigureSession(logout func(), server string, saveServer f
 // Deactivate prevents callbacks from a detached workflow from touching storage.
 func (c *Controller) Deactivate() {
 	c.navigation.Closed = true
+	c.navigation.DrainSaves()
 	c.navigation.Subscribe(nil)
 }
 func (c *Controller) Import(path string) error { return c.setup.Import(path) }
 func (c *Controller) Export(path string) error { return c.setup.Export(path) }
+
+func (c *Controller) EnableAsyncSaves(dispatch func(func()))         { c.navigation.EnableAsyncSaves(dispatch) }
+func (c *Controller) SubscribeEdits(fn func(contracts.ButtonUpdate)) { c.navigation.SubscribeEdits(fn) }

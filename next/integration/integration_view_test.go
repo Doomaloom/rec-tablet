@@ -407,21 +407,43 @@ func TestPrivateSwimmersWithoutLevelsStayOutOfSkillAssessment(t *testing.T) {
 		t.Fatalf("private attendance roster has %d swimmers, want 2", f.c.Snapshot().RowCount)
 	}
 }
-func TestSkillActionFailuresAreQuiet(t *testing.T) {
+func TestSkillSaveFailuresRestoreMarksAndShowError(t *testing.T) {
 	f := setupUI(t)
 	f.skill(t)
+	callbacks := make(chan func(), 10)
+	f.c.EnableAsyncSaves(func(fn func()) { callbacks <- fn })
 	_, e := f.s.DB.Exec(`CREATE TEMP TRIGGER reject_draft BEFORE UPDATE ON drafts BEGIN SELECT RAISE(ABORT,'Disk full'); END`)
 	check(t, e)
-	f.tap(t, "row:"+f.c.Snapshot().Rows[0].ID)
-	if f.c.Snapshot().Error || f.c.Snapshot().Rows[0].Status != "unmarked" {
-		t.Fatal("failed save was not handled quietly")
+	id := f.c.Snapshot().Rows[0].ID
+	f.tap(t, "row:"+id)
+	if f.c.Snapshot().Rows[0].Status != "successful" {
+		t.Fatal("tap did not paint immediately")
 	}
-	f.tap(t, "down")
-	if f.c.Snapshot().Error {
-		t.Fatal("quiet skill failure set an error state")
+	check(t, f.c.Home())
+	select {
+	case fn := <-callbacks:
+		fn()
+	case <-time.After(5 * time.Second):
+		t.Fatal("missing failed save completion")
+	}
+	if !f.c.Snapshot().Error || f.c.Snapshot().Rows[0].Status != "unmarked" || f.c.Snapshot().Screen != "assessment" || !strings.Contains(f.c.Snapshot().Notice, "Disk full") {
+		t.Fatal("failed save did not restore saved state, retain page, and explain the failure")
 	}
 	f.shot(t, "save-error")
+	_, e = f.s.DB.Exec("DROP TRIGGER reject_draft")
+	check(t, e)
+	f.tap(t, "row:"+id)
+	select {
+	case fn := <-callbacks:
+		fn()
+	case <-time.After(5 * time.Second):
+		t.Fatal("missing retry completion")
+	}
+	if f.c.Snapshot().Error || f.c.Snapshot().Rows[0].Status != "successful" {
+		t.Fatal("could not retry failed mark")
+	}
 }
+
 func TestLongCriteriaAndLargerLandscape(t *testing.T) {
 	f := setupUI(t)
 	f.row(t, 2)

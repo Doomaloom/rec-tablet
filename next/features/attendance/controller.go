@@ -9,9 +9,10 @@ import (
 
 // Component owns attendance persistence and has a roster child for presentation.
 type Component struct {
-	navigation *navigation.Controller
-	store      Repository
-	roster     *roster.Component
+	navigation                    *navigation.Controller
+	store                         Repository
+	roster                        *roster.Component
+	finalizedLesson, finalizedDay string
 }
 
 var _ navigation.Feature = (*Component)(nil)
@@ -37,7 +38,12 @@ func (c *Component) Build() (navigation.State, error) {
 	case navigation.Attendance:
 		// Attendance finalization is best effort on the device. A failed
 		// background write leaves the roster usable without an error popup.
-		_ = s.MarkPastAttendanceAbsent(f.Lesson, time.Now().Format("2006-01-02"))
+		today := time.Now().Format("2006-01-02")
+		if c.finalizedLesson != f.Lesson || c.finalizedDay != today {
+			if err := s.MarkPastAttendanceAbsent(f.Lesson, today); err == nil {
+				c.finalizedLesson, c.finalizedDay = f.Lesson, today
+			}
+		}
 		marks, e := s.Attendance(f.Lesson)
 		if e != nil {
 			return state, e

@@ -130,6 +130,7 @@ func Run(options Options) error {
 	}
 	mountWorkflow = func() {
 		controller := swimming.New(session.store)
+		controller.EnableAsyncSaves(fyne.Do)
 		controller.ConfigureDisplay(mode(), saveMode)
 		if dates, err := session.store.Dates(); err == nil {
 			controller.SetDate(nearestLessonDate(dates, time.Now().Format("2006-01-02")))

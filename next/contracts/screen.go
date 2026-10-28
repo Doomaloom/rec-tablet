@@ -9,6 +9,13 @@ import (
 	"rectablet/src/shared/ui"
 )
 
+// ButtonUpdate changes an existing control without rebuilding its screen.
+type ButtonUpdate struct {
+	ID, Text  string
+	Fill, Ink color.Color
+	Selected  bool
+}
+
 type Row = ui.Item
 
 // RailAction customizes one of the persistent rail buttons for a screen.

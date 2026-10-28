@@ -61,13 +61,18 @@ type Feature interface {
 }
 
 type Controller struct {
-	DisplayMode ui.DisplayMode
-	History     *contracts.History[Frame]
-	Date        string
-	State       State
-	Closed      bool
-	OnChange    func()
-	Features    map[Route]Feature
+	DisplayMode   ui.DisplayMode
+	History       *contracts.History[Frame]
+	Date          string
+	State         State
+	Closed        bool
+	OnChange      func()
+	onEdit        func(contracts.ButtonUpdate)
+	writes        *writeQueue
+	pendingWrites int
+	afterWrites   []func() error
+	saveError     error
+	Features      map[Route]Feature
 }
 
 func New() *Controller {
@@ -112,6 +117,12 @@ func (c *Controller) Fail(err error) error {
 func (c *Controller) Saved(string) { c.State.Notice = ""; c.State.Error = false }
 func (c *Controller) Run(fn func() error) error {
 	if c.Closed {
+		return nil
+	}
+	if c.pendingWrites > 0 {
+		if len(c.afterWrites) == 0 {
+			c.afterWrites = append(c.afterWrites, fn)
+		}
 		return nil
 	}
 	before := append([]Frame{}, c.History.Frames...)
@@ -159,6 +170,9 @@ func (c *Controller) dispatch(fn func(Feature) error) error {
 }
 func (c *Controller) Header() error { return c.dispatch(func(f Feature) error { return f.Header() }) }
 func (c *Controller) Select(id string) error {
+	if handled, err := c.quickEdit(id); handled || err != nil {
+		return err
+	}
 	for _, r := range c.State.Rows {
 		if r.ID == id && !r.Disabled {
 			return c.dispatch(func(f Feature) error { return f.Select(id) })
