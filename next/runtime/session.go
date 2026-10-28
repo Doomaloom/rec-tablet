@@ -118,3 +118,50 @@ func (s *deviceSession) logout() error {
 	return nil
 }
 func (s *deviceSession) close() { s.closed = true; _ = s.logout() }
+
+// resume opens only the last activated local profile without redeeming a code.
+func (s *deviceSession) resume() error {
+	if s.closed || s.store != nil || s.cancel != nil {
+		return fmt.Errorf("cannot restore a session while another login is active")
+	}
+	profile, ok := s.profiles.lastProfile()
+	if !ok {
+		return fmt.Errorf("no previous session is available; log in with a code first")
+	}
+	if _, err := os.Stat(profile.Path); err != nil {
+		return fmt.Errorf("previous session is unavailable: %w", err)
+	}
+	var lock *instance.Lock
+	if profile.Path != s.profiles.base {
+		var err error
+		lock, err = instance.Acquire(profile.Path)
+		if err != nil {
+			return err
+		}
+	}
+	release := func() {
+		if lock != nil {
+			_ = lock.Close()
+		}
+	}
+	database, err := store.Open(profile.Path)
+	if err != nil {
+		release()
+		return err
+	}
+	dataset, err := database.Meta("dataset_id")
+	if err == nil {
+		var instructor string
+		instructor, err = database.Meta("instructor")
+		if err == nil && (dataset != profile.DatasetID || instructor != profile.Instructor) {
+			err = fmt.Errorf("previous session does not match the saved instructor")
+		}
+	}
+	if err != nil {
+		_ = database.Close()
+		release()
+		return err
+	}
+	s.store, s.lock = database, lock
+	return nil
+}

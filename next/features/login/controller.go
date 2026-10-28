@@ -12,6 +12,7 @@ type Options struct {
 	Server          func() string
 	SaveServer      func(string) error
 	Login           func(string, func(error))
+	Resume          func(func(error))
 	Cancel          func()
 }
 
@@ -122,4 +123,22 @@ func (c *Component) Deactivate() {
 	if c.options.Cancel != nil {
 		c.options.Cancel()
 	}
+}
+
+func (c *Component) Resume() {
+	if c.closed || c.busy || c.settings || c.options.Resume == nil {
+		return
+	}
+	c.busy, c.notice, c.error = true, "", false
+	c.refresh()
+	c.options.Resume(func(err error) {
+		if c.closed {
+			return
+		}
+		if err != nil {
+			c.Fail(err)
+			return
+		}
+		c.code = ""
+	})
 }

@@ -230,3 +230,14 @@ func (m *profileManager) save() error {
 	}
 	return os.Rename(tmp, m.base+".profiles.json")
 }
+
+func (m *profileManager) lastProfile() (savedProfile, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, profile := range m.index.Profiles {
+		if profile.Key == m.index.Active {
+			return profile, true
+		}
+	}
+	return savedProfile{}, false
+}

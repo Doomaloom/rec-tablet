@@ -2,6 +2,7 @@ package login
 
 import (
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -92,6 +93,10 @@ func (c *Component) composeKeypad(surface *ui.Surface, code string, busy bool, m
 		}
 		if digit == "Delete" {
 			button.Icon, button.IconOnly = backspaceIcon, true
+			if c.options.Resume != nil {
+				button.OnHold = c.Resume
+				button.HoldDuration = 3 * time.Second
+			}
 		}
 		surface.Add(button, position(1+i/3, i%3, 3))
 	}

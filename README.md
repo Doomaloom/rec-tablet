@@ -69,13 +69,15 @@ The large profile provides six class cards in a two-column grid, a Sunday-first 
 
 Private-level redesign is deferred. Private-lesson swimmers assigned a standard curriculum level continue using that level's assessment flow; unassigned swimmers cannot be assessed. All standard checklists fit without scrolling in the large profile.
 
-The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling back to `~/.local/share/rec-tablet/lessons.sqlite3`. Use `--database /path/to/lessons.sqlite3` for an isolated dataset. Close the old Python app before opening the same database in Go. Existing databases and their saved work are retained; the current UI requires a verified export-code login before opening instructor data. A per-database process lock prevents concurrent app instances.
+The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling back to `~/.local/share/rec-tablet/lessons.sqlite3`. Use `--database /path/to/lessons.sqlite3` for an isolated dataset. Close the old Python app before opening the same database in Go. Existing databases and their saved work are retained; the current UI opens a login screen before instructor data. A per-database process lock prevents concurrent app instances.
 
 ## Shift login and logout
 
-Every launch of the current UI opens **Log in**. Enter the instructor's six-digit device export code from COB-Aquatics-SPA **Device Exports**, then tap **Log in**. Leading zeroes are significant. The tablet needs a connection and active SPA sharing for every login; after login, lesson work stays local and works offline. Invalid codes, ended sharing, connection errors, or failed imports keep the tablet on the login screen with an error and retry.
+Every launch of the current UI opens **Log in**. Enter the instructor's six-digit device export code from COB-Aquatics-SPA **Device Exports**, then tap **Log in**. Leading zeroes are significant. Code login needs a connection and active SPA sharing; after login, lesson work stays local and works offline. Invalid codes, ended sharing, connection errors, or failed imports keep the tablet on the login screen with an error and retry.
 
-On **My Classes**, tap **Log out**, then confirm **Log out**. Cancel and Escape leave the shift open. Logout keeps saved attendance, assessments, and persisted drafts on the tablet, separated by dataset and instructor. Re-login verifies the code again and merges the roster into that instructor's existing database. Logout does not upload results or end SPA sharing. Closing or restarting the app requires login again.
+On **My Classes**, tap **Log out**, then confirm **Log out**. Cancel and Escape leave the shift open. Logout keeps saved attendance, assessments, and persisted drafts on the tablet, separated by dataset and instructor. Re-login verifies the code again and merges the roster into that instructor's existing database. Logout does not upload results or end SPA sharing. Closing or restarting the app returns to the login screen.
+
+Hold the **Backspace** button on the login keypad for three seconds to bypass code login and restore the last activated local instructor session, including saved work, without a network request. A normal tap still deletes one digit. If the previous session is unavailable, an error appears and the keypad stays open.
 
 Hold **Clear** on the login keypad for three seconds, or press **Ctrl+Shift+M**, to configure the share server and display before login. Signed-in Device Setup also provides **Export Data**. Manual imports and saved-instructor switching are available only in the optional legacy UI.
 

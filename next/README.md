@@ -12,7 +12,7 @@ Both implementations use the existing database schema, import/export formats, pr
 
 ## Shift sessions
 
-Every process launch mounts `features/login` through the normal shell. The login keypad verifies the six-digit SPA device export code online. `runtime/session.go` fetches the package asynchronously, imports into the existing instructor/dataset profile, and opens the workflow only after successful activation. The profile index's active key is storage metadata, not authorization to resume.
+Every process launch mounts `features/login` through the normal shell. The login keypad verifies the six-digit SPA device export code online. `runtime/session.go` fetches the package asynchronously, imports into the existing instructor/dataset profile, and opens the workflow only after successful activation. Holding the login keypad’s Backspace button for three seconds explicitly restores the last activated local instructor session without redeeming a code. A tap still deletes one digit; an unavailable saved session shows an error and leaves the keypad open.
 
 My Classes exposes a confirmed **Log out** action through `ConfigureSession`. Logout closes the workflow and instructor database, releases its additional process lock, and mounts a fresh login presenter. Local work is retained. The base database lock remains held for the process lifetime so a signed-out instance cannot race another instance over the profile index. Pending requests are cancelled and stale completions ignored; detached presenters, controls, and keyboard handlers are deactivated.
 

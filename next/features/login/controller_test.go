@@ -82,3 +82,36 @@ func TestSettingsCannotExposeLessonNavigation(t *testing.T) {
 		t.Fatal("clear did not reset code")
 	}
 }
+
+func TestResumeLifecycle(t *testing.T) {
+	calls := 0
+	var finish func(error)
+	c := New(Options{Resume: func(done func(error)) { calls++; finish = done }})
+	c.Digit("9")
+	c.Delete()
+	if calls != 0 {
+		t.Fatal("normal backspace resumed session")
+	}
+	c.Resume()
+	c.Resume()
+	if calls != 1 || !c.busy {
+		t.Fatal("resume must guard duplicate requests")
+	}
+	finish(errors.New("No previous session"))
+	if c.busy || !c.error {
+		t.Fatal("restore error not shown")
+	}
+	_ = c.OpenSetup()
+	c.Resume()
+	if calls != 1 {
+		t.Fatal("settings resumed session")
+	}
+	_ = c.Back()
+	c.Resume()
+	c.Deactivate()
+	finish(errors.New("stale failure"))
+	c.Resume()
+	if calls != 2 {
+		t.Fatal("detached login resumed session")
+	}
+}

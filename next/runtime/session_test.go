@@ -270,3 +270,53 @@ func TestShutdownCancelsPendingDownload(t *testing.T) {
 		t.Fatal("download was not cancelled")
 	}
 }
+
+func TestResumeLastSessionOfflineAndPreserveWork(t *testing.T) {
+	s, _ := sessionFixture(t)
+	first, err := s.profiles.importPackage(profilePackage("Alex"))
+	checkSession(t, err)
+	last, err := s.profiles.importPackage(profilePackage("Blair"))
+	checkSession(t, err)
+	checkSession(t, s.profiles.activate(first.Key))
+	checkSession(t, s.profiles.activate(last.Key))
+	s.fetch = func(context.Context, string, string) (transfer.ClassPackage, error) {
+		t.Fatal("resume must not fetch a package")
+		return transfer.ClassPackage{}, nil
+	}
+	// Restore the persisted selection after restarting the profile manager.
+	s.profiles, err = newProfileManager(s.profiles.base)
+	checkSession(t, err)
+	checkSession(t, s.resume())
+	instructor, err := s.store.Meta("instructor")
+	checkSession(t, err)
+	if instructor != "Blair" || s.store.DatabasePath() != last.Path {
+		t.Fatal("resumed wrong instructor")
+	}
+	if s.resume() == nil {
+		t.Fatal("duplicate restore accepted")
+	}
+	checkSession(t, s.logout())
+	checkSession(t, s.resume())
+	instructor, err = s.store.Meta("instructor")
+	checkSession(t, err)
+	if instructor != "Blair" {
+		t.Fatal("logout lost last session")
+	}
+}
+
+func TestResumeUnavailableSessionDoesNotCreateDatabase(t *testing.T) {
+	s, _ := sessionFixture(t)
+	if s.resume() == nil || s.store != nil {
+		t.Fatal("fresh install resumed a session")
+	}
+	profile, err := s.profiles.importPackage(profilePackage("Alex"))
+	checkSession(t, err)
+	checkSession(t, s.profiles.activate(profile.Key))
+	checkSession(t, os.Remove(profile.Path))
+	if s.resume() == nil || s.store != nil {
+		t.Fatal("missing profile resumed")
+	}
+	if _, err := os.Stat(profile.Path); !os.IsNotExist(err) {
+		t.Fatal("resume created a replacement database")
+	}
+}
