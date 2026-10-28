@@ -102,6 +102,7 @@ func (c *Component) Build() (navigation.State, error) {
 		}
 	}
 	if frame.Screen == navigation.FeedbackSwimmers && c.combined {
+		state.PrimaryInfo = ""
 		state.AlwaysShowPagePosition = true
 		state.HeaderStartFraction = feedbackSidebarFraction
 		state.Rows = rows

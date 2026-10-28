@@ -3,6 +3,7 @@ package skillsummary
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 
 	"rectablet/next/contracts"
 	"rectablet/next/navigation"
@@ -21,20 +22,6 @@ func (c *SkillSummary) Compose(state contracts.State) ui.BodyComposer {
 }
 func (c *SkillSummary) ComposeLarge(data Snapshot, page ...int) ui.BodyComposer {
 	return func(right *ui.Surface) {
-		heading := data.Person.Name
-		if !data.Person.Active {
-			heading += " · Former enrollment"
-		}
-		title := ui.NewText(heading, 26, ui.Navy)
-		title.Bold = true
-		selectedTitleHeight := func(w, h float32) float32 {
-			_, _, width, _ := right.BodyBounds(w, h)
-			return max(38, ui.WrappedTextHeight(heading, width, 26, true)+4)
-		}
-		right.AddNamed("feedback-selected-swimmer", title, func(w, h float32) (float32, float32, float32, float32) {
-			x, y, width, _ := right.BodyBounds(w, h)
-			return x, y, width, selectedTitleHeight(w, h)
-		})
 		for i, label := range []string{"In progress", "Complete"} {
 			i := i
 			button := right.Button("feedback-filter:"+label, label, func() {
@@ -48,7 +35,7 @@ func (c *SkillSummary) ComposeLarge(data Snapshot, page ...int) ui.BodyComposer 
 			right.AddNamed("feedback-filter-"+label, button, func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, _ := right.BodyBounds(w, h)
 				cell := (width - ui.Gap) / 2
-				return x + float32(i)*(cell+ui.Gap), y + selectedTitleHeight(w, h), cell, 40
+				return x + float32(i)*(cell+ui.Gap), y, cell, 40
 			})
 		}
 
@@ -60,7 +47,7 @@ func (c *SkillSummary) ComposeLarge(data Snapshot, page ...int) ui.BodyComposer 
 			empty := ui.NewText(message, 21, ui.Navy)
 			right.AddNamed("feedback-no-skills", empty, func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, height := right.BodyBounds(w, h)
-				inset := selectedTitleHeight(w, h) + 48
+				inset := float32(48)
 				return x, y + inset, width, height - inset
 			})
 			return
@@ -70,39 +57,25 @@ func (c *SkillSummary) ComposeLarge(data Snapshot, page ...int) ui.BodyComposer 
 			start := page[0] * 2
 			pageData.Entries = data.Entries[start:min(start+2, len(data.Entries))]
 		}
-		scroll := newFeedbackScroll(right, c, pageData)
-		right.AddNamed("feedback-skill-scroll", scroll, func(w, h float32) (float32, float32, float32, float32) {
+		cards := newFeedbackCards(right, c, pageData)
+		right.AddNamed("feedback-skill-cards", cards, func(w, h float32) (float32, float32, float32, float32) {
 			x, y, width, height := right.BodyBounds(w, h)
-			inset := selectedTitleHeight(w, h) + 48
+			inset := float32(48)
 			return x, y + inset, width, height - inset
 		})
 	}
 }
 
-type feedbackCardLayout struct {
-	title        string
-	details      string
-	width, scale float32
-}
+// Text never contributes to card size; the page owns two equal slots.
+type feedbackCardLayout struct{ scale float32 }
 
-func (l *feedbackCardLayout) titleHeight(width float32) float32 {
-	s := max(float32(.01), l.scale)
-	return max(32*s, ui.WrappedTextHeight(l.title, max(1, width-24*s), 23*s, true)+4*s)
-}
-func (l *feedbackCardLayout) cardHeight() float32 {
-	s := max(float32(.01), l.scale)
-	width := max(float32(100), l.width-28*s)
-	textHeight := ui.WrappedTextHeight(l.details, width, 18*s, false) + 6*s
-	return 8*s + l.titleHeight(l.width) + 4*s + 30*s + 8*s + textHeight + 12*s + 48*s + 12*s
-}
-func (l *feedbackCardLayout) MinSize([]fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(1, l.cardHeight())
-}
+func (l *feedbackCardLayout) MinSize([]fyne.CanvasObject) fyne.Size { return fyne.NewSize(1, 1) }
 func (l *feedbackCardLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	s := max(float32(.01), l.scale)
 	pad := 12 * s
-	titleHeight := l.titleHeight(size.Width)
-	textHeight := ui.WrappedTextHeight(l.details, max(100, size.Width-2*pad), 18*s, false) + 6*s
+	titleHeight := 56 * s
+	textTop := 8*s + titleHeight + 4*s + 30*s + 8*s
+	textHeight := max(1, size.Height-72*s-textTop)
 	objects[0].Move(fyne.NewPos(0, 0))
 	objects[0].Resize(size)
 	objects[1].Move(fyne.NewPos(pad, 8*s))
@@ -119,38 +92,35 @@ func (l *feedbackCardLayout) Layout(objects []fyne.CanvasObject, size fyne.Size)
 }
 
 type feedbackStackLayout struct {
-	cards        []*feedbackCardLayout
-	width, scale float32
+	cards []*feedbackCardLayout
+	scale float32
 }
 
-func (l *feedbackStackLayout) MinSize([]fyne.CanvasObject) fyne.Size {
-	height := float32(0)
-	for _, card := range l.cards {
-		card.width, card.scale = l.width, l.scale
-		height += card.cardHeight() + 8*l.scale
-	}
-	return fyne.NewSize(1, max(1, height))
-}
+func (l *feedbackStackLayout) MinSize([]fyne.CanvasObject) fyne.Size { return fyne.NewSize(1, 1) }
 func (l *feedbackStackLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	y := float32(0)
 	for i, object := range objects {
 		card := l.cards[i]
-		card.width, card.scale = size.Width, l.scale
-		h := card.cardHeight()
+		card.scale = l.scale
+		h := (size.Height - 8*l.scale) / 2
 		object.Move(fyne.NewPos(0, y))
 		object.Resize(fyne.NewSize(size.Width, h))
 		y += h + 8*l.scale
 	}
 }
 
-type feedbackScroll struct {
-	*container.Scroll
+type feedbackCards struct {
+	widget.BaseWidget
+	content *fyne.Container
 	stack   *feedbackStackLayout
 	labels  []*ui.TextBlock
 	buttons []*ui.TouchButton
 }
 
-func (s *feedbackScroll) SetScale(scale float32) {
+// The host draws widgets and containers; this wrapper must remain a registered widget.
+var _ fyne.Widget = (*feedbackCards)(nil)
+
+func (s *feedbackCards) SetScale(scale float32) {
 	if scale <= 0 {
 		scale = 1
 	}
@@ -161,25 +131,24 @@ func (s *feedbackScroll) SetScale(scale float32) {
 	for _, button := range s.buttons {
 		button.SetScale(scale)
 	}
-	s.Content.Refresh()
+	s.content.Refresh()
 }
-func (s *feedbackScroll) Resize(size fyne.Size) {
-	s.stack.width = size.Width
-	s.Scroll.Resize(size)
-	s.Content.Refresh()
+func (s *feedbackCards) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(s.content)
 }
-func newFeedbackScroll(surface *ui.Surface, c *SkillSummary, data Snapshot) *feedbackScroll {
-	stack := &feedbackStackLayout{scale: 1, width: 500}
-	result := &feedbackScroll{stack: stack}
+func newFeedbackCards(surface *ui.Surface, c *SkillSummary, data Snapshot) *feedbackCards {
+	stack := &feedbackStackLayout{scale: 1}
+	result := &feedbackCards{stack: stack}
 	objects := make([]fyne.CanvasObject, 0, len(data.Entries))
 	for _, entry := range data.Entries {
 		entry := entry
 		details := c.Detail(entry)
-		layout := &feedbackCardLayout{title: entry.Skill.Name, details: details, width: 500, scale: 1}
+		layout := &feedbackCardLayout{scale: 1}
 		stack.cards = append(stack.cards, layout)
 		bg := card.New(container.NewWithoutLayout(), card.Panel)
 		title := ui.NewText(entry.Skill.Name, 23, ui.Navy)
 		title.Bold = true
+		title.MaxLines = 2
 		progress := ui.NewText(navigation.ProgressText(entry.Progress), 18, ui.Green)
 		body := ui.NewText(details, 18, ui.Navy)
 		result.labels = append(result.labels, title, progress, body)
@@ -200,6 +169,7 @@ func newFeedbackScroll(surface *ui.Surface, c *SkillSummary, data Snapshot) *fee
 		result.buttons = append(result.buttons, button, subskills)
 		objects = append(objects, container.New(layout, bg, title, progress, body, button, subskills))
 	}
-	result.Scroll = container.NewVScroll(container.New(stack, objects...))
+	result.content = container.New(stack, objects...)
+	result.ExtendBaseWidget(result)
 	return result
 }

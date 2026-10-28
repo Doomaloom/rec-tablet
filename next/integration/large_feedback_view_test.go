@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
 
 	"rectablet/next/app"
 	"rectablet/src/shared/ui"
 )
 
-func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
+func TestLargeFeedbackPaginationAndAttemptsRoundtrip(t *testing.T) {
 	f := setupUI(t)
 	courses := must(f.s.ListCourses("2026-09-04"))
 	if len(courses) == 0 {
@@ -28,7 +27,7 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 	catalog := must(f.s.CatalogFor(course.CurriculumVersion))
 	level, ok := catalog.Level(person.Level)
 	if !ok || len(level.Skills) < 4 {
-		t.Fatal("need several skills to exercise scrolling")
+		t.Fatal("need several skills to exercise pagination")
 	}
 	for _, skill := range level.Skills[:min(6, len(level.Skills))] {
 		attempt := must(f.s.NewAttempt(person.ID, course.LessonID, skill.ID))
@@ -48,12 +47,21 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 	if f.view.Buttons["row:"+person.ID] == nil || !f.view.Buttons["row:"+person.ID].Selected {
 		t.Fatal("selected swimmer is not highlighted in the sidebar")
 	}
+	if f.c.Snapshot().PrimaryInfo != "" {
+		t.Fatal("feedback must not reserve a level header")
+	}
+	composition := app.ComposeScreen(f.view, f.c.Snapshot())
+	for _, component := range composition.Components {
+		if component.Name == "feature-feedback-selected-swimmer" {
+			t.Fatal("feedback must not show student name header")
+		}
+	}
 	firstAction := "feedback-attempts:" + entries[0].Skill.ID + ":" + entries[0].Version
 	if f.view.Buttons[firstAction] == nil {
 		t.Fatalf("missing attempt action %q", firstAction)
 	}
 
-	_ = mountedFeedbackScroll(t, f)
+	_ = mountedFeedbackCards(t, f)
 	if got := f.view.Buttons[firstAction].Size().Height; got < 48 {
 		t.Fatalf("attempt action height %.1f, want at least 48", got)
 	}
@@ -94,29 +102,26 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 
 	f.w.Resize(fyne.NewSize(1536, 900))
 	f.view.Root.Refresh()
-	_ = mountedFeedbackScroll(t, f)
+	_ = mountedFeedbackCards(t, f)
 	if got := f.view.Buttons[firstAction].Size().Height; got < 72 {
 		t.Fatalf("scaled attempt action height %.1f, want at least 72", got)
 	}
 	f.shot(t, "large-feedback-1536")
 }
 
-func mountedFeedbackScroll(t *testing.T, f *uiFixture) *container.Scroll {
+func mountedFeedbackCards(t *testing.T, f *uiFixture) fyne.CanvasObject {
 	t.Helper()
 	composition := app.ComposeScreen(f.view, f.c.Snapshot())
 	for i, component := range composition.Components {
-		if component.Name != "feature-feedback-skill-scroll" {
+		if component.Name != "feature-feedback-skill-cards" {
 			continue
 		}
 		object := f.view.Root.Objects[i]
 		field := reflect.ValueOf(object).Elem().FieldByName("Scroll")
-		if !field.IsValid() || field.IsNil() {
-			t.Fatal("feedback scroll component was not mounted")
+		if field.IsValid() {
+			t.Fatal("feedback must use fixed cards without scrolling")
 		}
-		scroll, ok := field.Interface().(*container.Scroll)
-		if !ok {
-			t.Fatal("feedback component does not contain a Fyne scroll")
-		}
+
 		logicalX, logicalY, logicalW, logicalH := component.Position(1024, 600)
 		scale := min(f.w.Canvas().Size().Width/1024, f.w.Canvas().Size().Height/600)
 		for label, got := range map[string][2]float32{
@@ -127,8 +132,8 @@ func mountedFeedbackScroll(t *testing.T, f *uiFixture) *container.Scroll {
 				t.Fatalf("%s at scale %.2f = %.1f, want %.1f", label, scale, got[0], got[1])
 			}
 		}
-		return scroll
+		return object
 	}
-	t.Fatal(fmt.Sprintf("feedback scroll missing from %d components", len(composition.Components)))
+	t.Fatal(fmt.Sprintf("feedback cards missing from %d components", len(composition.Components)))
 	return nil
 }

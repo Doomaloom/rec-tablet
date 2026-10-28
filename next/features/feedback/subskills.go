@@ -31,7 +31,7 @@ func configureSubskills(state *contracts.State, person domain.Enrollment, entrie
 	return rows
 }
 
-// Six cards share the page in two columns, with separate text and count areas.
+// Six full-width cards keep the criterion beside its miss count.
 func composeSubskills(state contracts.State) ui.BodyComposer {
 	return func(surface *ui.Surface) {
 		if len(state.Rows) == 0 {
@@ -42,9 +42,8 @@ func composeSubskills(state contracts.State) ui.BodyComposer {
 			i, row := i, row
 			bounds := func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, height := surface.BodyBounds(w, h)
-				cellWidth := (width - ui.Gap) / 2
-				cellHeight := (height - 2*ui.Gap) / 3
-				return x + float32(i%2)*(cellWidth+ui.Gap), y + float32(i/2)*(cellHeight+ui.Gap), cellWidth, cellHeight
+				cellHeight := (height - 5*ui.Gap) / 6
+				return x, y + float32(i)*(cellHeight+ui.Gap), width, cellHeight
 			}
 			panel := card.New(container.NewWithoutLayout(), card.Panel)
 			surface.AddNamed("feedback-subskill-card-"+row.ID, panel, bounds)
@@ -53,13 +52,13 @@ func composeSubskills(state contracts.State) ui.BodyComposer {
 			criterion.MinimumFont = 18
 			surface.AddNamed("feedback-subskill-text-"+row.ID, criterion, func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, height := bounds(w, h)
-				return x + ui.ButtonPadding, y + ui.ButtonPadding, width - 2*ui.ButtonPadding, height - 48 - ui.ButtonPadding
+				return x + ui.ButtonPadding, y + ui.ButtonPadding, width*.72 - 2*ui.ButtonPadding, height - 2*ui.ButtonPadding
 			})
 			count := ui.NewText(row.Status, 18, ui.Blue)
 			count.Bold = true
 			surface.AddNamed("feedback-subskill-misses-"+row.ID, count, func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, height := bounds(w, h)
-				return x + ui.ButtonPadding, y + height - 40, width - 2*ui.ButtonPadding, 32
+				return x + width*.72, y + ui.ButtonPadding, width*.28 - ui.ButtonPadding, height - 2*ui.ButtonPadding
 			})
 		}
 	}

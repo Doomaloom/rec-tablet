@@ -38,12 +38,17 @@ func TestSixSubskillCardsFitPage(t *testing.T) {
 		state.Rows[i] = contracts.Row{ID: fmt.Sprint(i), Label: "Keep head low", Status: "Missed 2 of 5 saved attempts"}
 	}
 	cards := 0
+	previousBottom := float32(0)
 	surface := &ui.Surface{AddNamed: func(name string, object fyne.CanvasObject, bounds func(float32, float32) (float32, float32, float32, float32)) {
 		x, y, w, h := bounds(1024, 600)
 		if x < ui.ContentInset || y < 52 || x+w > 1024-ui.ContentInset+1 || y+h > 596+1 || w <= 0 || h <= 0 {
 			t.Fatalf("%s exceeds page: %v %v %v %v", name, x, y, w, h)
 		}
 		if name == "feedback-subskill-card-"+fmt.Sprint(cards) {
+			if x != ui.ContentInset || w != 1024-2*ui.ContentInset || y < previousBottom {
+				t.Fatal("subskill cards must form one full-width column")
+			}
+			previousBottom = y + h
 			cards++
 		}
 	}}
