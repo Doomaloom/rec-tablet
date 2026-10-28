@@ -25,10 +25,11 @@ func New(nav *navigation.Controller, store Repository) *Component {
 	c := &Component{navigation: nav, store: store}
 	c.swimmerPicker = swimmerpicker.SwimmerPicker{OnSelect: func(id string) { _ = nav.Select(id) }}
 	c.skillSummary = skillsummary.SkillSummary{
-		OnSelect:   func(id string) { _ = nav.Select(id) },
-		OnAttempts: c.openAttempts,
-		Detail:     c.skillDetail.Text,
-		OnFilter:   c.setFilter,
+		OnSelect:    func(id string) { _ = nav.Select(id) },
+		OnAttempts:  c.openAttempts,
+		OnSubskills: c.openSubskills,
+		Detail:      c.skillDetail.Text,
+		OnFilter:    c.setFilter,
 	}
 	return c
 }
@@ -77,16 +78,21 @@ func (c *Component) Build() (navigation.State, error) {
 		c.skillSummary.Selected = summary
 		c.skillSummary.Complete = c.complete
 		rows = c.swimmerPicker.Configure(&state, roster, entries, selected)
-	case navigation.Feedback, navigation.FeedbackDetail:
+	case navigation.Feedback, navigation.FeedbackDetail, navigation.FeedbackSubskills:
 		person, err := c.store.GetEnrollment(frame.Person)
 		if err != nil {
 			return state, err
 		}
 		entries, err := c.store.Feedback(frame.Person)
+		if frame.Screen == navigation.FeedbackSubskills && c.complete {
+			entries, err = c.store.CompletedFeedback(frame.Person)
+		}
 		if err != nil {
 			return state, err
 		}
-		if frame.Screen == navigation.Feedback {
+		if frame.Screen == navigation.FeedbackSubskills {
+			rows = configureSubskills(&state, person, entries, frame.Skill, frame.Version)
+		} else if frame.Screen == navigation.Feedback {
 			rows = c.skillSummary.Configure(&state, person, entries)
 			for i := range rows {
 				rows[i].Data = navigation.Parameters{Version: entries[i].Version}
@@ -154,6 +160,13 @@ func (c *Component) setFilter(complete bool) {
 	_ = c.navigation.Run(func() error {
 		c.complete = complete
 		c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Page = 0
+		return nil
+	})
+}
+
+func (c *Component) openSubskills(person, skill, version string) {
+	_ = c.navigation.Run(func() error {
+		c.navigation.Push(navigation.FeedbackSubskills, func(frame *navigation.Frame) { frame.Person, frame.Skill, frame.Version = person, skill, version })
 		return nil
 	})
 }

@@ -655,3 +655,28 @@ func TestDatabaseFilenameAndReconnectedSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestFeedbackSubskillMissesCountSavedResultsAndCorrections(t *testing.T) {
+	f := setup(t)
+	first := f.attempt(t, false, "")
+	f.attempt(t, false, "")
+	f.attempt(t, true, "")
+	draftID := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:1"))
+	check(t, f.s.Mark(draftID, "Splash1:1:2", "not_yet"))
+	entry := must(f.s.Feedback(f.person.String("id")))[0]
+	if entry.Assessed != 3 || len(entry.MissedSubskills) != 1 || entry.MissedSubskills[0].Subskill.ID != "Splash1:1:2" || entry.MissedSubskills[0].Count != 2 {
+		t.Fatalf("miss counts include drafts or successful criteria: %+v", entry)
+	}
+	check(t, f.s.EditAttempt(first))
+	check(t, f.s.Mark(first, "Splash1:1:2", "successful"))
+	_ = must(f.s.Submit(first))
+	entry = must(f.s.Feedback(f.person.String("id")))[0]
+	if entry.Assessed != 3 || entry.MissedSubskills[0].Count != 1 {
+		t.Fatalf("correction double-counted or ignored: %+v", entry)
+	}
+	f.attempt(t, true, "")
+	entry = must(f.s.CompletedFeedback(f.person.String("id")))[0]
+	if entry.MissedSubskills[0].Count != 1 || entry.Assessed != 4 {
+		t.Fatal("completed skills lost missed subskill history")
+	}
+}

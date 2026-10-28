@@ -25,15 +25,23 @@ type Progress struct {
 	Assessed, Successes int
 	Complete            bool
 }
+
+// SubskillMiss counts saved attempts whose current result is not yet successful.
+type SubskillMiss struct {
+	Subskill curriculum.Subskill
+	Count    int
+}
+
 type Feedback struct {
 	Skill   curriculum.Skill
 	Version string
 	Progress
-	Remaining      []curriculum.Subskill
-	Timed          bool
-	TimedElapsedMS int64
-	TimedLaps      int
-	TimedRequired  int
+	MissedSubskills []SubskillMiss
+	Remaining       []curriculum.Subskill
+	Timed           bool
+	TimedElapsedMS  int64
+	TimedLaps       int
+	TimedRequired   int
 }
 
 // TimedParticipant is one swimmer in a shared timed heat.

@@ -30,7 +30,7 @@ func TestSkillSummaryAttemptCallbacksPreserveEachVersion(t *testing.T) {
 	surface := &ui.Surface{Button: func(_, label string, run func()) *ui.TouchButton { return ui.NewButton(label, run) }}
 	scroll := newFeedbackScroll(surface, &summary, data)
 	scroll.buttons[0].OnTap()
-	scroll.buttons[1].OnTap()
+	scroll.buttons[2].OnTap()
 	if len(opened) != 2 || opened[0] != (target{"former", "skill", "older"}) || opened[1] != (target{"former", "skill", "newer"}) {
 		t.Fatalf("attempt targets = %+v", opened)
 	}

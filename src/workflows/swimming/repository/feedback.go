@@ -44,6 +44,19 @@ func (s *Store) feedbackByCompletion(person string, complete bool) ([]domain.Fee
 			}
 			remaining := domain.Remaining(skill, values)
 			entry := domain.Feedback{Skill: skill, Version: version, Progress: p, Remaining: remaining}
+			misses, e := rows(q, `SELECT r.subskill_id, COUNT(*) AS missed FROM results r JOIN attempts a ON a.id=r.attempt_id WHERE a.enrollment_id=? AND a.skill_id=? AND a.curriculum_version=? AND a.submitted_at IS NOT NULL AND r.status='not_yet' GROUP BY r.subskill_id`, person, skillID, version)
+			if e != nil {
+				return e
+			}
+			counts := map[string]int{}
+			for _, miss := range misses {
+				counts[miss.String("subskill_id")] = miss.Int("missed")
+			}
+			for _, subskill := range skill.Subskills {
+				if count := counts[subskill.ID]; count > 0 {
+					entry.MissedSubskills = append(entry.MissedSubskills, domain.SubskillMiss{Subskill: subskill, Count: count})
+				}
+			}
 			if timed, timedErr := one(q, "SELECT laps_required,laps_completed,elapsed_ms FROM timed_attempts WHERE attempt_id=?", latest.String("id")); timedErr == nil {
 				entry.Timed = true
 				entry.TimedRequired = timed.Int("laps_required")

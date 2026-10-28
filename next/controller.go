@@ -60,7 +60,7 @@ func New(store *repository.Store) *Controller {
 		navigation.ClassAssessment, navigation.TimedLaps, navigation.TimedHeat,
 		navigation.Attempts, navigation.Assessment,
 	)
-	register(c.feedback, navigation.FeedbackSwimmers, navigation.Feedback, navigation.FeedbackDetail)
+	register(c.feedback, navigation.FeedbackSwimmers, navigation.Feedback, navigation.FeedbackDetail, navigation.FeedbackSubskills)
 	register(c.setup, navigation.Maintenance)
 	_ = c.Refresh()
 	return c

@@ -1,6 +1,7 @@
 package skillsummary
 
 import (
+	"rectablet/src/workflows/swimming/curriculum"
 	"strings"
 	"testing"
 
@@ -35,5 +36,37 @@ func TestSkillCardsScrollBeyondViewport(t *testing.T) {
 	scroll.Resize(fyne.NewSize(440, 180))
 	if scroll.Content.MinSize().Height <= scroll.Size().Height {
 		t.Fatal("skill cards do not extend beyond viewport")
+	}
+}
+
+func TestSubskillsButtonOpensMissSummary(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("Feedback")
+	defer window.Close()
+	window.Resize(fyne.NewSize(1024, 600))
+	entry := domain.Feedback{Skill: curriculum.Skill{ID: "skill", Name: "Float"}, Version: "pinned", Progress: domain.Progress{Assessed: 5}, MissedSubskills: []domain.SubskillMiss{{Subskill: curriculum.Subskill{Text: "Keep head low"}, Count: 2}}}
+
+	buttons := map[string]*ui.TouchButton{}
+	surface := &ui.Surface{Window: window, Button: func(id, label string, run func()) *ui.TouchButton {
+		b := ui.NewButton(label, run)
+		buttons[id] = b
+		return b
+	}}
+	var target string
+	summary := SkillSummary{Detail: func(domain.Feedback) string { return "Needs practice" }, OnSubskills: func(person, skill, version string) { target = person + ":" + skill + ":" + version }}
+	scroll := newFeedbackScroll(surface, &summary, Snapshot{Person: domain.Enrollment{ID: "student"}, Entries: []domain.Feedback{entry}})
+	scroll.Resize(fyne.NewSize(600, 400))
+	attempts := buttons["feedback-attempts:skill:pinned"]
+	subskills := buttons["feedback-subskills:skill:pinned"]
+	if subskills == nil || subskills.Size().Height < 48 || subskills.Position().X <= attempts.Position().X {
+		t.Fatal("subskills action must sit beside attempts")
+	}
+	subskills.OnTap()
+	if target != "student:skill:pinned" {
+		t.Fatalf("subskills target: %s", target)
+	}
+	if len(window.Canvas().Overlays().List()) != 0 {
+		t.Fatal("subskills must navigate without a popup")
 	}
 }

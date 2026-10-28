@@ -18,6 +18,8 @@ func (c *Component) composeFeatureBody(state *contracts.State) {
 		}
 	case navigation.Feedback:
 		state.ComposeBody = c.skillSummary.Compose(*state)
+	case navigation.FeedbackSubskills:
+		state.ComposeBody = composeSubskills(*state)
 	case navigation.FeedbackDetail:
 		state.ComposeBody = c.skillDetail.Compose(*state)
 	}

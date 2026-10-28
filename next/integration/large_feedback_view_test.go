@@ -72,6 +72,16 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 	}
 	f.tap(t, "up")
 
+	subskillsAction := "feedback-subskills:" + entries[0].Skill.ID + ":" + entries[0].Version
+	f.tap(t, subskillsAction)
+	if f.c.Snapshot().Screen != "feedback_subskills" || f.c.Frame().Person != person.ID || f.c.Frame().Skill != entries[0].Skill.ID || f.c.Frame().Version != entries[0].Version {
+		t.Fatal("subskills did not navigate with pinned student and skill")
+	}
+	f.shot(t, "large-feedback-subskills")
+	f.tap(t, "back")
+	if f.c.Snapshot().Screen != "feedback_swimmers" || f.view.Buttons[firstAction] == nil {
+		t.Fatal("back did not restore feedback")
+	}
 	f.tap(t, firstAction)
 	if f.c.Snapshot().Screen != "attempts" || f.c.Frame().Person != person.ID || f.c.Frame().Skill != entries[0].Skill.ID || f.c.Frame().Version != entries[0].Version {
 		t.Fatalf("attempts lost selected context: %+v", f.c.Frame())

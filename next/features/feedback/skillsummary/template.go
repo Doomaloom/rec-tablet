@@ -112,7 +112,10 @@ func (l *feedbackCardLayout) Layout(objects []fyne.CanvasObject, size fyne.Size)
 	objects[3].Move(fyne.NewPos(pad, 8*s+titleHeight+4*s+30*s+8*s))
 	objects[3].Resize(fyne.NewSize(size.Width-2*pad, textHeight))
 	objects[4].Move(fyne.NewPos(pad, size.Height-60*s))
-	objects[4].Resize(fyne.NewSize(max(1, size.Width-2*pad), 48*s))
+	buttonWidth := max(1, (size.Width-2*pad-8*s)/2)
+	objects[4].Resize(fyne.NewSize(buttonWidth, 48*s))
+	objects[5].Move(fyne.NewPos(pad+buttonWidth+8*s, size.Height-60*s))
+	objects[5].Resize(fyne.NewSize(buttonWidth, 48*s))
 }
 
 type feedbackStackLayout struct {
@@ -186,8 +189,16 @@ func newFeedbackScroll(surface *ui.Surface, c *SkillSummary, data Snapshot) *fee
 		button.FontSize = 18
 		button.Fill = ui.Rail
 		button.Ink = ui.Blue
-		result.buttons = append(result.buttons, button)
-		objects = append(objects, container.New(layout, bg, title, progress, body, button))
+		subskills := surface.Button("feedback-subskills:"+entry.Skill.ID+":"+entry.Version, "Subskills", func() {
+			if c.OnSubskills != nil {
+				c.OnSubskills(data.Person.ID, entry.Skill.ID, entry.Version)
+			}
+		})
+		subskills.FontSize = 18
+		subskills.Fill = ui.Rail
+		subskills.Ink = ui.Blue
+		result.buttons = append(result.buttons, button, subskills)
+		objects = append(objects, container.New(layout, bg, title, progress, body, button, subskills))
 	}
 	result.Scroll = container.NewVScroll(container.New(stack, objects...))
 	return result
