@@ -348,3 +348,41 @@ func hasComponent(components []LayoutComponent, name string) bool {
 	}
 	return false
 }
+
+func TestClockTitleUpdatePreservesPressedButtons(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("clock")
+	var update func(string)
+	presenter := &compositionPresenter{state: State{Screen: "timed_heat", Title: "00:00.0", CanBack: true, HeaderActions: []HeaderAction{{Label: "Pause", Run: func() error { return nil }}}, BindTitle: func(fn func(string)) { update = fn }}}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, presenter.state)
+	var title *ui.TextBlock
+	for _, component := range composition.Components {
+		if component.Name == "screen-title" {
+			title = component.Object.(*ui.TextBlock)
+		}
+	}
+	if title == nil || update == nil {
+		t.Fatal("clock title not bound")
+	}
+	for id, button := range view.Buttons {
+		if button.Disabled {
+			continue
+		}
+		tapped := false
+		button.CanActivate = func() bool { return true }
+		button.OnTap = func() { tapped = true }
+		button.TouchDown(nil)
+		update("00:01.2")
+		button.TouchUp(nil)
+		button.Tapped(nil)
+		if !tapped || view.Buttons[id] != button {
+			t.Fatalf("clock interrupted %s", id)
+		}
+	}
+	if title.Text != "00:01.2" {
+		t.Fatal("clock label did not change")
+	}
+}

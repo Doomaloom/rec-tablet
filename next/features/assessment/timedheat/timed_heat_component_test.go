@@ -2,6 +2,7 @@ package timedheat
 
 import (
 	"testing"
+	"time"
 
 	"rectablet/next/features/assessment/internal/common"
 	"rectablet/next/navigation"
@@ -28,4 +29,35 @@ func TestTimedHeatOwnsTickerCleanup(t *testing.T) {
 		t.Fatal("leaving heat did not stop its ticker")
 	}
 	state.OnLeave() // Leaving again is harmless.
+}
+
+func TestClockTickDoesNotRebuildScreen(t *testing.T) {
+	stop := make(chan struct{})
+	heat := &Heat{Running: true, StartedAt: time.Now().Add(-time.Second), Stop: stop}
+	updates := 0
+	c := Component{State: State{Heat: heat}, navigation: common.Navigation{
+		Refresh: func() error { t.Fatal("clock tick rebuilt the screen during a press"); return nil },
+	}, updateTitle: func(title string) {
+		if title == "" {
+			t.Fatal("empty clock")
+		}
+		updates++
+	}}
+	c.tick(heat, stop)
+	if updates != 1 {
+		t.Fatal("clock did not update")
+	}
+	heat.Running = false
+	c.tick(heat, stop)
+	heat.Running = true
+	heat.Stop = make(chan struct{})
+	c.tick(heat, stop) // A queued tick from the previous run must be ignored.
+	if updates != 1 {
+		t.Fatal("stale or paused clock updated")
+	}
+	c.StopTicker()
+	c.tick(heat, heat.Stop)
+	if updates != 1 {
+		t.Fatal("clock updated after leaving")
+	}
 }

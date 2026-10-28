@@ -49,7 +49,7 @@ func (c *Component) ConfirmTimedLaps() error {
 		if e != nil {
 			return nil
 		}
-		heat := &Heat{SkillID: f.Skill, Version: f.Version, Lesson: f.Lesson, LapsRequired: laps, Stop: make(chan struct{})}
+		heat := &Heat{SkillID: f.Skill, Version: f.Version, Lesson: f.Lesson, LapsRequired: laps}
 		for _, participant := range participants {
 			heat.Participants = append(heat.Participants, ParticipantState{Participant: Participant{AttemptID: participant.AttemptID, PersonID: participant.PersonID, Name: participant.Name, LapsRequired: participant.LapsRequired}})
 		}

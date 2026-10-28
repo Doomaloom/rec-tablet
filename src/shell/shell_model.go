@@ -43,6 +43,8 @@ type SplitHeader struct {
 }
 
 type State struct {
+	// BindTitle installs an in-place title updater; invoke updates on the UI thread.
+	BindTitle   func(func(string))
 	DisplayMode ui.DisplayMode
 	// PrimaryInfoFontSize defaults to 20; dense screens can reserve more body space.
 	PrimaryInfoFontSize float32

@@ -95,6 +95,12 @@ func renderHeaderComponents(builder *contracts.RenderContext) {
 	background := card.New(container.NewWithoutLayout(), card.Panel)
 	builder.Add("screen-title-background", background, position)
 	title := ui.NewText(state.Title, fontSize, ui.Navy)
+	if state.BindTitle != nil {
+		state.BindTitle(func(value string) {
+			title.Text = value
+			title.Refresh()
+		})
+	}
 	title.Bold, title.Center = true, true
 	if state.FitHeader {
 		title.MinimumFont, title.MaxLines = 10, -1

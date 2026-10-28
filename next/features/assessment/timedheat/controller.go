@@ -16,14 +16,15 @@ import (
 
 // Component owns timed assessment state and presentation through explicit data and action callbacks.
 type Component struct {
-	Layout     Layout
-	progress   common.ProgressActions
-	navigation common.Navigation
-	State      State
-	storage    Storage
-	paginate   func(*navigation.State, []navigation.Row)
-	small      *CompactTemplate
-	large      *LargeTemplate
+	updateTitle func(string)
+	Layout      Layout
+	progress    common.ProgressActions
+	navigation  common.Navigation
+	State       State
+	storage     Storage
+	paginate    func(*navigation.State, []navigation.Row)
+	small       *CompactTemplate
+	large       *LargeTemplate
 }
 
 // State holds mode session and paging state.
@@ -156,6 +157,7 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 			return state, fmt.Errorf("skill is not a timed benchmark")
 		}
 		state.Title = formatElapsed(c.Elapsed())
+		state.BindTitle = func(update func(string)) { c.updateTitle = update }
 		navigation.AppendPrimaryInfo(&state, benchmark.Description)
 		state.HeaderTitleFontSize = 34
 		startLabel := "Start"
@@ -209,6 +211,7 @@ func (c *Component) Elapsed() time.Duration {
 }
 
 func (c *Component) StopTicker() {
+	c.updateTitle = nil
 	if c.State.Heat == nil || c.State.Heat.Stop == nil {
 		return
 	}
@@ -233,9 +236,7 @@ func (c *Component) StartTicker(heat *Heat) {
 			select {
 			case <-ticker.C:
 				fyne.Do(func() {
-					if c.State.Heat == heat && heat.Running {
-						_ = c.navigation.Refresh()
-					}
+					c.tick(heat, stop)
 				})
 			case <-stop:
 				return
@@ -246,3 +247,11 @@ func (c *Component) StartTicker(heat *Heat) {
 
 // Layout is chosen by the assessment root.
 type Layout struct{ Panels bool }
+
+// tick updates only the clock so an in-flight press keeps its original button.
+func (c *Component) tick(heat *Heat, stop chan struct{}) {
+	if c.State.Heat != heat || heat.Stop != stop || !heat.Running || c.updateTitle == nil {
+		return
+	}
+	c.updateTitle(formatElapsed(c.Elapsed()))
+}
