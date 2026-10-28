@@ -11,7 +11,7 @@ import (
 	"rectablet/src/workflows/swimming/navigation"
 )
 
-func (c *SkillSummary) ComposeLarge(data summaryData) ui.BodyComposer {
+func (c *SkillSummary) ComposeLarge(data summaryData, page int) ui.BodyComposer {
 	return func(right *ui.Surface) {
 		heading := data.person.Name
 		if !data.person.Active {
@@ -41,7 +41,9 @@ func (c *SkillSummary) ComposeLarge(data summaryData) ui.BodyComposer {
 			})
 			return
 		}
-		scroll := newFeedbackScroll(right, c, data)
+		pageData := data
+		pageData.entries = data.entries[page : page+1]
+		scroll := newFeedbackScroll(right, c, pageData)
 		right.AddNamed("feedback-skill-scroll", scroll, func(w, h float32) (float32, float32, float32, float32) {
 			x, y, width, height := right.BodyBounds(w, h)
 			inset := selectedTitleHeight(w, h) + 32

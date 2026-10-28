@@ -71,7 +71,7 @@ func PagePositionTrackSlot(state contracts.State) LayoutSlot {
 func PagePositionThumbSlot(state contracts.State) LayoutSlot {
 	return func(width, height float32) (float32, float32, float32, float32) {
 		x, y, trackWidth, trackHeight := PagePositionTrackSlot(state)(width, height)
-		thumbHeight := trackHeight / float32(state.PageCount)
+		thumbHeight := trackHeight / float32(max(1, state.PageCount))
 		page := min(max(0, state.Page), state.PageCount-1)
 		progress := float32(page) / float32(max(1, state.PageCount-1))
 		return x, y + progress*(trackHeight-thumbHeight), trackWidth, thumbHeight
@@ -91,7 +91,7 @@ func HeaderTitleSlot(width, _ float32, left, actionWidth float32) (float32, floa
 
 func bodyWidth(state contracts.State, width float32) float32 {
 	available := width - contentLeft(state) - ui.ContentInset
-	if state.PageCount > 1 && state.RightRailActions == nil {
+	if (state.PageCount > 1 || state.AlwaysShowPagePosition) && state.RightRailActions == nil {
 		available -= PagePositionBodyReserve
 	}
 	return available

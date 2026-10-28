@@ -285,6 +285,11 @@ func TestFeedbackAcrossLessons(t *testing.T) {
 	if len(must(f.s.Feedback(f.person.String("id")))) != 0 {
 		t.Fatal("complete skill shown")
 	}
+	completed := must(f.s.CompletedFeedback(f.person.String("id")))
+	if len(completed) != 1 || !completed[0].Progress.Complete || completed[0].Skill.ID != "Splash1:1" {
+		t.Fatalf("completed feedback: %+v", completed)
+	}
+
 }
 func TestOldCorrectionIsNotLatestObservation(t *testing.T) {
 	f := setup(t)

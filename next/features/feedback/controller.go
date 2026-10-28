@@ -13,6 +13,7 @@ type Component struct {
 	navigation    *navigation.Controller
 	store         Repository
 	combined      bool
+	complete      bool
 	swimmerPicker swimmerpicker.SwimmerPicker
 	skillSummary  skillsummary.SkillSummary
 	skillDetail   skilldetail.SkillDetail
@@ -27,6 +28,7 @@ func New(nav *navigation.Controller, store Repository) *Component {
 		OnSelect:   func(id string) { _ = nav.Select(id) },
 		OnAttempts: c.openAttempts,
 		Detail:     c.skillDetail.Text,
+		OnFilter:   c.setFilter,
 	}
 	return c
 }
@@ -61,6 +63,9 @@ func (c *Component) Build() (navigation.State, error) {
 		summary := skillsummary.Snapshot{}
 		for _, person := range roster {
 			feedback, err := c.store.Feedback(person.ID)
+			if c.combined && c.complete {
+				feedback, err = c.store.CompletedFeedback(person.ID)
+			}
 			if err != nil {
 				return state, err
 			}
@@ -70,6 +75,7 @@ func (c *Component) Build() (navigation.State, error) {
 			}
 		}
 		c.skillSummary.Selected = summary
+		c.skillSummary.Complete = c.complete
 		rows = c.swimmerPicker.Configure(&state, roster, entries, selected)
 	case navigation.Feedback, navigation.FeedbackDetail:
 		person, err := c.store.GetEnrollment(frame.Person)
@@ -89,7 +95,18 @@ func (c *Component) Build() (navigation.State, error) {
 			rows = c.skillDetail.Configure(&state, person, entries, frame.Skill, frame.Version)
 		}
 	}
-	c.navigation.Paginate(&state, rows)
+	if frame.Screen == navigation.FeedbackSwimmers && c.combined {
+		state.AlwaysShowPagePosition = true
+		state.HeaderStartFraction = feedbackSidebarFraction
+		state.Rows = rows
+		state.RowCount = len(rows)
+		state.PageSize = 2
+		state.PageCount = max(1, (len(c.skillSummary.Selected.Entries)+1)/2)
+		state.Page = min(max(0, frame.Page), state.PageCount-1)
+		c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Page = state.Page
+	} else {
+		c.navigation.Paginate(&state, rows)
+	}
 	c.composeFeatureBody(&state)
 	return state, nil
 }
@@ -100,6 +117,7 @@ func (c *Component) Select(id string) error {
 	case navigation.FeedbackSwimmers:
 		if c.combined {
 			c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Person = id
+			c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Page = 0
 			return nil
 		}
 		c.navigation.Push(navigation.Feedback, func(next *navigation.Frame) { next.Person = id })
@@ -131,3 +149,11 @@ func (c *Component) Header() error {
 }
 func (c *Component) Mark(string) error { return nil }
 func (c *Component) Submit() error     { return nil }
+
+func (c *Component) setFilter(complete bool) {
+	_ = c.navigation.Run(func() error {
+		c.complete = complete
+		c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Page = 0
+		return nil
+	})
+}

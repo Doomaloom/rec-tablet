@@ -28,7 +28,7 @@ const feedbackSidebarFraction float32 = .28
 func feedbackSidebarBounds(surface *ui.Surface) ui.Bounds {
 	return func(w, h float32) (float32, float32, float32, float32) {
 		x, y, width, height := surface.BodyBounds(w, h)
-		return x, y, width * feedbackSidebarFraction, height
+		return x, ui.OuterMargin, width * feedbackSidebarFraction, height + y - ui.OuterMargin
 	}
 }
 
@@ -49,7 +49,7 @@ func (c *Component) composeLargeFeedbackBody(state contracts.State, data skillsu
 		left := ui.Panel(surface, feedbackSidebarBounds(surface))
 		c.swimmerPicker.RenderSidebar(left, state)
 		right := ui.Panel(surface, feedbackDetailBounds(surface))
-		c.skillSummary.ComposeLarge(data)(right)
+		c.skillSummary.ComposeLarge(data, state.Page)(right)
 	}
 }
 

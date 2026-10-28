@@ -8,7 +8,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/test"
 
 	"rectablet/next/app"
 	"rectablet/src/shared/ui"
@@ -43,7 +42,7 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 	f.c.ConfigureDisplay(ui.DisplayLarge, nil)
 	f.row(t, 0)
 	f.tap(t, "row:feedback_swimmers")
-	if f.c.Snapshot().Screen != "feedback_swimmers" || f.c.Frame().Person != person.ID || f.c.Snapshot().PageSize != 6 {
+	if f.c.Snapshot().Screen != "feedback_swimmers" || f.c.Frame().Person != person.ID || f.c.Snapshot().PageSize != 2 {
 		t.Fatalf("large feedback did not select first swimmer: %+v", f.c.Frame())
 	}
 	if f.view.Buttons["row:"+person.ID] == nil || !f.view.Buttons["row:"+person.ID].Selected {
@@ -54,20 +53,24 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 		t.Fatalf("missing attempt action %q", firstAction)
 	}
 
-	scroll := mountedFeedbackScroll(t, f)
-	if scroll.Content.MinSize().Height <= scroll.Size().Height {
-		t.Fatalf("feedback content %.1f should overflow %.1f viewport", scroll.Content.MinSize().Height, scroll.Size().Height)
-	}
+	_ = mountedFeedbackScroll(t, f)
 	if got := f.view.Buttons[firstAction].Size().Height; got < 48 {
 		t.Fatalf("attempt action height %.1f, want at least 48", got)
 	}
-	f.shot(t, "large-feedback-1024")
-	scrollAt := fyne.NewPos(scroll.Position().X+scroll.Size().Width/2, scroll.Position().Y+scroll.Size().Height/2)
-	test.Scroll(f.w.Canvas(), scrollAt, 0, -140)
-	if scroll.Offset.Y <= 0 {
-		t.Fatal("touch scroll did not move feedback details")
+	f.tap(t, "down")
+	secondAction := "feedback-attempts:" + entries[2].Skill.ID + ":" + entries[2].Version
+	if f.c.Snapshot().Page != 1 || f.view.Buttons[secondAction] == nil || f.view.Buttons[firstAction] != nil {
+		t.Fatal("rail did not advance feedback")
 	}
-	f.shot(t, "large-feedback-scrolled")
+	f.tap(t, "feedback-filter:Complete")
+	if f.c.Snapshot().Page != 0 || f.view.Buttons[firstAction] != nil || !f.view.Buttons["feedback-filter:Complete"].Selected {
+		t.Fatal("complete switch did not reset page and filter feedback")
+	}
+	f.tap(t, "feedback-filter:In progress")
+	if f.view.Buttons[firstAction] == nil {
+		t.Fatal("in progress switch did not restore feedback")
+	}
+	f.tap(t, "up")
 
 	f.tap(t, firstAction)
 	if f.c.Snapshot().Screen != "attempts" || f.c.Frame().Person != person.ID || f.c.Frame().Skill != entries[0].Skill.ID || f.c.Frame().Version != entries[0].Version {
@@ -81,20 +84,11 @@ func TestLargeFeedbackScrollAndAttemptsRoundtrip(t *testing.T) {
 
 	f.w.Resize(fyne.NewSize(1536, 900))
 	f.view.Root.Refresh()
-	scroll = mountedFeedbackScroll(t, f)
-	if scroll.Content.MinSize().Height <= scroll.Size().Height {
-		t.Fatal("feedback scroll content lost overflow at 1536×900")
-	}
+	_ = mountedFeedbackScroll(t, f)
 	if got := f.view.Buttons[firstAction].Size().Height; got < 72 {
 		t.Fatalf("scaled attempt action height %.1f, want at least 72", got)
 	}
 	f.shot(t, "large-feedback-1536")
-	scrollAt = fyne.NewPos(scroll.Position().X+scroll.Size().Width/2, scroll.Position().Y+scroll.Size().Height/2)
-	test.Scroll(f.w.Canvas(), scrollAt, 0, -210)
-	if scroll.Offset.Y <= 0 {
-		t.Fatal("touch scroll did not move feedback details at 1536×900")
-	}
-	f.shot(t, "large-feedback-1536-scrolled")
 }
 
 func mountedFeedbackScroll(t *testing.T, f *uiFixture) *container.Scroll {

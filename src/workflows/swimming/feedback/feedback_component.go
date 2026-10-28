@@ -85,7 +85,16 @@ func (c *Component) Build() (navigation.State, error) {
 			rows = c.skillDetail.Configure(&state, person, entries, frame.Skill, frame.Version)
 		}
 	}
-	c.navigation.Paginate(&state, rows)
+	if frame.Screen == navigation.FeedbackSwimmers && state.DisplayMode.IsLarge() {
+		state.Rows = rows
+		state.RowCount = len(rows)
+		state.PageSize = 1
+		state.PageCount = max(1, len(c.skillSummary.selected.entries))
+		state.Page = min(max(0, frame.Page), state.PageCount-1)
+		c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Page = state.Page
+	} else {
+		c.navigation.Paginate(&state, rows)
+	}
 	c.composeFeatureBody(&state)
 	return state, nil
 }
@@ -96,6 +105,7 @@ func (c *Component) Select(id string) error {
 	case navigation.FeedbackSwimmers:
 		if c.navigation.DisplayMode == ui.DisplayLarge {
 			c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Person = id
+			c.navigation.History.Frames[len(c.navigation.History.Frames)-1].Page = 0
 			return nil
 		}
 		c.navigation.Push(navigation.Feedback, func(next *navigation.Frame) { next.Person = id })

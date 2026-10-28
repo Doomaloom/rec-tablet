@@ -146,6 +146,35 @@ func TestPagePositionIndicatorHandlesEndpointsAndSinglePage(t *testing.T) {
 	}
 }
 
+func TestFeedbackSinglePageIndicatorFillsTrack(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+	window := app.NewWindow("feedback")
+	defer window.Close()
+	state := contracts.State{PageCount: 1, AlwaysShowPagePosition: true}
+	presenter := &compositionPresenter{state: state}
+	view := New(presenter, window)
+	defer view.Close()
+	composition := ComposeScreen(view, state)
+	if !hasComponent(composition.Components, "page-position-track") || !hasComponent(composition.Components, "page-position-thumb") {
+		t.Fatal("feedback must retain its single-page indicator")
+	}
+	for _, size := range [][2]float32{{800, 480}, {1024, 600}} {
+		tx, ty, tw, th := geometry.PagePositionTrackSlot(state)(size[0], size[1])
+		x, y, w, h := geometry.PagePositionThumbSlot(state)(size[0], size[1])
+		if x != tx || y != ty || w != tw || h != th {
+			t.Fatal("single-page thumb must fill track")
+		}
+		_, _, bodyWidth, _ := geometry.BodySlot(state)(size[0], size[1])
+		state.PageCount = 2
+		_, _, pagedWidth, _ := geometry.BodySlot(state)(size[0], size[1])
+		if bodyWidth != pagedWidth {
+			t.Fatal("feedback width must stay stable across page counts")
+		}
+		state.PageCount = 1
+	}
+}
+
 func TestPagePositionThumbHeightIsOnePageOfTheTrack(t *testing.T) {
 	_, _, _, trackHeight := geometry.PagePositionTrackSlot(contracts.State{Page: 0, PageCount: 2})(800, 480)
 	for _, pageCount := range []int{2, 4} {

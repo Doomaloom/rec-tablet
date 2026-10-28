@@ -37,6 +37,9 @@ func (c *SkillDetail) Configure(state *contracts.State, person domain.Enrollment
 	return rows
 }
 func (c *SkillDetail) Text(entry domain.Feedback) string {
+	if entry.Progress.Complete {
+		return "Complete · Three successful observations recorded."
+	}
 	parts := make([]string, 0, len(entry.Remaining)+2)
 	if entry.Timed {
 		parts = append(parts, fmt.Sprintf("Latest timed heat · %d/%d laps · %s", entry.TimedLaps, entry.TimedRequired, formatting.TimedElapsed(entry.TimedElapsedMS)))

@@ -16,9 +16,6 @@ type SwimmerPicker struct {
 func (c *SwimmerPicker) Configure(state *shell.State, roster []domain.Enrollment, feedback map[string][]domain.Feedback, selected string) []shell.Row {
 	state.Title = "Feedback"
 	state.Empty = "No swimmers loaded."
-	if state.DisplayMode.IsLarge() {
-		state.PageSize = 6
-	}
 	rows := make([]shell.Row, 0, len(roster))
 	for _, person := range roster {
 		unit := "skills"
@@ -57,5 +54,5 @@ func (c *SwimmerPicker) RenderSidebar(surface *ui.Surface, state shell.State) {
 		button.MinimumFont = 16
 		return button
 	}
-	ui.Grid(&sidebar, state.Rows, 1, 6, c.onSelect)
+	ui.Grid(&sidebar, state.Rows, 1, 12, c.onSelect)
 }

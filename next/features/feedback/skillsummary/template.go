@@ -1,8 +1,6 @@
 package skillsummary
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 
@@ -21,7 +19,7 @@ func (c *SkillSummary) Compose(state contracts.State) ui.BodyComposer {
 		ui.Grid(surface, state.Rows, 1, max(1, state.PageSize), c.OnSelect)
 	}
 }
-func (c *SkillSummary) ComposeLarge(data Snapshot) ui.BodyComposer {
+func (c *SkillSummary) ComposeLarge(data Snapshot, page ...int) ui.BodyComposer {
 	return func(right *ui.Surface) {
 		heading := data.Person.Name
 		if !data.Person.Active {
@@ -37,24 +35,45 @@ func (c *SkillSummary) ComposeLarge(data Snapshot) ui.BodyComposer {
 			x, y, width, _ := right.BodyBounds(w, h)
 			return x, y, width, selectedTitleHeight(w, h)
 		})
-		summary := ui.NewText(fmt.Sprintf("%d assessed skills in progress", len(data.Entries)), 18, ui.Muted)
-		right.AddNamed("feedback-selected-summary", summary, func(w, h float32) (float32, float32, float32, float32) {
-			x, y, width, _ := right.BodyBounds(w, h)
-			return x, y + selectedTitleHeight(w, h), width, 28
-		})
+		for i, label := range []string{"In progress", "Complete"} {
+			i := i
+			button := right.Button("feedback-filter:"+label, label, func() {
+				if c.OnFilter != nil {
+					c.OnFilter(i == 1)
+				}
+			})
+			button.Selectable = true
+			button.Selected = (i == 1) == c.Complete
+			button.FontSize = 18
+			right.AddNamed("feedback-filter-"+label, button, func(w, h float32) (float32, float32, float32, float32) {
+				x, y, width, _ := right.BodyBounds(w, h)
+				cell := (width - ui.Gap) / 2
+				return x + float32(i)*(cell+ui.Gap), y + selectedTitleHeight(w, h), cell, 40
+			})
+		}
+
 		if len(data.Entries) == 0 {
-			empty := ui.NewText("No assessed skills remain incomplete. Unassessed skills are not included here.", 21, ui.Navy)
+			message := "No assessed skills in progress. Unassessed skills are not included here."
+			if c.Complete {
+				message = "No completed skills yet."
+			}
+			empty := ui.NewText(message, 21, ui.Navy)
 			right.AddNamed("feedback-no-skills", empty, func(w, h float32) (float32, float32, float32, float32) {
 				x, y, width, height := right.BodyBounds(w, h)
-				inset := selectedTitleHeight(w, h) + 40
+				inset := selectedTitleHeight(w, h) + 48
 				return x, y + inset, width, height - inset
 			})
 			return
 		}
-		scroll := newFeedbackScroll(right, c, data)
+		pageData := data
+		if len(page) > 0 {
+			start := page[0] * 2
+			pageData.Entries = data.Entries[start:min(start+2, len(data.Entries))]
+		}
+		scroll := newFeedbackScroll(right, c, pageData)
 		right.AddNamed("feedback-skill-scroll", scroll, func(w, h float32) (float32, float32, float32, float32) {
 			x, y, width, height := right.BodyBounds(w, h)
-			inset := selectedTitleHeight(w, h) + 32
+			inset := selectedTitleHeight(w, h) + 48
 			return x, y + inset, width, height - inset
 		})
 	}

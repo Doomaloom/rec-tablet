@@ -10,4 +10,5 @@ type Repository interface {
 	navigation.LessonReader
 	GetEnrollment(string) (domain.Enrollment, error)
 	Feedback(string) ([]domain.Feedback, error)
+	CompletedFeedback(string) ([]domain.Feedback, error)
 }

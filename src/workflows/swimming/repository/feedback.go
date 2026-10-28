@@ -6,6 +6,15 @@ import (
 )
 
 func (s *Store) Feedback(person string) ([]domain.Feedback, error) {
+	return s.feedbackByCompletion(person, false)
+}
+
+// CompletedFeedback returns assessed skills with three successful observations.
+func (s *Store) CompletedFeedback(person string) ([]domain.Feedback, error) {
+	return s.feedbackByCompletion(person, true)
+}
+
+func (s *Store) feedbackByCompletion(person string, complete bool) ([]domain.Feedback, error) {
 	out := []domain.Feedback{}
 	err := s.transaction(func(q queryer) error {
 		pairs, e := rows(q, `SELECT DISTINCT skill_id,curriculum_version FROM attempts WHERE enrollment_id=? AND submitted_at IS NOT NULL ORDER BY curriculum_version,skill_id`, person)
@@ -18,7 +27,7 @@ func (s *Store) Feedback(person string) ([]domain.Feedback, error) {
 			if e != nil {
 				return e
 			}
-			if p.Complete {
+			if p.Complete != complete {
 				continue
 			}
 			skill, e := s.skill(q, version, skillID)

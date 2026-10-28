@@ -9,6 +9,8 @@ import (
 
 // SkillSummary owns the selected swimmer snapshot and presents incomplete skills.
 type SkillSummary struct {
+	Complete   bool
+	OnFilter   func(bool)
 	Selected   Snapshot
 	Detail     func(domain.Feedback) string
 	OnSelect   func(string)

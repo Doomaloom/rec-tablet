@@ -25,5 +25,5 @@ func (c *SwimmerPicker) RenderSidebar(surface *ui.Surface, state contracts.State
 		button.MinimumFont = 16
 		return button
 	}
-	ui.Grid(&sidebar, state.Rows, 1, 6, c.OnSelect)
+	ui.Grid(&sidebar, state.Rows, 1, 12, c.OnSelect)
 }

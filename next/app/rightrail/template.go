@@ -58,7 +58,7 @@ func renderPagingRailComponents(builder *contracts.RenderContext) {
 }
 
 func renderPagePositionIndicatorComponents(builder *contracts.RenderContext) {
-	if builder.State.PageCount <= 1 {
+	if builder.State.PageCount <= 1 && !builder.State.AlwaysShowPagePosition {
 		return
 	}
 	track := canvas.NewRectangle(ui.Rail)

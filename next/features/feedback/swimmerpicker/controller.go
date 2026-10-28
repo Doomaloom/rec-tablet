@@ -17,7 +17,7 @@ func (c *SwimmerPicker) Configure(state *contracts.State, roster []domain.Enroll
 	state.Title = "Feedback"
 	state.Empty = "No swimmers loaded."
 	if c.Layout.Sidebar {
-		state.PageSize = 6
+		state.PageSize = 12
 	}
 	rows := make([]contracts.Row, 0, len(roster))
 	for _, person := range roster {

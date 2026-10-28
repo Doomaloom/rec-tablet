@@ -67,9 +67,9 @@ func (manyFeedbackStore) GetCourse(string) (domain.Course, error) {
 	return domain.Course{Name: "Splash 1"}, nil
 }
 func (manyFeedbackStore) ListRoster(string) ([]domain.Enrollment, error) {
-	people := make([]domain.Enrollment, 8)
+	people := make([]domain.Enrollment, 12)
 	for i := range people {
-		people[i] = domain.Enrollment{ID: fmt.Sprint(i), Name: fmt.Sprintf("Swimmer %d", i), Active: i != 7}
+		people[i] = domain.Enrollment{ID: fmt.Sprint(i), Name: fmt.Sprintf("Swimmer %d", i), Active: i != 11}
 	}
 	return people, nil
 }
@@ -77,10 +77,10 @@ func (manyFeedbackStore) GetEnrollment(id string) (domain.Enrollment, error) {
 	return domain.Enrollment{ID: id, Name: "Swimmer " + id}, nil
 }
 func (manyFeedbackStore) Feedback(id string) ([]domain.Feedback, error) {
-	return []domain.Feedback{{Skill: curriculum.Skill{ID: "skill-" + id, Name: "Skill " + id}, Version: "pinned", Progress: domain.CalculateProgress(2, 1), Remaining: []curriculum.Subskill{{Text: "Keep the head low"}, {Text: "Breathe to the side"}}}}, nil
+	return []domain.Feedback{{Skill: curriculum.Skill{ID: "skill-" + id, Name: "Skill " + id}, Version: "pinned", Progress: domain.CalculateProgress(2, 1), Remaining: []curriculum.Subskill{{Text: "Keep the head low"}, {Text: "Breathe to the side"}}}, {Skill: curriculum.Skill{ID: "second-" + id, Name: "Second skill"}, Version: "pinned"}, {Skill: curriculum.Skill{ID: "third-" + id, Name: "Third skill"}, Version: "pinned"}}, nil
 }
 
-func TestLargeFeedbackKeepsSidebarPageIndependentOfSelectedSwimmer(t *testing.T) {
+func TestLargeFeedbackPagesSkillsAndKeepsRosterVisible(t *testing.T) {
 	nav := navigation.New()
 	nav.DisplayMode = ui.DisplayLarge
 	c := New(nav, manyFeedbackStore{})
@@ -89,32 +89,20 @@ func TestLargeFeedbackKeepsSidebarPageIndependentOfSelectedSwimmer(t *testing.T)
 	if err := nav.Refresh(); err != nil {
 		t.Fatal(err)
 	}
-	if nav.State.PageSize != 6 || nav.State.RowCount != 8 || nav.State.PageCount != 2 || nav.Frame().Person != "0" {
-		t.Fatalf("initial large feedback state: %+v, frame %+v", nav.State, nav.Frame())
-	}
-	if len(nav.State.Rows) != 6 || !nav.State.Rows[0].Selected {
-		t.Fatal("first swimmer should be selected on entry")
+	if len(nav.State.Rows) != 12 || nav.State.PageCount != 2 || nav.Frame().Person != "0" || !nav.State.Rows[0].Selected {
+		t.Fatalf("initial state: %+v", nav.State)
 	}
 	if err := nav.Page(1); err != nil {
 		t.Fatal(err)
 	}
-	if nav.Frame().Person != "0" || nav.State.Page != 1 {
-		t.Fatal("paging changed selected swimmer")
+	if nav.State.Page != 1 || len(nav.State.Rows) != 12 || nav.Frame().Person != "0" {
+		t.Fatal("feedback paging changed roster or swimmer")
 	}
-	if err := nav.Select("7"); err != nil {
+	if err := nav.Select("11"); err != nil {
 		t.Fatal(err)
 	}
-	if nav.Frame().Screen != navigation.FeedbackSwimmers || nav.Frame().Person != "7" || !nav.State.Rows[1].Selected {
-		t.Fatalf("selecting swimmer should remain in combined view: %+v", nav.Frame())
-	}
-	if c.skillSummary.Selected.Person.Active || c.skillSummary.Selected.Entries[0].Skill.ID != "skill-7" {
-		t.Fatal("former swimmer feedback was not loaded")
-	}
-	if err := nav.Page(-1); err != nil {
-		t.Fatal(err)
-	}
-	if nav.Frame().Person != "7" || nav.State.Page != 0 {
-		t.Fatal("sidebar page changed selected swimmer")
+	if nav.Frame().Person != "11" || nav.State.Page != 0 || !nav.State.Rows[11].Selected || c.skillSummary.Selected.Person.Active {
+		t.Fatal("selection did not reset feedback page or retain former swimmer")
 	}
 }
 
@@ -150,7 +138,7 @@ func TestLargeFeedbackScrollAndAttemptAccess(t *testing.T) {
 	surface := &ui.Surface{
 		Button: func(_, label string, run func()) *ui.TouchButton {
 			b := ui.NewButton(label, run)
-			if attempt == nil {
+			if attempt == nil && label == "Attempts" {
 				attempt = b
 			}
 			return b
@@ -186,7 +174,39 @@ func TestLargeFeedbackCompositionExposesSelectedDetails(t *testing.T) {
 	if view.Buttons["row:0"] == nil || view.Buttons["feedback-attempts:skill-0:pinned"] == nil {
 		t.Fatal("large view did not expose swimmer selection and attempt access")
 	}
+	first, last := view.Buttons["row:0"], view.Buttons["row:11"]
+	if first.Position().Y != ui.OuterMargin || last == nil || last.Position().Y+last.Size().Height > 600-ui.OuterMargin+1 {
+		t.Fatal("all twelve students must fit in the full-height column")
+	}
 	if view.Buttons["feedback-attempts:skill-0:pinned"].Size().Width <= 0 {
 		t.Fatal("scrolling attempt action was not laid out")
 	}
 }
+
+func (manyFeedbackStore) CompletedFeedback(id string) ([]domain.Feedback, error) {
+	return []domain.Feedback{{Skill: curriculum.Skill{ID: "complete-" + id, Name: "Completed skill"}, Version: "pinned", Progress: domain.CalculateProgress(3, 3)}}, nil
+}
+
+func TestCompletionSwitchResetsPageAndKeepsStudent(t *testing.T) {
+	nav := navigation.New()
+	nav.DisplayMode = ui.DisplayLarge
+	c := New(nav, manyFeedbackStore{})
+	nav.Features[navigation.FeedbackSwimmers] = c
+	nav.Push(navigation.FeedbackSwimmers, nil)
+	if err := nav.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	if err := nav.Page(1); err != nil {
+		t.Fatal(err)
+	}
+	c.setFilter(true)
+	if nav.State.Page != 0 || nav.State.PageCount != 1 || nav.Frame().Person != "0" || len(nav.State.Rows) != 12 || c.skillSummary.Selected.Entries[0].Skill.ID != "complete-0" {
+		t.Fatal("complete filter lost student, page, or completed skills")
+	}
+	c.setFilter(false)
+	if nav.State.PageCount != 2 || c.skillSummary.Selected.Entries[0].Skill.ID != "skill-0" {
+		t.Fatal("in progress filter did not restore skills")
+	}
+}
+
+func (feedbackStore) CompletedFeedback(string) ([]domain.Feedback, error) { return nil, nil }

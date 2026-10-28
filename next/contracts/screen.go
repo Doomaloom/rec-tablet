@@ -59,6 +59,7 @@ type State struct {
 	Page, PageCount, RowCount                                          int
 	Rows                                                               []Row
 	PageSize                                                           int
+	AlwaysShowPagePosition                                             bool
 	HeaderWidth                                                        float32
 	HoldTitle                                                          func()
 	HomeRailAction, BackRailAction                                     *RailAction
