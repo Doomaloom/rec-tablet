@@ -18,6 +18,24 @@ func progress(q queryer, person, skill, version string) (domain.Progress, error)
 func (s *Store) Progress(person, skill, version string) (domain.Progress, error) {
 	return progress(s.DB, person, skill, version)
 }
+
+// ResetClassProgress clears assessment history and drafts for every enrollment
+// in a course across all lessons and curriculum versions, in one transaction.
+func (s *Store) ResetClassProgress(courseID string) error {
+	return s.transaction(func(q queryer) error {
+		if _, err := one(q, "SELECT id FROM courses WHERE id=?", courseID); err != nil {
+			return err
+		}
+		const attempts = "SELECT a.id FROM attempts a JOIN enrollments e ON e.id=a.enrollment_id WHERE e.course_id=?"
+		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
+			if _, err := q.Exec("DELETE FROM "+table+" WHERE attempt_id IN ("+attempts+")", courseID); err != nil {
+				return err
+			}
+		}
+		_, err := q.Exec("DELETE FROM attempts WHERE id IN ("+attempts+")", courseID)
+		return err
+	})
+}
 func (s *Store) attemptRecords(person, skill, version string) ([]record, error) {
 	return s.queryRows(`SELECT a.*,l.date,EXISTS(SELECT 1 FROM drafts d WHERE d.attempt_id=a.id) AS editing FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE a.enrollment_id=? AND a.skill_id=? AND a.curriculum_version=? ORDER BY a.created_at DESC,a.rowid DESC`, person, skill, version)
 }
