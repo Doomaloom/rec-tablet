@@ -36,6 +36,10 @@ func (c *Component) Build() (navigation.State, error) {
 	if err != nil {
 		return state, err
 	}
-	input := common.Input{State: state, Frame: frame, Course: course, Roster: roster}
+	attendance, err := c.store.Attendance(frame.Lesson)
+	if err != nil {
+		return state, err
+	}
+	input := common.Input{State: state, Frame: frame, Course: course, Roster: roster, Attendance: attendance}
 	return c.composeFeature(input)
 }

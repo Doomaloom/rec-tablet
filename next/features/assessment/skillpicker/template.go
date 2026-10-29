@@ -134,7 +134,7 @@ func (c *Component) buildSkills(state *navigation.State, input common.Input) ([]
 	state.Empty = "No enrolled swimmers with an assigned level."
 	if c.Layout.Panels {
 		state.PageSize = max(1, len(rows))
-		selection, err := c.loadSelection(rows, input.Roster, version)
+		selection, err := c.loadSelection(rows, input.PresentRoster(), version)
 		if err != nil {
 			return nil, err
 		}
@@ -152,11 +152,11 @@ func (c *Component) buildSwimmers(state *navigation.State, input common.Input) (
 	}
 	state.Title = "Choose a Swimmer"
 	state.HeaderSwitch = c.actions.ModeSwitch(skill, false)
-	rows, err := c.loadSwimmers(input.Roster, input.Frame.Level, skill.ID, version)
+	rows, err := c.loadSwimmers(input.PresentRoster(), input.Frame.Level, skill.ID, version)
 	if err != nil {
 		return nil, err
 	}
-	state.Empty = "No enrolled swimmers are assigned to this skill's level."
+	state.Empty = "No students marked present are assigned to this skill's level."
 	if c.Layout.Panels {
 		state.PageSize = max(1, len(rows))
 	}

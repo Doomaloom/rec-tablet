@@ -48,14 +48,19 @@ func (c *Component) compose(state *contracts.State, selected *transfer.PlannedRo
 		if strings.TrimSpace(activity) == "" {
 			activity = "Not specified"
 		}
-		details := fmt.Sprintf("%s\n\nPlanned location\n%s\n\nEquipment required\n%s\n\nDuration\n%d minutes\n\nDrills / activities\n%s", selected.Skill, selected.Location, equipment, selected.Duration, activity)
+		details := []detailText{
+			{text: "Planned location", bold: true}, {text: selected.Location},
+			{text: "Equipment required", bold: true}, {text: equipment},
+			{text: "Duration", bold: true}, {text: fmt.Sprintf("%d minutes", selected.Duration)},
+			{text: "Drills / activities", bold: true}, {text: activity},
+		}
 		if reason != "" {
-			details += "\n\n" + reason
+			details = append(details, detailText{text: reason})
 		}
 		choiceHeight := float32(0)
 		if len(choices) > 1 {
 			choiceHeight = float32(len(choices))*52 + ui.Gap
-			details += "\n\nChoose the component to mark below."
+			details = append(details, detailText{text: "Choose the component to mark below."})
 		}
 		scroll := newDetailScroll(details)
 		right.AddNamed("lesson-plan-details", scroll, func(w, h float32) (float32, float32, float32, float32) {
@@ -88,34 +93,66 @@ func (c *Component) compose(state *contracts.State, selected *transfer.PlannedRo
 }
 
 // This scroll measures wrapped text at the actual pane width and display scale.
+type detailText struct {
+	text string
+	bold bool
+}
+
 type detailLayout struct {
-	text         string
+	sections     []detailText
 	width, scale float32
 }
 
+func (l *detailLayout) textHeight(section detailText, width float32) float32 {
+	return ui.WrappedTextHeight(section.text, max(1, width-24*l.scale), 20*l.scale, section.bold)
+}
 func (l *detailLayout) MinSize([]fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(1, ui.WrappedTextHeight(l.text, max(1, l.width-24*l.scale), 20*l.scale, false)+24*l.scale)
+	height := 24 * l.scale
+	for i, section := range l.sections {
+		if i > 0 && (section.bold || !l.sections[i-1].bold) {
+			height += 16 * l.scale
+		}
+		height += l.textHeight(section, l.width)
+	}
+	return fyne.NewSize(1, height)
 }
 func (l *detailLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	p := 12 * l.scale
-	objects[0].Move(fyne.NewPos(p, p))
-	objects[0].Resize(fyne.NewSize(max(1, size.Width-2*p), max(1, size.Height-2*p)))
+	y := p
+	for i, section := range l.sections {
+		if i > 0 && (section.bold || !l.sections[i-1].bold) {
+			y += 16 * l.scale
+		}
+		height := l.textHeight(section, size.Width)
+		objects[i].Move(fyne.NewPos(p, y))
+		objects[i].Resize(fyne.NewSize(max(1, size.Width-2*p), height))
+		y += height
+	}
 }
 
 type detailScroll struct {
 	*container.Scroll
 	layout *detailLayout
-	label  *ui.TextBlock
+	labels []*ui.TextBlock
 }
 
-func newDetailScroll(text string) *detailScroll {
-	l := &detailLayout{text: text, width: 500, scale: 1}
-	label := ui.NewText(text, 20, ui.Navy)
-	return &detailScroll{Scroll: container.NewVScroll(container.New(l, label)), layout: l, label: label}
+func newDetailScroll(sections []detailText) *detailScroll {
+	l := &detailLayout{sections: sections, width: 500, scale: 1}
+	var labels []*ui.TextBlock
+	var objects []fyne.CanvasObject
+	for _, section := range sections {
+		label := ui.NewText(section.text, 20, ui.Navy)
+		label.Bold = section.bold
+		labels = append(labels, label)
+		objects = append(objects, label)
+	}
+	return &detailScroll{Scroll: container.NewVScroll(container.New(l, objects...)), layout: l, labels: labels}
 }
 func (s *detailScroll) SetScale(scale float32) {
 	s.layout.scale = scale
-	s.label.SetScale(scale)
+	for _, label := range s.labels {
+		label.SetScale(scale)
+	}
 	s.Content.Refresh()
 }
 func (s *detailScroll) Resize(size fyne.Size) {

@@ -34,8 +34,9 @@ func TestSkillsFiltersLevelsAndPreservesSelection(t *testing.T) {
 			c.Layout.Panels = true
 			c.State.SelectedID = selected
 			state, err := c.Build(common.Input{
-				Frame:  navigation.Frame{Screen: navigation.Skills},
-				Course: domain.Course{CurriculumVersion: "course-version"},
+				Frame:      navigation.Frame{Screen: navigation.Skills},
+				Course:     domain.Course{CurriculumVersion: "course-version"},
+				Attendance: map[string]string{"a": "present", "b": "present", "c": "present"},
 				Roster: []domain.Enrollment{
 					{ID: "inactive", Level: "ignored", Active: false},
 					{ID: "unassigned", Active: true},
@@ -93,8 +94,9 @@ func TestSwimmersUseRouteVersionAndBindCorrectionsToEachPerson(t *testing.T) {
 			})
 			c.Layout.Panels = panels
 			state, err := c.Build(common.Input{
-				Frame:  navigation.Frame{Screen: navigation.SkillSwimmers, Parameters: navigation.Parameters{Skill: "skill", Level: "level", Version: "route-version"}},
-				Course: domain.Course{CurriculumVersion: "course-version"},
+				Frame:      navigation.Frame{Screen: navigation.SkillSwimmers, Parameters: navigation.Parameters{Skill: "skill", Level: "level", Version: "route-version"}},
+				Course:     domain.Course{CurriculumVersion: "course-version"},
+				Attendance: map[string]string{"a": "present", "b": "present", "c": "present"},
 				Roster: []domain.Enrollment{
 					{ID: "a", Name: "Alex", Level: "level", Active: true},
 					{ID: "b", Name: "Blair", Level: "level", Active: true},

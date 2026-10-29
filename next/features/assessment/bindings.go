@@ -55,6 +55,7 @@ func (c *Component) bindComponents() {
 	var classStorage classassessment.Storage
 	if c.store != nil {
 		classStorage = classassessment.Storage{
+			Attendance:        c.store.Attendance,
 			Progress:          c.store.Progress,
 			DiscardAttempts:   c.store.DiscardAttempts,
 			Draft:             c.store.Draft,

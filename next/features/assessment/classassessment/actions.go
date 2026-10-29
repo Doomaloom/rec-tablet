@@ -31,9 +31,13 @@ func (c *Component) enter(f navigation.Frame) error {
 		if err != nil {
 			return err
 		}
+		attendance, err := c.storage.Attendance(f.Lesson)
+		if err != nil {
+			return err
+		}
 		var people []string
 		for _, student := range roster {
-			if student.Active && student.Level == f.Level {
+			if student.Active && student.Level == f.Level && attendance[student.ID] == "present" {
 				people = append(people, student.ID)
 			}
 		}

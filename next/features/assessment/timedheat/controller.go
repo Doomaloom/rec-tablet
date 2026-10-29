@@ -82,7 +82,7 @@ func New(options Options) *Component {
 func (c *Component) Build(input common.Input) (navigation.State, error) {
 	state := input.State
 	f := input.Frame
-	roster := input.Roster
+	roster := input.PresentRoster()
 	version := input.Course.CurriculumVersion
 	rows := []navigation.Row{}
 	s := c.storage
@@ -125,7 +125,7 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 			state.HomeRailAction = common.SaveRailAction(c.ConfirmTimedSelection)
 			state.BackRailAction = common.DiscardRailAction(c.DiscardTimedSelection)
 		}
-		state.Empty = "No enrolled swimmers are assigned to this skill's level."
+		state.Empty = "No students marked present are assigned to this skill's level."
 		if c.Layout.Panels {
 			c.configureLargeTimedSetup(&state, rows)
 		}
@@ -176,7 +176,10 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 			status := "in_progress"
 			if participant.Completed {
 				lapSummary += " · " + formatElapsed(participant.CompletedAt)
-				status = "successful"
+				status = "not_yet"
+				if participant.CompletedAt <= benchmark.Limit {
+					status = "successful"
+				}
 			}
 			rows = append(rows, navigation.Row{ID: "timed-lap:" + participant.Participant.PersonID, Label: participant.Participant.Name + " · " + lapSummary, Status: status, ProgressValue: participant.Participant.LapsCompleted, ProgressTotal: participant.Participant.LapsRequired})
 		}

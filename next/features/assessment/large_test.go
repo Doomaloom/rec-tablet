@@ -40,6 +40,14 @@ func (s *largeAssessmentStore) GetCourse(string) (domain.Course, error) {
 	return domain.Course{Name: "Swimming", Time: "9:00", Level: s.courseLevel, CurriculumVersion: s.catalog.Version}, nil
 }
 
+func (s *largeAssessmentStore) Attendance(string) (map[string]string, error) {
+	attendance := map[string]string{}
+	for _, student := range s.roster {
+		attendance[student.ID] = "present"
+	}
+	return attendance, nil
+}
+
 func (s *largeAssessmentStore) ListRoster(string) ([]domain.Enrollment, error) { return s.roster, nil }
 
 func (s *largeAssessmentStore) CatalogFor(string) (curriculum.Catalog, error) { return s.catalog, nil }

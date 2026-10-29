@@ -6,6 +6,7 @@ import (
 
 	"rectablet/next/features/assessment/internal/common"
 	"rectablet/next/navigation"
+	"rectablet/src/workflows/swimming/domain"
 )
 
 func TestTimedHeatOwnsTickerCleanup(t *testing.T) {
@@ -59,5 +60,58 @@ func TestClockTickDoesNotRebuildScreen(t *testing.T) {
 	c.tick(heat, heat.Stop)
 	if updates != 1 {
 		t.Fatal("clock updated after leaving")
+	}
+}
+
+func TestTimedOutcomesUseLapsAndCompletionTime(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		laps      int
+		completed bool
+		at        time.Duration
+		want      bool
+	}{
+		{"before limit", 3, true, 179 * time.Second, true},
+		{"at limit", 3, true, 180 * time.Second, true},
+		{"after limit", 3, true, 180*time.Second + time.Millisecond, false},
+		{"incomplete laps", 2, false, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := Component{
+				State: State{Heat: &Heat{SkillID: "Splash7:10", Elapsed: 4 * time.Minute, Participants: []ParticipantState{{
+					Participant: Participant{AttemptID: "attempt", LapsRequired: 3, LapsCompleted: tc.laps}, Completed: tc.completed, CompletedAt: tc.at,
+				}}}},
+				navigation: common.Navigation{
+					Frame: func() navigation.Frame { return navigation.Frame{Screen: navigation.TimedHeat} },
+					Run:   func(fn func() error) error { return fn() }, Pop: func() {},
+				},
+				paginate: func(state *navigation.State, rows []navigation.Row) { state.Rows = rows },
+				small:    &CompactTemplate{},
+			}
+			state, err := c.Build(common.Input{Frame: navigation.Frame{Screen: navigation.TimedHeat}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := state.Rows[0].Status == "successful"; got != tc.want {
+				t.Fatalf("visible success = %v, want %v", got, tc.want)
+			}
+			called := false
+			c.storage.SaveTimedHeat = func(results []domain.TimedResult) error {
+				called = true
+				if len(results) != 1 || results[0].Success != tc.want {
+					t.Fatalf("results = %+v", results)
+				}
+				if tc.completed && results[0].ElapsedMS != tc.at.Milliseconds() {
+					t.Fatal("save used heat time instead of finish time")
+				}
+				return nil
+			}
+			if err := c.SaveTimedHeat(); err != nil {
+				t.Fatal(err)
+			}
+			if !called {
+				t.Fatal("heat was not saved")
+			}
+		})
 	}
 }

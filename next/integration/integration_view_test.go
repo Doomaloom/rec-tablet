@@ -93,7 +93,18 @@ func (f *uiFixture) rowLabelPrefix(t *testing.T, prefix string) {
 	}
 	t.Fatalf("missing row with prefix %q", prefix)
 }
+func (f *uiFixture) markAssessmentPresent(t *testing.T) {
+	t.Helper()
+	for _, course := range must(f.s.ListCourses("2026-09-04")) {
+		for _, student := range must(f.s.ListRoster(course.ID)) {
+			if student.Active {
+				check(t, f.s.SetAttendance(student.ID, course.LessonID, "present"))
+			}
+		}
+	}
+}
 func (f *uiFixture) skill(t *testing.T) {
+	f.markAssessmentPresent(t)
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	f.row(t, 0)
@@ -301,6 +312,7 @@ func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
 	}
 	_ = must(f.s.Import(p))
 	check(t, f.c.Refresh())
+	f.markAssessmentPresent(t)
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	for {
@@ -446,6 +458,7 @@ func TestSkillSaveFailuresRestoreMarksAndShowError(t *testing.T) {
 
 func TestLongCriteriaAndLargerLandscape(t *testing.T) {
 	f := setupUI(t)
+	f.markAssessmentPresent(t)
 	f.row(t, 2)
 	f.tap(t, "row:skills")
 	for {
@@ -488,6 +501,7 @@ func TestLongestCriterionFitsAndGroupsRemainVisible(t *testing.T) {
 	p.Courses[0].Swimmers[0].Level = &level
 	_ = must(f.s.Import(p))
 	check(t, f.c.Refresh())
+	f.markAssessmentPresent(t)
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	for {
@@ -569,6 +583,7 @@ func (f *uiFixture) compactLayout(t *testing.T, name string) {
 
 func TestCompactFeedbackCorrectionAndDateLayouts(t *testing.T) {
 	f := setupUI(t)
+	f.markAssessmentPresent(t)
 	f.compactLayout(t, "classes")
 	f.tap(t, "header")
 	selected := f.view.Buttons["row:2026-09-04"]

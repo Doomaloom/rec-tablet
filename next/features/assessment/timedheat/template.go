@@ -24,13 +24,27 @@ type LargeTemplate struct {
 
 func (c *LargeTemplate) ComposeLargeTimedHeatBody(state navigation.State) ui.BodyComposer {
 	return func(surface *ui.Surface) {
+		for i, action := range state.HeaderActions {
+			i, action := i, action
+			button := surface.Button([]string{"timed-toggle", "timed-reset"}[i], action.Label, func() { _ = action.Run() })
+			button.Fill, button.Ink, button.FontSize = action.Fill, action.Ink, 26
+			surface.AddNamed("timed-control-"+strconv.Itoa(i), button, func(w, h float32) (float32, float32, float32, float32) {
+				x, y, width, _ := surface.BodyBounds(w, h)
+				cellWidth := (width - ui.Gap) / 2
+				return x + float32(i)*(cellWidth+ui.Gap), y, cellWidth, 64
+			})
+		}
+		swimmers := ui.Panel(surface, func(w, h float32) (float32, float32, float32, float32) {
+			x, y, width, height := surface.BodyBounds(w, h)
+			return x, y + 64 + ui.Gap, width, height - 64 - ui.Gap
+		})
 		rows := append([]ui.Item(nil), state.Rows...)
 		for i := range rows {
 			if rows[i].Status == "successful" {
 				rows[i].Fill, rows[i].Selected = ui.Green, true
 			}
 		}
-		c.largePagedGrid(surface, "timed-heat-swimmers", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
+		c.largePagedGrid(swimmers, "timed-heat-swimmers", rows, 2, 6, c.Pages.Heat, func(id string) { _ = c.Actions.Select(id) })
 	}
 }
 
@@ -151,6 +165,7 @@ func (c *Component) compose(state *contracts.State, f navigation.Frame) {
 	case navigation.TimedHeat:
 		if c.Layout.Panels {
 			state.ComposeBody = c.large.ComposeLargeTimedHeatBody(*state)
+			state.HeaderActions = nil
 		} else {
 			state.ComposeBody = c.small.ComposeTimedHeatBody(*state)
 		}

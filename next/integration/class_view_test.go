@@ -24,6 +24,7 @@ func (f *uiFixture) openClassSkill(t *testing.T, level, skill string) {
 		_ = must(f.s.Import(roster))
 		check(t, f.c.Refresh())
 	}
+	f.markAssessmentPresent(t)
 	f.row(t, 0)
 	f.tap(t, "row:skills")
 	for f.view.Buttons["row:"+skill] == nil && !f.view.Buttons["down"].Disabled {
@@ -183,7 +184,7 @@ func TestClassResumesDraftsAndFiltersRosterWhenSwitchingFromMulti(t *testing.T) 
 	check(t, f.s.Mark(existing, "Splash1:1:1", "successful"))
 	check(t, f.c.Refresh())
 	f.tap(t, "header-switch-1")
-	// Class still includes all active students, even when Multi has none present.
+	// Class reuses present students and preserves their existing drafts.
 	f.enterClass(t)
 	if f.c.Snapshot().PageCount != 2 || f.c.Snapshot().Rows[0].Status != "successful" {
 		t.Fatal("Class lost an existing draft or included inactive/other-level students")

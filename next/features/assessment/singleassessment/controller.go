@@ -67,7 +67,7 @@ func New(options Options) *Component {
 func (c *Component) Build(input common.Input) (navigation.State, error) {
 	state := input.State
 	f := input.Frame
-	roster := input.Roster
+	roster := input.PresentRoster()
 	version := input.Course.CurriculumVersion
 	rows := []navigation.Row{}
 	s := c.storage

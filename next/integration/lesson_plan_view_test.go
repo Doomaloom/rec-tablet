@@ -20,6 +20,7 @@ func TestLargeLessonPlanDetailsMarkingAndReturn(t *testing.T) {
 	plans := []transfer.LessonPlan{{Date: "2026-09-04", CurriculumLevel: "Splash1", Rows: rows}}
 	pkg.Courses[0].LessonPlans = &plans
 	_ = must(f.s.Import(pkg))
+	f.markAssessmentPresent(t)
 	f.c.ConfigureDisplay(ui.DisplayLarge, nil)
 	f.row(t, 0)
 	menu := f.c.Snapshot().Rows
@@ -86,6 +87,7 @@ func TestLargeLessonPlanEmptyUnmappedAndTimed(t *testing.T) {
 	}}}
 	pkg.Courses[0].LessonPlans = &plans
 	_ = must(f.s.Import(pkg))
+	f.markAssessmentPresent(t)
 	check(t, f.c.Refresh())
 	f.tap(t, "row:lesson_plan")
 	f.tap(t, "row:0")

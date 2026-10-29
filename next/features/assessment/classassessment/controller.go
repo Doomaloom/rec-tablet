@@ -33,6 +33,7 @@ type State struct {
 
 // Storage contains only the data operations consumed by this mode.
 type Storage struct {
+	Attendance        func(string) (map[string]string, error)
 	DiscardAttempts   func([]string) error
 	Draft             func(string) (map[string]string, error)
 	ListRoster        func(string) ([]domain.Enrollment, error)
