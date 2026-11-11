@@ -110,6 +110,26 @@ func (m *profileManager) registerStore(s *store.Store) error {
 	if err != nil {
 		return err
 	}
+	id, err := s.SyncInstructorID()
+	if err != nil {
+		return err
+	}
+	if id != "" {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		key := profileKey(dataset, "id:"+id)
+		for i := range m.index.Profiles {
+			p := &m.index.Profiles[i]
+			if p.Path == s.DatabasePath() {
+				p.Key = key
+				p.InstructorID = id
+				p.Instructor = instructor
+				return m.save()
+			}
+		}
+		m.index.Profiles = append(m.index.Profiles, savedProfile{Key: key, DatasetID: dataset, Instructor: instructor, InstructorID: id, Path: s.DatabasePath()})
+		return m.save()
+	}
 	_, err = m.register(dataset, instructor, s.DatabasePath())
 	return err
 }
@@ -161,6 +181,10 @@ func (m *profileManager) importPackage(pkg transfer.ClassPackage) (savedProfile,
 	}
 	target, err := store.Open(path)
 	if err != nil {
+		return savedProfile{}, err
+	}
+	if err = target.ValidateSyncProfile(pkg); err != nil {
+		target.Close()
 		return savedProfile{}, err
 	}
 	if _, err = target.Import(pkg); err != nil {

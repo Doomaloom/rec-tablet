@@ -45,8 +45,8 @@ func (s *deviceSession) login(code string, done func(error)) {
 		if err == nil && ctx.Err() == nil {
 			// Every successful code login retries all instructors using upload-only
 			// capabilities. Only this active profile receives a read capability.
-			uploadCtx, stop := context.WithTimeout(ctx, 8*time.Second)
-			s.profiles.retryUploads(uploadCtx, candidate.store.Path)
+			s.profiles.retryUploads(ctx, candidate.store.Path)
+			uploadCtx, stop := context.WithTimeout(ctx, 5*time.Second)
 			_ = candidate.store.UploadPending(uploadCtx)
 			stop()
 			readCtx, stop := context.WithTimeout(ctx, 5*time.Second)

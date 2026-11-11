@@ -377,3 +377,43 @@ func (s *Store) SyncStatus() (pending, review int, err error) {
 	}
 	return
 }
+
+// SyncInstructorID identifies a previously bound profile without disclosing capabilities.
+func (s *Store) SyncInstructorID() (string, error) {
+	g, e := grant(s.DB)
+	if errors.Is(e, ErrNotFound) {
+		return "", nil
+	}
+	return g.InstructorID, e
+}
+
+// ValidateSyncProfile refuses to reuse a name-based legacy database containing
+// another canonical scope. It never deletes historical work to make a match.
+func (s *Store) ValidateSyncProfile(p transfer.ClassPackage) error {
+	if p.Credentials == nil {
+		return nil
+	}
+	id, e := s.SyncInstructorID()
+	if e != nil {
+		return e
+	}
+	if id != "" && id != p.Credentials.InstructorID {
+		return errors.New("saved profile belongs to another instructor")
+	}
+	expected := map[string]bool{}
+	for _, c := range p.Courses {
+		expected[c.SourceID] = true
+	}
+	existing, e := rows(s.DB, "SELECT source_id FROM courses")
+	if e != nil {
+		return e
+	}
+	if id == "" {
+		for _, c := range existing {
+			if !expected[c.String("source_id")] {
+				return errors.New("legacy profile has ambiguous class scope; preserve it and use a separate database")
+			}
+		}
+	}
+	return nil
+}
