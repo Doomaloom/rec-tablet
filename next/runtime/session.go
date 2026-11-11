@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"rectablet/src/platform/instance"
 	store "rectablet/src/workflows/swimming/repository"
@@ -37,17 +38,34 @@ func (s *deviceSession) login(code string, done func(error)) {
 	server := s.profiles.shareServer(s.server)
 	go func() {
 		pkg, err := s.fetch(ctx, server, code)
+		candidate := &deviceSession{profiles: s.profiles}
+		if err == nil && ctx.Err() == nil {
+			err = candidate.open(pkg)
+		}
+		if err == nil && ctx.Err() == nil {
+			// Every successful code login retries all instructors using upload-only
+			// capabilities. Only this active profile receives a read capability.
+			uploadCtx, stop := context.WithTimeout(ctx, 8*time.Second)
+			s.profiles.retryUploads(uploadCtx, candidate.store.Path)
+			_ = candidate.store.UploadPending(uploadCtx)
+			stop()
+			readCtx, stop := context.WithTimeout(ctx, 5*time.Second)
+			_ = candidate.store.ReadAccepted(readCtx, pkg.Credentials)
+			stop()
+		}
 		if ctx.Err() != nil {
+			candidate.release()
 			return
 		}
 		s.dispatch(func() {
 			if s.closed || ctx.Err() != nil || generation != s.generation {
+				candidate.release()
 				return
 			}
 			s.cancel = nil
 			defer cancel()
 			if err == nil {
-				err = s.open(pkg)
+				s.store, s.lock = candidate.store, candidate.lock
 			}
 			done(err)
 		})
@@ -103,6 +121,9 @@ func (s *deviceSession) logout() error {
 	s.cancelLogin()
 	var err error
 	if s.store != nil {
+		ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = s.store.UploadPending(ctx)
+		stop()
 		err = s.store.Close()
 		s.store = nil
 	}
@@ -119,49 +140,17 @@ func (s *deviceSession) logout() error {
 }
 func (s *deviceSession) close() { s.closed = true; _ = s.logout() }
 
-// resume opens only the last activated local profile without redeeming a code.
-func (s *deviceSession) resume() error {
-	if s.closed || s.store != nil || s.cancel != nil {
-		return fmt.Errorf("cannot restore a session while another login is active")
+// release discards an unmounted or cancelled login without retaining a read token.
+func (s *deviceSession) release() {
+	if s.store != nil {
+		_ = s.store.Close()
+		s.store = nil
 	}
-	profile, ok := s.profiles.lastProfile()
-	if !ok {
-		return fmt.Errorf("no previous session is available; log in with a code first")
+	if s.lock != nil {
+		_ = s.lock.Close()
+		s.lock = nil
 	}
-	if _, err := os.Stat(profile.Path); err != nil {
-		return fmt.Errorf("previous session is unavailable: %w", err)
-	}
-	var lock *instance.Lock
-	if profile.Path != s.profiles.base {
-		var err error
-		lock, err = instance.Acquire(profile.Path)
-		if err != nil {
-			return err
-		}
-	}
-	release := func() {
-		if lock != nil {
-			_ = lock.Close()
-		}
-	}
-	database, err := store.Open(profile.Path)
-	if err != nil {
-		release()
-		return err
-	}
-	dataset, err := database.Meta("dataset_id")
-	if err == nil {
-		var instructor string
-		instructor, err = database.Meta("instructor")
-		if err == nil && (dataset != profile.DatasetID || instructor != profile.Instructor) {
-			err = fmt.Errorf("previous session does not match the saved instructor")
-		}
-	}
-	if err != nil {
-		_ = database.Close()
-		release()
-		return err
-	}
-	s.store, s.lock = database, lock
-	return nil
 }
+
+// Local databases remain durable but cannot authorize a new session.
+func (s *deviceSession) resume() error { return fmt.Errorf("online instructor code required") }

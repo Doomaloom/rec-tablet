@@ -271,36 +271,18 @@ func TestShutdownCancelsPendingDownload(t *testing.T) {
 	}
 }
 
-func TestResumeLastSessionOfflineAndPreserveWork(t *testing.T) {
+func TestRestartRequiresOnlineCodeAndPreservesProfile(t *testing.T) {
 	s, _ := sessionFixture(t)
-	first, err := s.profiles.importPackage(profilePackage("Alex"))
+	profile, err := s.profiles.importPackage(profilePackage("Alex"))
 	checkSession(t, err)
-	last, err := s.profiles.importPackage(profilePackage("Blair"))
-	checkSession(t, err)
-	checkSession(t, s.profiles.activate(first.Key))
-	checkSession(t, s.profiles.activate(last.Key))
-	s.fetch = func(context.Context, string, string) (transfer.ClassPackage, error) {
-		t.Fatal("resume must not fetch a package")
-		return transfer.ClassPackage{}, nil
-	}
-	// Restore the persisted selection after restarting the profile manager.
+	checkSession(t, s.profiles.activate(profile.Key))
 	s.profiles, err = newProfileManager(s.profiles.base)
 	checkSession(t, err)
-	checkSession(t, s.resume())
-	instructor, err := s.store.Meta("instructor")
-	checkSession(t, err)
-	if instructor != "Blair" || s.store.DatabasePath() != last.Path {
-		t.Fatal("resumed wrong instructor")
+	if s.resume() == nil || s.store != nil {
+		t.Fatal("offline session bypass")
 	}
-	if s.resume() == nil {
-		t.Fatal("duplicate restore accepted")
-	}
-	checkSession(t, s.logout())
-	checkSession(t, s.resume())
-	instructor, err = s.store.Meta("instructor")
-	checkSession(t, err)
-	if instructor != "Blair" {
-		t.Fatal("logout lost last session")
+	if _, err = os.Stat(profile.Path); err != nil {
+		t.Fatal("saved profile lost")
 	}
 }
 

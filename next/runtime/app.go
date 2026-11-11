@@ -69,8 +69,7 @@ func Run(options Options) error {
 	if e != nil {
 		return e
 	}
-	// Register an existing base dataset for compatibility; restoration requires
-	// the explicit long-press action on the login keypad.
+	// Register existing databases for migration; every session requires an online code.
 	base, e := store.Open(path)
 	if e != nil {
 		return e
@@ -113,13 +112,6 @@ func Run(options Options) error {
 						mountWorkflow()
 					}
 				})
-			},
-			Resume: func(done func(error)) {
-				err := session.resume()
-				done(err)
-				if err == nil {
-					mountWorkflow()
-				}
 			},
 			Cancel: session.cancelLogin,
 		})

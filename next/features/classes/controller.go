@@ -1,6 +1,7 @@
 package classes
 
 import (
+	"fmt"
 	"rectablet/next/features/classes/classlist"
 	"rectablet/next/features/classes/datepicker"
 	"rectablet/next/features/classes/lessonmenu"
@@ -47,6 +48,17 @@ func (c *Component) Build() (navigation.State, error) {
 			return state, e
 		}
 		rows = c.classList.Configure(&state, courses, dates, c.navigation.Date)
+		if synced, ok := s.(interface{ SyncStatus() (int, int, error) }); ok {
+			pending, review, err := synced.SyncStatus()
+			if err != nil {
+				return state, err
+			}
+			if review > 0 {
+				state.Notice = fmt.Sprintf("%d results need supervisor review · %d waiting to upload", review, pending)
+			} else if pending > 0 {
+				state.Notice = fmt.Sprintf("%d results waiting to upload at logout", pending)
+			}
+		}
 		for i := range rows {
 			rows[i].Data = navigation.Parameters{Lesson: courses[i].LessonID}
 		}

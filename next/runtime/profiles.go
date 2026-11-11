@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -8,18 +9,21 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"rectablet/src/platform/instance"
 	"strings"
 	"sync"
+	"time"
 
 	store "rectablet/src/workflows/swimming/repository"
 	"rectablet/src/workflows/swimming/transfer"
 )
 
 type savedProfile struct {
-	Key        string `json:"key"`
-	DatasetID  string `json:"datasetId"`
-	Instructor string `json:"instructor"`
-	Path       string `json:"path"`
+	InstructorID string `json:"instructorId,omitempty"`
+	Key          string `json:"key"`
+	DatasetID    string `json:"datasetId"`
+	Instructor   string `json:"instructor"`
+	Path         string `json:"path"`
 }
 
 type profileIndex struct {
@@ -125,15 +129,16 @@ func (m *profileManager) pathForLocked(key string) (string, bool) {
 	return "", false
 }
 
+func packageKey(pkg transfer.ClassPackage) string {
+	if pkg.Credentials != nil && pkg.Sync != nil {
+		return profileKey(pkg.DatasetID, "id:"+pkg.Sync.InstructorID)
+	}
+	return profileKey(pkg.DatasetID, pkg.Instructor)
+}
 func (m *profileManager) packagePath(pkg transfer.ClassPackage) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	key := profileKey(pkg.DatasetID, pkg.Instructor)
-	if path, ok := m.pathForLocked(key); ok {
-		return path
-	}
-	digest := sha256.Sum256([]byte(key))
-	return filepath.Join(filepath.Dir(m.base), filepath.Base(m.base)+".sessions", hex.EncodeToString(digest[:])+".sqlite3")
+	return m.packagePathLocked(pkg)
 }
 
 func (m *profileManager) activePath() string {
@@ -149,7 +154,7 @@ func (m *profileManager) importPackage(pkg transfer.ClassPackage) (savedProfile,
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	path := m.packagePathLocked(pkg)
-	if _, exists := m.pathForLocked(profileKey(pkg.DatasetID, pkg.Instructor)); exists {
+	if m.existingPackageLocked(pkg) {
 		if _, err := os.Stat(path); err != nil {
 			return savedProfile{}, errors.New("saved instructor database is missing; refusing to create a replacement")
 		}
@@ -162,15 +167,44 @@ func (m *profileManager) importPackage(pkg transfer.ClassPackage) (savedProfile,
 		target.Close()
 		return savedProfile{}, err
 	}
+	if err = target.ConfigureSync(pkg); err != nil {
+		target.Close()
+		return savedProfile{}, err
+	}
 	if err = target.Close(); err != nil {
 		return savedProfile{}, err
 	}
-	profile, err := m.registerLocked(pkg.DatasetID, pkg.Instructor, path)
-	return profile, err
+	if pkg.Credentials == nil || pkg.Sync == nil {
+		return m.registerLocked(pkg.DatasetID, pkg.Instructor, path)
+	}
+	key := packageKey(pkg)
+	for i := range m.index.Profiles {
+		p := &m.index.Profiles[i]
+		if p.Key == key || (p.Path == path && p.DatasetID == pkg.DatasetID) {
+			p.Key = key
+			p.Instructor = pkg.Instructor
+			p.InstructorID = pkg.Sync.InstructorID
+			return *p, m.save()
+		}
+	}
+	profile := savedProfile{Key: key, DatasetID: pkg.DatasetID, Instructor: pkg.Instructor, InstructorID: pkg.Sync.InstructorID, Path: path}
+	m.index.Profiles = append(m.index.Profiles, profile)
+	return profile, m.save()
 }
 
 func (m *profileManager) packagePathLocked(pkg transfer.ClassPackage) string {
-	key := profileKey(pkg.DatasetID, pkg.Instructor)
+	key := packageKey(pkg)
+	// Prefer canonical identity; migrate the old name profile in place once.
+	if path, ok := m.pathForLocked(key); ok {
+		return path
+	}
+	if pkg.Credentials != nil {
+		for _, p := range m.index.Profiles {
+			if p.InstructorID == "" && p.Key == profileKey(pkg.DatasetID, pkg.Instructor) {
+				return p.Path
+			}
+		}
+	}
 	if path, ok := m.pathForLocked(key); ok {
 		return path
 	}
@@ -240,4 +274,42 @@ func (m *profileManager) lastProfile() (savedProfile, bool) {
 		}
 	}
 	return savedProfile{}, false
+}
+
+func (m *profileManager) existingPackageLocked(pkg transfer.ClassPackage) bool {
+	key := packageKey(pkg)
+	for _, p := range m.index.Profiles {
+		if p.Key == key || (pkg.Credentials != nil && p.InstructorID == "" && p.Key == profileKey(pkg.DatasetID, pkg.Instructor)) {
+			return true
+		}
+	}
+	return false
+}
+func (m *profileManager) retryUploads(ctx context.Context, active string) {
+	m.mu.Lock()
+	profiles := append([]savedProfile(nil), m.index.Profiles...)
+	m.mu.Unlock()
+	for _, p := range profiles {
+		if p.Path == active {
+			continue
+		}
+		if ctx.Err() != nil {
+			return
+		}
+		if _, err := os.Stat(p.Path); err != nil {
+			continue
+		}
+		lock, err := instance.Acquire(p.Path)
+		if err != nil {
+			continue
+		}
+		db, err := store.Open(p.Path)
+		if err == nil {
+			attemptCtx, stop := context.WithTimeout(ctx, time.Second)
+			_ = db.UploadPending(attemptCtx)
+			stop()
+			_ = db.Close()
+		}
+		_ = lock.Close()
+	}
 }

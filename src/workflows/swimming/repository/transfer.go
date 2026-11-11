@@ -27,6 +27,7 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 	if p.Kind != "rec-tablet-classes" {
 		return 0, errors.New("choose a rec-tablet-classes JSON package, not an export or raw roster")
 	}
+	trustedSync := p.Credentials != nil && p.Sync != nil
 	var e error
 	if p.DatasetID, e = transfer.Text(p.DatasetID, "datasetId"); e != nil {
 		return 0, e
@@ -140,7 +141,7 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 			if e != nil && !errors.Is(e, ErrNotFound) {
 				return e
 			}
-			if e == nil && r.String("name") != name {
+			if e == nil && r.String("name") != name && !trustedSync {
 				return fmt.Errorf("source ID %s now names a different swimmer; resolve the identity before importing", id)
 			}
 		}
@@ -161,7 +162,7 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 				return e
 			}
 			for _, pupil := range c.Swimmers {
-				if _, e = q.Exec("INSERT OR IGNORE INTO swimmers VALUES (?,?,?,?)", ID(), p.DatasetID, pupil.SourceID, pupil.Name); e != nil {
+				if _, e = q.Exec("INSERT INTO swimmers VALUES (?,?,?,?) ON CONFLICT(dataset_id,source_id) DO UPDATE SET name=excluded.name", ID(), p.DatasetID, pupil.SourceID, pupil.Name); e != nil {
 					return e
 				}
 				person, e := one(q, "SELECT id FROM swimmers WHERE dataset_id=? AND source_id=?", p.DatasetID, pupil.SourceID)
