@@ -70,7 +70,8 @@ func fetchSharedPackage(ctx context.Context, server, code string, client *http.C
 		return empty, errors.New("shared class package is too large")
 	}
 	var wrapper struct {
-		Package json.RawMessage `json:"package"`
+		Package json.RawMessage  `json:"package"`
+		Sync    *SyncCredentials `json:"sync"`
 	}
 	if err := json.Unmarshal(data, &wrapper); err != nil {
 		return empty, fmt.Errorf("sharing server returned invalid JSON: %w", err)
@@ -78,5 +79,16 @@ func fetchSharedPackage(ctx context.Context, server, code string, client *http.C
 	if len(wrapper.Package) == 0 {
 		return empty, errors.New("sharing server returned no class package")
 	}
-	return DecodePackage(wrapper.Package)
+	pkg, err := DecodePackage(wrapper.Package)
+	if err != nil {
+		return empty, err
+	}
+	if c := wrapper.Sync; c != nil {
+		if pkg.Sync == nil || c.SchemaVersion != 1 || pkg.Sync.SchemaVersion != 1 || c.SessionID != pkg.Sync.SessionID || c.DatasetID != pkg.DatasetID || c.DatasetID != pkg.Sync.DatasetID || c.InstructorID != pkg.Sync.InstructorID || c.UploadToken == "" || c.ReadToken == "" {
+			return empty, errors.New("invalid results sync credentials")
+		}
+		c.Server = server
+		pkg.Credentials = c
+	}
+	return pkg, nil
 }

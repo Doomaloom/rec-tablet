@@ -13,12 +13,42 @@ import (
 
 const MaxPackageBytes = 10 * 1024 * 1024
 
-type ClassPackage struct {
+type SyncIdentity struct {
 	SchemaVersion int          `json:"schemaVersion"`
-	Kind          string       `json:"kind"`
+	SessionID     string       `json:"sessionId"`
 	DatasetID     string       `json:"datasetId"`
-	Instructor    string       `json:"instructor"`
-	Courses       []ClassInput `json:"courses"`
+	InstructorID  string       `json:"instructorId"`
+	Courses       []SyncCourse `json:"courses"`
+}
+type SyncCourse struct {
+	SourceID string        `json:"sourceId"`
+	ClassID  string        `json:"classId"`
+	Swimmers []SyncSwimmer `json:"swimmers"`
+}
+type SyncSwimmer struct {
+	SourceID     string `json:"sourceId"`
+	EnrollmentID string `json:"enrollmentId"`
+}
+
+// Redemption capabilities never serialize into manual packages or exports.
+type SyncCredentials struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	SessionID     string `json:"sessionId"`
+	DatasetID     string `json:"datasetId"`
+	InstructorID  string `json:"instructorId"`
+	UploadToken   string `json:"uploadToken"`
+	ReadToken     string `json:"readToken"`
+	ExpiresAt     string `json:"expiresAt"`
+	Server        string `json:"-"`
+}
+type ClassPackage struct {
+	Sync          *SyncIdentity    `json:"sync,omitempty"`
+	Credentials   *SyncCredentials `json:"-"`
+	SchemaVersion int              `json:"schemaVersion"`
+	Kind          string           `json:"kind"`
+	DatasetID     string           `json:"datasetId"`
+	Instructor    string           `json:"instructor"`
+	Courses       []ClassInput     `json:"courses"`
 }
 type ClassInput struct {
 	LessonPlans *[]LessonPlan  `json:"lessonPlans,omitempty"`
