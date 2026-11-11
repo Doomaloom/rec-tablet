@@ -28,7 +28,7 @@ type attemptPayload struct {
 		LapsRequired  int `json:"lapsRequired"`
 		LapsCompleted int `json:"lapsCompleted"`
 		ElapsedMs     int `json:"elapsedMs"`
-	} `json:"timed"`
+	} `json:"timed,omitempty"`
 }
 
 // ReadAccepted runs only for the active redemption. Unsent local records and
@@ -114,7 +114,8 @@ func (s *Store) applySyncRecord(tx *sql.Tx, c *transfer.SyncCredentials, r syncR
 	if dirty.Int("count") > 0 {
 		return nil
 	}
-	if r.CurriculumVersion != s.Catalog.Version {
+	catalog, err := s.catalog(tx, r.CurriculumVersion)
+	if err != nil {
 		return errors.New("result curriculum unavailable")
 	}
 	deleted := r.Deleted || r.Action == "delete"
@@ -173,7 +174,7 @@ func (s *Store) applySyncRecord(tx *sql.Tx, c *transfer.SyncCredentials, r syncR
 			if _, e = time.Parse(time.RFC3339Nano, p.SubmittedAt); e != nil {
 				return e
 			}
-			skill, e := s.Catalog.Skill(p.SkillID)
+			skill, e := catalog.Skill(p.SkillID)
 			if e != nil {
 				return e
 			}

@@ -56,8 +56,8 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	const session = "20000000-0000-0000-0000-000000000004"
 	const dataset = "decksupervisor:60000000-0000-4000-8000-000000000010"
 	const enrollment = "60000000-0000-4000-8000-000000000001"
-	const date = "2026-09-22"
-	const courseSource = "qa-course-a"
+	const date = "2026-10-05"
+	const courseSource = "session:20000000-0000-0000-0000-000000000004:course:A"
 	const swimmerSource = "qa-swimmer-a"
 	path := "/api/sessions/" + session
 	var classes struct {
@@ -161,6 +161,7 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	var receipts struct {
 		Receipts []struct {
 			Status string `json:"status"`
+			Reason string `json:"reason"`
 		} `json:"receipts"`
 	}
 	request("POST", path+"/results", map[string]any{"schemaVersion": 1, "operations": corrections}, &receipts)
@@ -169,7 +170,7 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	}
 	for _, r := range receipts.Receipts {
 		if r.Status != "accepted" {
-			t.Fatal("website correction", r.Status)
+			t.Fatalf("website correction: %+v", r)
 		}
 	}
 	check(t, s.ReadAccepted(ctx, redeemed.Credentials))
@@ -196,5 +197,8 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 		b, e := json.MarshalIndent(map[string]any{"sessionId": session, "datasetId": dataset, "classId": classID, "instructorId": instructorID, "courseSourceId": courseSource, "swimmerSourceId": swimmerSource, "enrollmentId": enrollment, "lessonDate": date, "attemptId": attempt, "deletedAttemptId": deletedAttempt, "curriculumVersion": s.Catalog.Version, "matchKey": matchKey, "attendance": "absent", "success": false, "revision": 2}, "", "  ")
 		check(t, e)
 		check(t, os.WriteFile(evidence, b, 0600))
+		packageBody, e := json.MarshalIndent(p, "", "  ")
+		check(t, e)
+		check(t, os.WriteFile(evidence+".package.json", packageBody, 0600))
 	}
 }

@@ -113,6 +113,16 @@ func (s *Store) transaction(fn func(queryer) error) error {
 // their roster and attendance data, while assessment rows are discarded and
 // all courses are pointed at the newly bundled curriculum version.
 func (s *Store) resetMarkingDataForCatalogChange(version string) error {
+	// Bound history and drafts remain authoritative local data across upgrades.
+	// Never turn a curriculum update into server deletion operations.
+	if s.syncReady {
+		if _, err := grant(s.DB); err == nil {
+			return nil
+		} else if !errors.Is(err, ErrNotFound) {
+			return err
+		}
+	}
+
 	return s.transaction(func(q queryer) error {
 		oldCourses, err := one(q, "SELECT COUNT(*) AS count FROM courses WHERE curriculum_version<>?", version)
 		if err != nil {

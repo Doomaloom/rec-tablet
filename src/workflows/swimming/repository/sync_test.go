@@ -322,3 +322,27 @@ func TestBoundImportRollsBackRosterOnCanonicalMismatch(t *testing.T) {
 		t.Fatal("failed canonical import partially changed roster")
 	}
 }
+
+func TestBoundCatalogUpgradePreservesAcceptedHistoryAndDrafts(t *testing.T) {
+	f := setup(t)
+	bound := bindFixture(t, f, "http://localhost")
+	_ = bound
+	attempt := f.attempt(t, true, "")
+	draft := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:2"))
+	check(t, f.s.Mark(draft, "Splash1:2:1", "successful"))
+	_, err := f.s.DB.Exec("DELETE FROM sync_outbox")
+	check(t, err)
+	check(t, f.s.Close())
+	newer := f.s.Catalog
+	newer.Version += "-next"
+	f.s = must(OpenWithCatalog(f.path, newer))
+	if count(t, f.s, "attempts") != 2 || count(t, f.s, "drafts") != 1 || len(queue(t, f.s)) != 0 {
+		t.Fatal("catalog upgrade erased bound history/drafts or queued tombstones")
+	}
+	if _, err = f.s.queryOne("SELECT id FROM attempts WHERE id=?", attempt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.s.CatalogFor(f.version); err != nil {
+		t.Fatal("historical catalog lost", err)
+	}
+}

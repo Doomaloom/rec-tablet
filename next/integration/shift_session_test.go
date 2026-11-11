@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/test"
@@ -182,27 +181,20 @@ func TestShiftLogoutConfirmationAndDetachedNavigation(t *testing.T) {
 	}
 }
 
-func TestLoginBackspaceHoldResumesLastSession(t *testing.T) {
+func TestLoginBackspaceHasNoOfflineBypass(t *testing.T) {
 	a := test.NewApp()
 	defer a.Quit()
-	w := a.NewWindow("Resume session")
+	w := a.NewWindow("Login")
 	defer w.Close()
 	calls := 0
-	c := login.New(login.Options{Resume: func(done func(error)) { calls++; done(errors.New("No previous session")) }})
+	c := login.New(login.Options{Login: func(string, func(error)) { calls++ }})
 	view := app.New(c, w)
 	defer view.Close()
 	w.Show()
 	tapSession(t, view, "login:9")
 	tapSession(t, view, "login:Delete")
-	if calls != 0 {
-		t.Fatal("tap bypassed login")
-	}
 	button := view.Buttons["login:Delete"]
-	if button.OnHold == nil || button.HoldDuration != 3*time.Second {
-		t.Fatal("backspace must require a three-second hold")
-	}
-	button.OnHold()
-	if calls != 1 || !c.Snapshot().Error {
-		t.Fatal("hold did not attempt restore or present failure")
+	if calls != 0 || button.OnHold != nil {
+		t.Fatal("backspace exposed offline session bypass")
 	}
 }
