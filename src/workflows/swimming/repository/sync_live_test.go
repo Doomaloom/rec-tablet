@@ -54,7 +54,7 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	}
 	request("POST", "/api/auth/sign-in", map[string]string{"email": "supervisor@example.invalid", "password": "Synthetic-test-only-42!"}, nil)
 	const session = "20000000-0000-0000-0000-000000000004"
-	const dataset = "results-live-qa-v1"
+	const dataset = "decksupervisor:60000000-0000-4000-8000-000000000010"
 	const enrollment = "60000000-0000-4000-8000-000000000001"
 	const date = "2026-09-22"
 	const courseSource = "qa-course-a"

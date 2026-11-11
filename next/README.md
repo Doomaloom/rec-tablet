@@ -12,7 +12,7 @@ Both implementations use the existing database schema, import/export formats, pr
 
 ## Shift sessions
 
-Every process launch mounts `features/login` through the normal shell. The login keypad verifies the six-digit SPA device export code online. `runtime/session.go` fetches the package asynchronously, imports into the existing instructor/dataset profile, and opens the workflow only after successful activation. Holding the login keypad’s Backspace button for three seconds explicitly restores the last activated local instructor session without redeeming a code. A tap still deletes one digit; an unavailable saved session shows an error and leaves the keypad open.
+Every process launch mounts `features/login` through the normal shell. The login keypad verifies the six-digit SPA device export code online. `runtime/session.go` fetches the package asynchronously, imports into the existing instructor/dataset profile, and opens the workflow only after successful activation. Restart and logout always require an online code; the Backspace button only deletes a digit. Canonical instructor IDs isolate same-name instructors and preserve profiles across display-name changes. Compatible legacy name profiles migrate in place; ambiguous class scopes are preserved and refused rather than silently combined.
 
 My Classes exposes a confirmed **Log out** action through `ConfigureSession`. Logout closes the workflow and instructor database, releases its additional process lock, and mounts a fresh login presenter. Local work is retained. The base database lock remains held for the process lifetime so a signed-out instance cannot race another instance over the profile index. Pending requests are cancelled and stale completions ignored; detached presenters, controls, and keyboard handlers are deactivated.
 
@@ -66,3 +66,9 @@ For representative compact/large screenshots from the new workflow integration t
 ```sh
 REC_TABLET_SCREENSHOTS=/tmp/rec-next-screens go test -tags ci ./next/integration
 ```
+
+Results synchronization uses additive SQLite version 2 tables. Domain transactions atomically append attendance, submitted criteria/timed attempts, corrections and deletion tombstones to a durable outbox. Drafts remain local. Bound redemption stores only an upload capability in the protected database; the separate read token exists only in the active login. SQLite, WAL and SHM files use mode 0600. Manual v1 snapshots retain their existing format and exclude all capabilities and transport state.
+
+Logout drains the save worker and attempts upload with a five-second deadline before closing regardless of connectivity. Every successful code login retries each saved profile using its own upload grant without mounting that profile, then uploads and reads the active profile before displaying lessons. Lesson work performs no network synchronization. Frozen operations retain their IDs and bodies after uncertain responses; subsequent edits advance revisions only after receipts. Conflicting operations leave the transmission queue but remain in durable review status, displayed separately on My Classes. Rejected operations stay queued. Incoming canonical records include corrections/deletions and never overwrite drafts or unsent edits.
+
+Opt-in real API acceptance: `REC_TEC_QA_URL=http://127.0.0.1:18082 REC_TEC_QA_EVIDENCE=/tmp/tablet-results-evidence.json go test -tags ci ./src/workflows/swimming/repository -run '^TestLiveResultsRoundTrip$' -v`. This requires the disposable instructor QA supervisor fixture and writes only canonical IDs/statuses to the evidence file.

@@ -307,3 +307,18 @@ func TestSyncConfigurationRollbackAndCredentialIsolation(t *testing.T) {
 		t.Fatal("interrupted mutation committed")
 	}
 }
+
+func TestBoundImportRollsBackRosterOnCanonicalMismatch(t *testing.T) {
+	f := setup(t)
+	p := bindFixture(t, f, "http://localhost")
+	old := p.Courses[0].Swimmers[0].Name
+	p.Courses[0].Swimmers[0].Name = "Changed Name"
+	p.Sync.Courses[0].Swimmers[0].EnrollmentID = "foreign-binding"
+	if _, err := f.s.Import(p); err == nil {
+		t.Fatal("import accepted canonical rebinding")
+	}
+	person := must(f.s.queryOne("SELECT name FROM swimmers WHERE source_id=?", p.Courses[0].Swimmers[0].SourceID))
+	if person.String("name") != old {
+		t.Fatal("failed canonical import partially changed roster")
+	}
+}

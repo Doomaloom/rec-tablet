@@ -233,7 +233,17 @@ func (m *profileManager) packagePathLocked(pkg transfer.ClassPackage) string {
 		return path
 	}
 	digest := sha256.Sum256([]byte(key))
-	return filepath.Join(filepath.Dir(m.base), filepath.Base(m.base)+".sessions", hex.EncodeToString(digest[:])+".sqlite3")
+	path := filepath.Join(filepath.Dir(m.base), filepath.Base(m.base)+".sessions", hex.EncodeToString(digest[:])+".sqlite3")
+	// An in-place canonical migration may retain the former name-hashed path.
+	// A later unbound package must never reopen that bound database by accident.
+	for _, p := range m.index.Profiles {
+		if p.Path == path && p.Key != key {
+			digest = sha256.Sum256([]byte("unbound:" + key))
+			path = filepath.Join(filepath.Dir(m.base), filepath.Base(m.base)+".sessions", hex.EncodeToString(digest[:])+".sqlite3")
+			break
+		}
+	}
+	return path
 }
 
 func (m *profileManager) registerPackage(pkg transfer.ClassPackage, path string) (savedProfile, error) {

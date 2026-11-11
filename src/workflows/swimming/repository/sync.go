@@ -46,6 +46,9 @@ var syncNetwork sync.Mutex
 
 // ConfigureSync never persists the read token. Identity bindings are immutable.
 func (s *Store) ConfigureSync(p transfer.ClassPackage) error {
+	return database.Transaction(s.DB, func(tx *sql.Tx) error { return s.configureSync(tx, p) })
+}
+func (s *Store) configureSync(q queryer, p transfer.ClassPackage) error {
 	c := p.Credentials
 	if c == nil {
 		return nil
@@ -54,62 +57,60 @@ func (s *Store) ConfigureSync(p transfer.ClassPackage) error {
 	if identity == nil || identity.SchemaVersion != 1 || c.SchemaVersion != 1 || identity.DatasetID != p.DatasetID || c.DatasetID != p.DatasetID || c.SessionID != identity.SessionID || c.InstructorID != identity.InstructorID || c.UploadToken == "" || c.Server == "" {
 		return errors.New("invalid sync identity")
 	}
-	return database.Transaction(s.DB, func(tx *sql.Tx) error {
-		old, e := one(tx, "SELECT body FROM sync_config WHERE id=1")
-		if e != nil && !errors.Is(e, ErrNotFound) {
-			return e
+	old, e := one(q, "SELECT body FROM sync_config WHERE id=1")
+	if e != nil && !errors.Is(e, ErrNotFound) {
+		return e
+	}
+	if e == nil {
+		var g uploadGrant
+		if json.Unmarshal([]byte(old.String("body")), &g) != nil || g.SessionID != c.SessionID || g.DatasetID != c.DatasetID || g.InstructorID != c.InstructorID {
+			return errors.New("sync identity cannot change")
 		}
-		if e == nil {
-			var g uploadGrant
-			if json.Unmarshal([]byte(old.String("body")), &g) != nil || g.SessionID != c.SessionID || g.DatasetID != c.DatasetID || g.InstructorID != c.InstructorID {
-				return errors.New("sync identity cannot change")
+	}
+	if len(identity.Courses) != len(p.Courses) {
+		return errors.New("incomplete canonical roster")
+	}
+	courses := map[string]transfer.ClassInput{}
+	for _, v := range p.Courses {
+		courses[v.SourceID] = v
+	}
+	seen := map[string]bool{}
+	for _, course := range identity.Courses {
+		source, ok := courses[course.SourceID]
+		if !ok || seen[course.SourceID] || course.ClassID == "" || len(source.Swimmers) != len(course.Swimmers) {
+			return errors.New("canonical course mismatch")
+		}
+		seen[course.SourceID] = true
+		people := map[string]bool{}
+		for _, v := range source.Swimmers {
+			people[v.SourceID] = true
+		}
+		for _, sw := range course.Swimmers {
+			if !people[sw.SourceID] || sw.EnrollmentID == "" {
+				return errors.New("canonical swimmer mismatch")
+			}
+			delete(people, sw.SourceID)
+			local, e := one(q, `SELECT e.id FROM enrollments e JOIN courses c ON c.id=e.course_id JOIN swimmers w ON w.id=e.swimmer_id WHERE c.dataset_id=? AND c.source_id=? AND w.source_id=?`, p.DatasetID, course.SourceID, sw.SourceID)
+			if e != nil {
+				return e
+			}
+			prior, e := one(q, "SELECT * FROM sync_mapping WHERE local_id=?", local.String("id"))
+			if e != nil && !errors.Is(e, ErrNotFound) {
+				return e
+			}
+			if e == nil && (prior.String("class_id") != course.ClassID || prior.String("remote_id") != sw.EnrollmentID) {
+				return errors.New("canonical identity cannot change")
+			}
+			if _, e = q.Exec("INSERT OR IGNORE INTO sync_mapping VALUES(?,?,?)", local.String("id"), course.ClassID, sw.EnrollmentID); e != nil {
+				return e
 			}
 		}
-		if len(identity.Courses) != len(p.Courses) {
-			return errors.New("incomplete canonical roster")
-		}
-		courses := map[string]transfer.ClassInput{}
-		for _, v := range p.Courses {
-			courses[v.SourceID] = v
-		}
-		seen := map[string]bool{}
-		for _, course := range identity.Courses {
-			source, ok := courses[course.SourceID]
-			if !ok || seen[course.SourceID] || course.ClassID == "" || len(source.Swimmers) != len(course.Swimmers) {
-				return errors.New("canonical course mismatch")
-			}
-			seen[course.SourceID] = true
-			people := map[string]bool{}
-			for _, v := range source.Swimmers {
-				people[v.SourceID] = true
-			}
-			for _, sw := range course.Swimmers {
-				if !people[sw.SourceID] || sw.EnrollmentID == "" {
-					return errors.New("canonical swimmer mismatch")
-				}
-				delete(people, sw.SourceID)
-				local, e := one(tx, `SELECT e.id FROM enrollments e JOIN courses c ON c.id=e.course_id JOIN swimmers w ON w.id=e.swimmer_id WHERE c.dataset_id=? AND c.source_id=? AND w.source_id=?`, p.DatasetID, course.SourceID, sw.SourceID)
-				if e != nil {
-					return e
-				}
-				prior, e := one(tx, "SELECT * FROM sync_mapping WHERE local_id=?", local.String("id"))
-				if e != nil && !errors.Is(e, ErrNotFound) {
-					return e
-				}
-				if e == nil && (prior.String("class_id") != course.ClassID || prior.String("remote_id") != sw.EnrollmentID) {
-					return errors.New("canonical identity cannot change")
-				}
-				if _, e = tx.Exec("INSERT OR IGNORE INTO sync_mapping VALUES(?,?,?)", local.String("id"), course.ClassID, sw.EnrollmentID); e != nil {
-					return e
-				}
-			}
-		}
-		b, _ := json.Marshal(uploadGrant{c.Server, c.UploadToken, c.SessionID, c.DatasetID, c.InstructorID, c.ExpiresAt})
-		if _, e = tx.Exec("INSERT OR REPLACE INTO sync_config VALUES(1,?)", string(b)); e != nil {
-			return e
-		}
-		return s.captureSync(tx)
-	})
+	}
+	b, _ := json.Marshal(uploadGrant{c.Server, c.UploadToken, c.SessionID, c.DatasetID, c.InstructorID, c.ExpiresAt})
+	if _, e = q.Exec("INSERT OR REPLACE INTO sync_config VALUES(1,?)", string(b)); e != nil {
+		return e
+	}
+	return s.captureSync(q)
 }
 func grant(q queryer) (uploadGrant, error) {
 	var g uploadGrant

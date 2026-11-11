@@ -145,3 +145,32 @@ func TestCanonicalProfileMigratesCompatibleLegacyInPlace(t *testing.T) {
 		t.Fatal("canonical scope leaked")
 	}
 }
+
+func TestGuestPackageCannotReopenMigratedCanonicalDatabase(t *testing.T) {
+	m, err := newProfileManager(filepath.Join(t.TempDir(), "base.sqlite3"))
+	checkSession(t, err)
+	p := boundProfile("Alex", "a", "http://localhost")
+	legacy := p
+	legacy.Credentials = nil
+	legacy.Sync = nil
+	before, err := m.importPackage(legacy)
+	checkSession(t, err)
+	after, err := m.importPackage(p)
+	checkSession(t, err)
+	if before.Path != after.Path {
+		t.Fatal("migration split profile")
+	}
+	guest, err := m.importPackage(legacy)
+	checkSession(t, err)
+	if guest.Path == after.Path {
+		t.Fatal("guest reopened canonical database")
+	}
+	db, err := store.Open(guest.Path)
+	checkSession(t, err)
+	defer db.Close()
+	id, err := db.SyncInstructorID()
+	checkSession(t, err)
+	if id != "" {
+		t.Fatal("guest inherited capability")
+	}
+}

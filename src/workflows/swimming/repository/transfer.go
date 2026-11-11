@@ -28,6 +28,9 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 		return 0, errors.New("choose a rec-tablet-classes JSON package, not an export or raw roster")
 	}
 	trustedSync := p.Credentials != nil && p.Sync != nil
+	if err := s.ValidateSyncProfile(p); err != nil {
+		return 0, err
+	}
 	var e error
 	if p.DatasetID, e = transfer.Text(p.DatasetID, "datasetId"); e != nil {
 		return 0, e
@@ -42,6 +45,7 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 	copyBytes, _ := json.Marshal(p)
 	var cloned transfer.ClassPackage
 	_ = json.Unmarshal(copyBytes, &cloned)
+	cloned.Credentials = p.Credentials
 	p = cloned
 	seenCourses, seenNames := map[string]bool{}, map[string]string{}
 	for i := range p.Courses {
@@ -195,7 +199,10 @@ func (s *Store) Import(p transfer.ClassPackage) (int, error) {
 
 		}
 		_, e = q.Exec("INSERT OR REPLACE INTO meta VALUES ('last_import',?)", Now())
-		return e
+		if e != nil {
+			return e
+		}
+		return s.configureSync(q, p)
 	})
 	if e != nil {
 		return 0, e
