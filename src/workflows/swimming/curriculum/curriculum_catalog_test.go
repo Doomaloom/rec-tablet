@@ -110,7 +110,7 @@ func TestFrontPageUnitsAndSharedCriteria(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if s.Subskills[0].Text != "Minimum distance completed" {
+		if s.Subskills[0].Text != "Minimum distance completed (for both strokes)" {
 			t.Fatal("lost shared distance criterion", id)
 		}
 	}
