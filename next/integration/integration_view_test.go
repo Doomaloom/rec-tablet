@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,11 +24,59 @@ import (
 	"rectablet/src/workflows/swimming/transfer"
 )
 
+// queuedTestApp gives background fyne.Do calls the same single-threaded
+// dispatch semantics as a real UI driver. Tests drain the queue at UI boundaries.
+type queuedTestApp struct {
+	fyne.App
+	dispatcher *queuedTestDriver
+}
+
+func (a *queuedTestApp) Driver() fyne.Driver { return a.dispatcher }
+
+type queuedTestDriver struct {
+	fyne.Driver
+	mu         sync.Mutex
+	pending    []func()
+	dispatched int
+}
+
+func (d *queuedTestDriver) DoFromGoroutine(fn func(), wait bool) {
+	var done chan struct{}
+	if wait {
+		done = make(chan struct{})
+	}
+	d.mu.Lock()
+	d.pending = append(d.pending, func() {
+		fn()
+		if done != nil {
+			close(done)
+		}
+	})
+	d.mu.Unlock()
+	if done != nil {
+		<-done
+	}
+}
+func (d *queuedTestDriver) drain() {
+	if d == nil {
+		return
+	}
+	d.mu.Lock()
+	pending := d.pending
+	d.pending = nil
+	d.mu.Unlock()
+	for _, fn := range pending {
+		d.dispatched++
+		fn()
+	}
+}
+
 type uiFixture struct {
-	view *app.View
-	c    *lesson.Controller
-	s    *store.Store
-	w    fyne.Window
+	view       *app.View
+	c          *lesson.Controller
+	s          *store.Store
+	w          fyne.Window
+	dispatcher *queuedTestDriver
 }
 
 func must[T any](v T, e error) T {
@@ -44,7 +93,10 @@ func check(t *testing.T, e error) {
 }
 func setupUI(t *testing.T) *uiFixture {
 	t.Helper()
-	a := test.NewApp()
+	base := test.NewApp()
+	dispatcher := &queuedTestDriver{Driver: base.Driver()}
+	a := &queuedTestApp{App: base, dispatcher: dispatcher}
+	fyne.SetCurrentApp(a)
 	a.Settings().SetTheme(ui.AppTheme{})
 	s := must(store.Open(filepath.Join(t.TempDir(), "test.sqlite3")))
 	_ = must(s.ImportFile("../../examples/classes.json"))
@@ -54,12 +106,31 @@ func setupUI(t *testing.T) *uiFixture {
 	w := a.NewWindow("Rec Tablet")
 	v := app.New(c, w)
 	w.Show()
-	f := &uiFixture{v, c, s, w}
-	t.Cleanup(func() { v.Close(); w.Close(); a.Quit(); s.Close() })
+	f := &uiFixture{view: v, c: c, s: s, w: w, dispatcher: dispatcher}
+	t.Cleanup(func() { v.Close(); dispatcher.drain(); w.Close(); a.Quit(); s.Close() })
 	return f
 }
+func (f *uiFixture) waitUI(t *testing.T, done <-chan struct{}, failure string) {
+	t.Helper()
+	deadline := time.NewTimer(5 * time.Second)
+	defer deadline.Stop()
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-done:
+			return
+		case <-tick.C:
+			f.dispatcher.drain()
+		case <-deadline.C:
+			t.Fatal(failure)
+		}
+	}
+}
+
 func (f *uiFixture) tap(t *testing.T, key string) {
 	t.Helper()
+	f.dispatcher.drain()
 	b := f.view.Buttons[key]
 	if b == nil {
 		t.Fatal("missing button", key)
@@ -112,6 +183,7 @@ func (f *uiFixture) skill(t *testing.T) {
 }
 func (f *uiFixture) shot(t *testing.T, name string) {
 	t.Helper()
+	f.dispatcher.drain()
 	dir := os.Getenv("REC_TABLET_SCREENSHOTS")
 	if dir == "" {
 		return
@@ -164,11 +236,7 @@ func TestPointerNavigationAttendanceAndMaintenance(t *testing.T) {
 		b.CanActivate = func() bool { return true }
 	}
 	hold.MouseDown(&desktop.MouseEvent{Button: desktop.MouseButtonPrimary})
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Fatal("three-second maintenance hold did not fire")
-	}
+	f.waitUI(t, done, "three-second maintenance hold did not fire")
 	hold.MouseUp(&desktop.MouseEvent{})
 	hold.Tapped(nil)
 	if f.c.Snapshot().Screen != "maintenance" {
@@ -261,11 +329,7 @@ func TestSkillChecklistSaveDiscardAndHold(t *testing.T) {
 		close(holdComplete)
 	}
 	skillButton.MouseDown(&desktop.MouseEvent{Button: desktop.MouseButtonPrimary})
-	select {
-	case <-holdComplete:
-	case <-time.After(5 * time.Second):
-		t.Fatal("two-second skill hold did not fire")
-	}
+	f.waitUI(t, holdComplete, "two-second skill hold did not fire")
 	skillButton.MouseUp(&desktop.MouseEvent{})
 	if p := must(f.s.Progress(person, "Splash1:1", version)); p.Successes != 0 {
 		t.Fatal("holding a skill did not remove its latest check")
@@ -353,6 +417,15 @@ func TestTimedHeatSelectionTimerAndSave(t *testing.T) {
 	}
 	f.compactLayout(t, "timed-heat")
 	f.tap(t, "header-action-0")
+	beforeTicks := f.dispatcher.dispatched
+	deadline := time.Now().Add(time.Second)
+	for f.dispatcher.dispatched == beforeTicks && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+		f.dispatcher.drain()
+	}
+	if f.dispatcher.dispatched == beforeTicks {
+		t.Fatal("running heat did not dispatch a timer update")
+	}
 	for i := 0; i < 3; i++ {
 		f.tap(t, "row:timed-lap:"+people[0])
 	}

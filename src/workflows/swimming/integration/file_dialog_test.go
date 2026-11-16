@@ -71,7 +71,7 @@ func TestImportThroughFilePicker(t *testing.T) {
 			v := shell.New(c, w)
 			w.Show()
 			t.Cleanup(func() { v.Close(); w.Close(); a.Quit(); s.Close() })
-			f := &uiFixture{v, c, s, w}
+			f := &uiFixture{view: v, c: c, s: s, w: w}
 			check(t, c.Maintenance())
 			// Before the fix this tap panics inside FileDialog.Resize.
 			f.tap(t, "row:import")
