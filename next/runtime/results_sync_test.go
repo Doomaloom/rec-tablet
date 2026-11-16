@@ -174,3 +174,50 @@ func TestGuestPackageCannotReopenMigratedCanonicalDatabase(t *testing.T) {
 		t.Fatal("guest inherited capability")
 	}
 }
+
+func TestLogoutUploadRunsOutsideUIAndReportsPrivateFailure(t *testing.T) {
+	started, release := make(chan struct{}), make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-release
+		http.Error(w, "Synthetic Pupil upload-secret", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+	s, dispatch := sessionFixture(t)
+	checkSession(t, s.open(boundProfile("Private Instructor", "a", server.URL)))
+	var person, lesson string
+	checkSession(t, s.store.DB.QueryRow("SELECT e.id,l.id FROM enrollments e JOIN lessons l ON l.course_id=e.course_id LIMIT 1").Scan(&person, &lesson))
+	checkSession(t, s.store.SetAttendance(person, lesson, "present"))
+	path := s.store.Path
+	finished := false
+	s.logoutAsync(func(err error) { checkSession(t, err); finished = true })
+	if s.store != nil || !s.loggingOut || finished {
+		t.Fatal("logout did not detach promptly")
+	}
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("upload not started")
+	}
+	if !strings.Contains(s.notice, "Finishing") {
+		t.Fatal(s.notice)
+	}
+	close(release)
+	complete(t, dispatch)
+	if !finished || s.loggingOut || !strings.Contains(s.notice, "will retry") {
+		t.Fatal(s.notice)
+	}
+	for _, private := range []string{"Private Instructor", "Synthetic Pupil", "upload-secret"} {
+		if strings.Contains(s.notice, private) {
+			t.Fatal("private status", s.notice)
+		}
+	}
+	db, err := store.Open(path)
+	checkSession(t, err)
+	defer db.Close()
+	pending, _, err := db.SyncStatus()
+	checkSession(t, err)
+	if pending != 1 {
+		t.Fatal("logout lost durable work")
+	}
+}

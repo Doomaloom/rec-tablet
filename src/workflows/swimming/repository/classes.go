@@ -6,10 +6,10 @@ import (
 )
 
 func (s *Store) courseRecords(date string) ([]record, error) {
-	return s.queryRows(`SELECT c.*,l.id AS lesson_id FROM courses c JOIN lessons l ON l.course_id=c.id WHERE l.date=? ORDER BY c.time,c.name`, date)
+	return s.queryRows(`SELECT c.*,l.id AS lesson_id FROM courses c JOIN lessons l ON l.course_id=c.id WHERE l.date=? AND (NOT EXISTS(SELECT 1 FROM sync_config) OR c.id IN(SELECT course_id FROM sync_scope)) ORDER BY c.time,c.name`, date)
 }
 func (s *Store) Dates() ([]string, error) {
-	rs, e := s.queryRows("SELECT DISTINCT date FROM lessons ORDER BY date")
+	rs, e := s.queryRows("SELECT DISTINCT date FROM lessons WHERE NOT EXISTS(SELECT 1 FROM sync_config) OR course_id IN(SELECT course_id FROM sync_scope) ORDER BY date")
 	out := []string{}
 	for _, r := range rs {
 		out = append(out, r.String("date"))
@@ -24,6 +24,14 @@ func enrollment(q queryer, id string) (record, error) {
 }
 func (s *Store) enrollmentRecord(id string) (record, error) { return enrollment(s.DB, id) }
 func checkLesson(q queryer, person, lesson string) (record, error) {
+	scope, e := one(q, "SELECT COUNT(*) count FROM lessons l WHERE l.id=? AND (NOT EXISTS(SELECT 1 FROM sync_config) OR l.course_id IN(SELECT course_id FROM sync_scope))", lesson)
+	if e != nil {
+		return nil, e
+	}
+	if scope.Int("count") == 0 {
+		return nil, errors.New("this class is no longer assigned; saved history is preserved")
+	}
+
 	p, e := enrollment(q, person)
 	if e != nil {
 		return nil, e

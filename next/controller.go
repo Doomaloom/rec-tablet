@@ -79,6 +79,12 @@ func (c *Controller) ConfigureSession(logout func(), server string, saveServer f
 	_ = c.Refresh()
 }
 
+// ConfigureSyncStatus carries only aggregate counts and fixed boundary messages.
+func (c *Controller) ConfigureSyncStatus(notice string) {
+	c.classes.SyncNotice = notice
+	_ = c.Refresh()
+}
+
 // Deactivate prevents callbacks from a detached workflow from touching storage.
 func (c *Controller) Deactivate() {
 	c.navigation.Closed = true

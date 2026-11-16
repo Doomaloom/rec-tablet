@@ -44,6 +44,16 @@ func (c *Component) Fail(err error) {
 	c.notice, c.error = err.Error(), true
 	c.refresh()
 }
+
+// Inform presents transport status without treating durable local work as a login failure.
+func (c *Component) Inform(message string) {
+	if c.closed {
+		return
+	}
+	c.notice = message
+	c.error = false
+	c.refresh()
+}
 func (c *Component) Digit(digit string) {
 	if c.closed || c.busy || c.settings || len(c.code) == 6 || len(digit) != 1 || digit[0] < '0' || digit[0] > '9' {
 		return

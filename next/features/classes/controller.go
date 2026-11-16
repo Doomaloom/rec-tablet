@@ -11,6 +11,7 @@ import (
 // Component coordinates class browsing through explicitly owned child components.
 type Component struct {
 	Logout     func()
+	SyncNotice string
 	navigation *navigation.Controller
 	store      Repository
 	classList  *classlist.Component
@@ -48,15 +49,22 @@ func (c *Component) Build() (navigation.State, error) {
 			return state, e
 		}
 		rows = c.classList.Configure(&state, courses, dates, c.navigation.Date)
+		state.Notice = c.SyncNotice
 		if synced, ok := s.(interface{ SyncStatus() (int, int, error) }); ok {
 			pending, review, err := synced.SyncStatus()
 			if err != nil {
 				return state, err
 			}
 			if review > 0 {
-				state.Notice = fmt.Sprintf("%d results need supervisor review · %d waiting to upload", review, pending)
+				if state.Notice != "" {
+					state.Notice += " · "
+				}
+				state.Notice += fmt.Sprintf("%d results need supervisor review · %d waiting to upload", review, pending)
 			} else if pending > 0 {
-				state.Notice = fmt.Sprintf("%d results waiting to upload at logout", pending)
+				if state.Notice != "" {
+					state.Notice += " · "
+				}
+				state.Notice += fmt.Sprintf("%d results waiting to upload at logout", pending)
 			}
 		}
 		for i := range rows {

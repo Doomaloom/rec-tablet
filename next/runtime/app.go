@@ -117,11 +117,14 @@ func Run(options Options) error {
 		})
 		if loginError != nil {
 			controller.Fail(loginError)
+		} else {
+			controller.Inform(session.notice)
 		}
 		mount(controller)
 	}
 	mountWorkflow = func() {
 		controller := swimming.New(session.store)
+		controller.ConfigureSyncStatus(session.notice)
 		controller.EnableAsyncSaves(fyne.Do)
 		controller.ConfigureDisplay(mode(), saveMode)
 		if dates, err := session.store.Dates(); err == nil {
@@ -131,7 +134,8 @@ func Run(options Options) error {
 			if view != nil {
 				view.Close()
 			}
-			mountLogin(session.logout())
+			session.logoutAsync(func(err error) { mountLogin(err) })
+			mountLogin(nil)
 		}, profiles.shareServer(options.ShareServer), profiles.setShareServer)
 		mount(controller)
 	}

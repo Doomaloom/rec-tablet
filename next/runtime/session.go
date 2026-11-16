@@ -13,7 +13,7 @@ import (
 )
 
 // deviceSession owns the open instructor database. All methods and completions
-// run on the UI thread; only the network fetch runs in a worker goroutine.
+// run on the UI thread; login and logout storage/network work runs in workers.
 // The runtime holds the base database lock for the lifetime of the process.
 type deviceSession struct {
 	profiles   *profileManager
@@ -23,11 +23,17 @@ type deviceSession struct {
 	cancel     context.CancelFunc
 	generation uint64
 	closed     bool
+	loggingOut bool
+	notice     string
 	fetch      func(context.Context, string, string) (transfer.ClassPackage, error)
 	dispatch   func(func())
 }
 
 func (s *deviceSession) login(code string, done func(error)) {
+	if s.loggingOut {
+		done(fmt.Errorf("finishing logout; please try the code again shortly"))
+		return
+	}
 	if s.closed || s.store != nil || s.cancel != nil {
 		return
 	}
@@ -45,13 +51,17 @@ func (s *deviceSession) login(code string, done func(error)) {
 		if err == nil && ctx.Err() == nil {
 			// Every successful code login retries all instructors using upload-only
 			// capabilities. Only this active profile receives a read capability.
-			s.profiles.retryUploads(ctx, candidate.store.Path)
+			previous := s.profiles.retryUploadsSummary(ctx, candidate.store.Path)
 			uploadCtx, stop := context.WithTimeout(ctx, 5*time.Second)
-			_ = candidate.store.UploadPending(uploadCtx)
+			uploadErr := candidate.store.UploadPending(uploadCtx)
 			stop()
 			readCtx, stop := context.WithTimeout(ctx, 5*time.Second)
-			_ = candidate.store.ReadAccepted(readCtx, pkg.Credentials)
+			readErr := candidate.store.ReadAccepted(readCtx, pkg.Credentials)
 			stop()
+			candidate.notice = boundaryNotice(candidate.store, uploadErr, readErr, pkg.Credentials != nil)
+			if earlier := previous.text(); earlier != "" {
+				candidate.notice += " · " + earlier
+			}
 		}
 		if ctx.Err() != nil {
 			candidate.release()
@@ -66,6 +76,7 @@ func (s *deviceSession) login(code string, done func(error)) {
 			defer cancel()
 			if err == nil {
 				s.store, s.lock = candidate.store, candidate.lock
+				s.notice = candidate.notice
 			}
 			done(err)
 		})
@@ -122,8 +133,9 @@ func (s *deviceSession) logout() error {
 	var err error
 	if s.store != nil {
 		ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
-		_ = s.store.UploadPending(ctx)
+		uploadErr := s.store.UploadPending(ctx)
 		stop()
+		s.notice = boundaryNotice(s.store, uploadErr, nil, false)
 		err = s.store.Close()
 		s.store = nil
 	}

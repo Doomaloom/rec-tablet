@@ -77,7 +77,21 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
  lesson_id TEXT PRIMARY KEY REFERENCES lessons(id), body TEXT NOT NULL)`); err != nil {
 		return fail(err)
 	}
-	if _, err = db.Exec(syncSchema); err != nil {
+	var hadScope int
+	if err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='sync_scope'").Scan(&hadScope); err != nil {
+		return fail(err)
+	}
+	if err = s.transaction(func(q queryer) error {
+		if _, e := q.Exec(syncSchema); e != nil {
+			return e
+		}
+		if hadScope == 0 {
+			// Existing bound installations retain their roster until the next redemption.
+			_, e := q.Exec("INSERT OR IGNORE INTO sync_scope SELECT DISTINCT e.course_id FROM enrollments e JOIN sync_mapping m ON m.local_id=e.id")
+			return e
+		}
+		return nil
+	}); err != nil {
 		return fail(err)
 	}
 	s.syncReady = true

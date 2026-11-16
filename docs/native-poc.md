@@ -10,7 +10,7 @@ The schema starts at version 1, migrated transactionally via `PRAGMA user_versio
 
 Progress belongs to an enrollment + skill + curriculum version, so students in different classes never share progress accidentally. When the bundled curriculum version changes, existing courses are moved to the new version and assessment rows are cleared; roster and attendance data remain. Attendance and observations also reference a dated lesson. Feedback orders observations by lesson date, then creation time; correcting an older observation does not make it today's observation.
 
-Program identity (`aquatics`) and curriculum definitions live in data, not UI conditionals. Other program areas can supply a curriculum later. Accounts, synchronization, configurable completion thresholds, and general-purpose plugin machinery are deferred.
+Program identity (`aquatics`) and curriculum definitions live in data, not UI conditionals. Other program areas can supply a curriculum later. Accounts, configurable completion thresholds, and general-purpose plugin machinery are deferred. Bound device packages support result synchronization at login and logout.
 
 ## Import package v1
 
@@ -60,7 +60,7 @@ The adapter excludes waitlisted swimmers and contact fields. It does not parse a
 
 The sister app now provides **Device Exports** (`/device-exports`). Select and load a session, choose an instructor, review their class dates and swimmer levels, then download a package for this importer. It uses the existing loaded data and saved assignment/level APIs; no new export endpoint is needed. The standalone adapter remains available for annotated raw rosters.
 
-The export page persists UUIDs in a browser registry and provides an ID backup/restore flow. Save that backup and restore it before exporting from another browser. Each session has one dataset ID shared by its instructor packages. A different session currently needs a separate device database. Swimmer IDs are retained per source course using an exact source signature, not the sister app's generated UI row IDs. Source identity changes require review; the registry is a POC substitute for upstream registration IDs. Reviewed lesson dates are retained in the backup. Automatic synchronization and receiving device results still require a separate design.
+The export page persists UUIDs in a browser registry and provides an ID backup/restore flow. Save that backup and restore it before exporting from another browser. Each session has one dataset ID shared by its instructor packages. A different session currently needs a separate device database. Swimmer IDs are retained per source course using an exact source signature, not the sister app's generated UI row IDs. Source identity changes require review; the registry is a POC substitute for upstream registration IDs. Reviewed lesson dates are retained in the backup. Bound packages use canonical identities and separate upload/read capabilities for result synchronization.
 
 ## Export snapshot v1
 
@@ -72,7 +72,7 @@ Exports have `kind: "rec-tablet-results"`, `schemaVersion: 1`, `databaseVersion:
 
 Rows retain device and source IDs. Curriculum `body` and draft/revision `answers` columns are JSON strings, matching their SQLite representation. Submitted attempts have a non-null `submitted_at`; an attempt counts toward successful progress only when every subskill is successful. Incomplete attempts saved from the checklist are retained with `success = 0` so Feedback can use them later. Draft edits coexist with the previous submitted result until saved. Revision rows capture the prior result before each correction.
 
-The database snapshot is read in one transaction, serialized to a temporary file, flushed, and atomically renamed. A failed export cannot replace a previous export with partial content. Export never deletes data. Results snapshots are not accepted by the class importer; restore and upstream synchronization are not implemented yet.
+The database snapshot is read in one transaction, serialized to a temporary file, flushed, and atomically renamed. A failed export cannot replace a previous export with partial content. Export never deletes data. Results snapshots are not accepted by the class importer; snapshot restore is not implemented. Bound results synchronize separately through the durable outbox.
 
 ## Curriculum extraction review
 

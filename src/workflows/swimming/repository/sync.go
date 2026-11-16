@@ -20,6 +20,7 @@ import (
 // transport history, and canonical bindings belong only to this installation.
 const syncSchema = `
 CREATE TABLE IF NOT EXISTS sync_config(id INTEGER PRIMARY KEY CHECK(id=1),body TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sync_scope(course_id TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS sync_mapping(local_id TEXT PRIMARY KEY,class_id TEXT NOT NULL,remote_id TEXT UNIQUE NOT NULL);
 CREATE TABLE IF NOT EXISTS sync_state(record_id TEXT PRIMARY KEY,body TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS sync_outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT,operation_id TEXT UNIQUE NOT NULL,record_id TEXT NOT NULL,body TEXT NOT NULL,frozen INTEGER NOT NULL DEFAULT 0);
@@ -75,12 +76,18 @@ func (s *Store) configureSync(q queryer, p transfer.ClassPackage) error {
 		courses[v.SourceID] = v
 	}
 	seen := map[string]bool{}
+	if _, e = q.Exec("DELETE FROM sync_scope"); e != nil {
+		return e
+	}
 	for _, course := range identity.Courses {
 		source, ok := courses[course.SourceID]
 		if !ok || seen[course.SourceID] || course.ClassID == "" || len(source.Swimmers) != len(course.Swimmers) {
 			return errors.New("canonical course mismatch")
 		}
 		seen[course.SourceID] = true
+		if _, e = q.Exec("INSERT INTO sync_scope SELECT id FROM courses WHERE dataset_id=? AND source_id=?", p.DatasetID, course.SourceID); e != nil {
+			return e
+		}
 		people := map[string]bool{}
 		for _, v := range source.Swimmers {
 			people[v.SourceID] = true
@@ -105,6 +112,9 @@ func (s *Store) configureSync(q queryer, p transfer.ClassPackage) error {
 				return e
 			}
 		}
+	}
+	if _, e = q.Exec("UPDATE enrollments SET active=0 WHERE course_id NOT IN(SELECT course_id FROM sync_scope)"); e != nil {
+		return e
 	}
 	b, _ := json.Marshal(uploadGrant{c.Server, c.UploadToken, c.SessionID, c.DatasetID, c.InstructorID, c.ExpiresAt})
 	if _, e = q.Exec("INSERT OR REPLACE INTO sync_config VALUES(1,?)", string(b)); e != nil {

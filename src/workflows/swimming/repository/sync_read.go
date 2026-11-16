@@ -92,7 +92,7 @@ func (s *Store) applySyncRecord(tx *sql.Tx, c *transfer.SyncCredentials, r syncR
 	if r.SessionID != c.SessionID || r.DatasetID != c.DatasetID || r.Revision < 1 || r.RecordID == "" || transfer.Date(r.LessonDate) != nil || (r.Action != "upsert" && r.Action != "delete") {
 		return errors.New("invalid result scope")
 	}
-	m, e := one(tx, `SELECT m.local_id,e.course_id FROM sync_mapping m JOIN enrollments e ON e.id=m.local_id WHERE m.remote_id=? AND m.class_id=?`, r.EnrollmentID, r.ClassID)
+	m, e := one(tx, `SELECT m.local_id,e.course_id,c.curriculum_version FROM sync_mapping m JOIN enrollments e ON e.id=m.local_id JOIN courses c ON c.id=e.course_id WHERE m.remote_id=? AND m.class_id=?`, r.EnrollmentID, r.ClassID)
 	if e != nil {
 		return errors.New("result identity outside local roster")
 	}
@@ -114,7 +114,10 @@ func (s *Store) applySyncRecord(tx *sql.Tx, c *transfer.SyncCredentials, r syncR
 	if dirty.Int("count") > 0 {
 		return nil
 	}
-	catalog, err := s.catalog(tx, r.CurriculumVersion)
+	if r.CurriculumVersion != m.String("curriculum_version") {
+		return errors.New("result curriculum outside local course")
+	}
+	catalog, err := s.catalog(tx, m.String("curriculum_version"))
 	if err != nil {
 		return errors.New("result curriculum unavailable")
 	}

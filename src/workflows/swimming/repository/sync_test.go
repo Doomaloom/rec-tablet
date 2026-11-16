@@ -230,6 +230,22 @@ func TestSyncPullCorrectionsDeletesDraftsAndNoEcho(t *testing.T) {
 	check(t, json.Unmarshal(op.Payload, &payload))
 	payload.Results[0].Status = "not_yet"
 	op.Payload, _ = json.Marshal(payload)
+	// Reopen with a structurally changed catalog: accepted history belongs to
+	// the course's stored version, even when its skill vanished from the bundle.
+	check(t, f.s.Close())
+	newer := f.s.Catalog
+	newer.Version += "-without-old-skill"
+	newer.Levels = append(newer.Levels[:0:0], newer.Levels...)
+	for i := range newer.Levels {
+		newer.Levels[i].Skills = append(newer.Levels[i].Skills[:0:0], newer.Levels[i].Skills...)
+		for j, skill := range newer.Levels[i].Skills {
+			if skill.ID == "Splash1:1" {
+				newer.Levels[i].Skills = append(newer.Levels[i].Skills[:j], newer.Levels[i].Skills[j+1:]...)
+				break
+			}
+		}
+	}
+	f.s = must(OpenWithCatalog(f.path, newer))
 	records = []syncRecord{{SyncOperation: op, Revision: 2, Success: false}}
 	check(t, f.s.ReadAccepted(context.Background(), p.Credentials))
 	if f.progress().Successes != 0 {
@@ -345,4 +361,66 @@ func TestBoundCatalogUpgradePreservesAcceptedHistoryAndDrafts(t *testing.T) {
 	if _, err = f.s.CatalogFor(f.version); err != nil {
 		t.Fatal("historical catalog lost", err)
 	}
+}
+
+func TestOmittedBoundCourseBecomesHistoryOnly(t *testing.T) {
+	f := setup(t)
+	p := bindFixture(t, f, "http://localhost")
+	if len(p.Courses) < 2 {
+		t.Fatal("fixture needs two courses")
+	}
+	removed := p.Courses[0]
+	course := must(f.s.queryOne("SELECT id FROM courses WHERE source_id=?", removed.SourceID))
+	lesson := must(f.s.queryOne("SELECT id,date FROM lessons WHERE course_id=?", course.String("id")))
+	person := must(f.s.queryOne("SELECT id FROM enrollments WHERE course_id=?", course.String("id")))
+	check(t, f.s.SetAttendance(person.String("id"), lesson.String("id"), "present"))
+	before := len(queue(t, f.s))
+	p.Courses = p.Courses[1:]
+	p.Sync.Courses = p.Sync.Courses[1:]
+	_ = must(f.s.Import(p))
+	for _, visible := range must(f.s.ListCourses(lesson.String("date"))) {
+		if visible.ID == course.String("id") {
+			t.Fatal("omitted assignment still shown")
+		}
+	}
+	if f.s.SetAttendance(person.String("id"), lesson.String("id"), "absent") == nil {
+		t.Fatal("marked omitted class")
+	}
+	if count(t, f.s, "attendance") != 1 || len(queue(t, f.s)) != before {
+		t.Fatal("assignment omission deleted saved history")
+	}
+}
+
+func TestBoundRosterScopeMigrationAndReassignment(t *testing.T) {
+	f := setup(t)
+	p := bindFixture(t, f, "http://localhost")
+	date := must(f.s.queryOne("SELECT date FROM lessons WHERE id=?", f.course.String("lesson_id"))).String("date")
+	// Existing v2 installations acquire their original visible roster once.
+	_, err := f.s.DB.Exec("DROP TABLE sync_scope")
+	check(t, err)
+	check(t, f.s.Close())
+	f.s = must(Open(f.path))
+	if len(must(f.s.ListCourses(date))) == 0 {
+		t.Fatal("upgrade hid existing bound roster")
+	}
+	removed := p.Courses[0]
+	p.Courses = p.Courses[1:]
+	p.Sync.Courses = p.Sync.Courses[1:]
+	_ = must(f.s.Import(p))
+	check(t, f.s.Close())
+	f.s = must(Open(f.path))
+	for _, c := range must(f.s.ListCourses(date)) {
+		if c.ID == f.course.String("id") {
+			t.Fatal("retired course returned after restart")
+		}
+	}
+	// A subsequent assignment can restore its existing local roster/history.
+	p.Courses = append(p.Courses, removed)
+	identity := transfer.SyncCourse{SourceID: removed.SourceID, ClassID: "class-" + removed.SourceID}
+	for _, w := range removed.Swimmers {
+		identity.Swimmers = append(identity.Swimmers, transfer.SyncSwimmer{SourceID: w.SourceID, EnrollmentID: "enrollment-" + removed.SourceID + "-" + w.SourceID})
+	}
+	p.Sync.Courses = append(p.Sync.Courses, identity)
+	_ = must(f.s.Import(p))
+	check(t, f.s.SetAttendance(f.person.String("id"), f.course.String("lesson_id"), "present"))
 }

@@ -75,7 +75,7 @@ The database path remains `$XDG_DATA_HOME/rec-tablet/lessons.sqlite3`, falling b
 
 Every launch of the current UI opens **Log in**. Enter the instructor's six-digit device export code from COB-Aquatics-SPA **Device Exports**, then tap **Log in**. Leading zeroes are significant. Code login needs a connection and active SPA sharing; after login, lesson work stays local and works offline. Invalid codes, ended sharing, connection errors, or failed imports keep the tablet on the login screen with an error and retry.
 
-On **My Classes**, tap **Log out**, then confirm **Log out**. Cancel and Escape leave the shift open. Logout keeps saved attendance, assessments, and persisted drafts on the tablet, separated by dataset and instructor. Re-login verifies the code again and merges the roster into that instructor's existing database. Logout does not upload results or end SPA sharing. Closing or restarting the app returns to the login screen.
+On **My Classes**, tap **Log out**, then confirm **Log out**. Cancel and Escape leave the shift open. Logout keeps saved attendance, assessments, and persisted drafts on the tablet, separated by dataset and instructor. Re-login verifies the code again and merges the roster into that instructor's existing database. Logout attempts to upload bound results and leaves SPA sharing active. Closing or restarting the app returns to the login screen.
 
 Every login after logout or restart requires an online instructor code. Saved profiles and unfinished drafts remain on the device. Bound packages upload submitted attendance and assessments at logout; failed uploads remain queued and retry at the next successful code login, including when another instructor logs in. Only the current instructor reads canonical website corrections before lessons resume. During lessons all work stays local. Manual and guest packages remain import-only.
 
@@ -171,4 +171,4 @@ Tests cover the original POC workflows, recovery after abrupt process exit, fail
 
 `make package` creates `dist/native/rec-tablet-linux-<architecture>.tar.gz`, containing an executable, desktop entry, icon, and documentation in a `usr/` directory tree. The catalog is embedded in the executable. Install on the same architecture with the required Linux graphics libraries. An x86-64 build does not establish ARM device compatibility.
 
-Follow [the device acceptance trial](docs/device-trial.md) before a pool trial. Actual hardware, enclosure, wet-touch, and battery validation remain outstanding. Automated result sync and free-text feedback remain outside this POC.
+Follow [the device acceptance trial](docs/device-trial.md) before a pool trial. Actual hardware, enclosure, wet-touch, and battery validation remain outstanding. Free-text feedback remains outside this POC.

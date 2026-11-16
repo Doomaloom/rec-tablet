@@ -9,10 +9,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"rectablet/src/platform/instance"
 	"strings"
 	"sync"
-	"time"
 
 	store "rectablet/src/workflows/swimming/repository"
 	"rectablet/src/workflows/swimming/transfer"
@@ -320,30 +318,5 @@ func (m *profileManager) existingPackageLocked(pkg transfer.ClassPackage) bool {
 	return false
 }
 func (m *profileManager) retryUploads(ctx context.Context, active string) {
-	m.mu.Lock()
-	profiles := append([]savedProfile(nil), m.index.Profiles...)
-	m.mu.Unlock()
-	for _, p := range profiles {
-		if p.Path == active {
-			continue
-		}
-		if ctx.Err() != nil {
-			return
-		}
-		if _, err := os.Stat(p.Path); err != nil {
-			continue
-		}
-		lock, err := instance.Acquire(p.Path)
-		if err != nil {
-			continue
-		}
-		db, err := store.Open(p.Path)
-		if err == nil {
-			attemptCtx, stop := context.WithTimeout(ctx, time.Second)
-			_ = db.UploadPending(attemptCtx)
-			stop()
-			_ = db.Close()
-		}
-		_ = lock.Close()
-	}
+	_ = m.retryUploadsSummary(ctx, active)
 }
