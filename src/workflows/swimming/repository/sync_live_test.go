@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"rectablet/src/workflows/swimming/transfer"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -82,6 +83,11 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	registry := map[string]any{"schemaVersion": 1, "sessionId": session, "datasetId": dataset, "courses": []any{map[string]any{"sourceId": courseSource, "classId": classID, "instructorId": instructorID, "lessonDates": []string{date}, "swimmers": []any{map[string]any{"sourceId": swimmerSource, "enrollmentId": enrollment, "matchKey": matchKey}}}}}
 	request("PUT", path+"/result-identities", registry, nil)
 	p := transfer.ClassPackage{SchemaVersion: 1, Kind: "rec-tablet-classes", DatasetID: dataset, Instructor: "Alex", Courses: []transfer.ClassInput{{SourceID: courseSource, Name: "Synthetic QA Class", Level: "Splash1", StartTime: "09:00", Location: "Pool", LessonDates: []string{date}, Swimmers: []transfer.SwimmerInput{{SourceID: swimmerSource, Name: "Synthetic QA Swimmer"}}}}}
+	plans := []transfer.LessonPlan{{Date: date, CurriculumLevel: "Splash1", Rows: []transfer.PlannedRow{
+		{Skill: "Entry", SkillID: "Splash1:1", Activity: "Synthetic safe entry", Location: "Shallow end", Duration: 5, Equipment: []string{"Float"}},
+		{Skill: "Float", SkillID: "Splash1:2", Activity: "Synthetic supported float", Location: "Lane 1", Duration: 8},
+	}}}
+	p.Courses[0].LessonPlans = &plans
 	var share struct {
 		Codes []struct {
 			Code string `json:"code"`
@@ -106,6 +112,15 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	check(t, s.ConfigureSync(redeemed))
 	person := must(s.queryOne("SELECT id FROM enrollments")).String("id")
 	lesson := must(s.queryOne("SELECT id FROM lessons")).String("id")
+	if redeemed.Courses[0].LessonPlans == nil || !reflect.DeepEqual(*redeemed.Courses[0].LessonPlans, plans) {
+		t.Fatal("real code redemption lost ordered lesson plan")
+	}
+	// An offline reopen uses only the imported SQLite snapshot.
+	check(t, s.Close())
+	s = must(Open(dbPath))
+	if got := must(s.LessonPlan(lesson)); got == nil || !reflect.DeepEqual(*got, plans[0]) {
+		t.Fatal("offline lesson plan unavailable or reordered")
+	}
 	check(t, s.SetAttendance(person, lesson, "present"))
 	submit := func() string {
 		t.Helper()
@@ -119,6 +134,25 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 	deletedAttempt := submit()
 	draft := must(s.NewAttempt(person, lesson, "Splash1:2"))
 	check(t, s.Mark(draft, "Splash1:2:1", "successful"))
+	// Re-share a changed plan after teaching; code refresh must retain local
+	// submitted work, persisted drafts and their durable upload queue.
+	beforeQueue := len(queue(t, s))
+	plans[0].Rows[0].Activity = "Synthetic revised safe entry"
+	request("POST", "/api/device-shares", map[string]any{"sessionId": session, "packages": []any{map[string]any{"instructor": p.Instructor, "package": p}}}, &share)
+	if len(share.Codes) != 1 {
+		t.Fatal("missing refreshed code")
+	}
+	refreshed, err := transfer.FetchSharedPackage(ctx, server, share.Codes[0].Code)
+	check(t, err)
+	_, err = s.Import(refreshed)
+	check(t, err)
+	if got := must(s.LessonPlan(lesson)); got == nil || !reflect.DeepEqual(*got, plans[0]) {
+		t.Fatal("reshared plan did not replace offline snapshot")
+	}
+	if count(t, s, "attempts") != 3 || count(t, s, "drafts") != 1 || len(queue(t, s)) != beforeQueue {
+		t.Fatal("reshared plan changed assessments, draft or outbox")
+	}
+	redeemed = refreshed
 	check(t, s.UploadPending(ctx))
 	pending, review, e := s.SyncStatus()
 	check(t, e)
@@ -194,7 +228,7 @@ func TestLiveResultsRoundTrip(t *testing.T) {
 		t.Fatal("canonical changes echoed into outbox")
 	}
 	if evidence := os.Getenv("REC_TEC_QA_EVIDENCE"); evidence != "" {
-		b, e := json.MarshalIndent(map[string]any{"sessionId": session, "datasetId": dataset, "classId": classID, "instructorId": instructorID, "courseSourceId": courseSource, "swimmerSourceId": swimmerSource, "enrollmentId": enrollment, "lessonDate": date, "attemptId": attempt, "deletedAttemptId": deletedAttempt, "curriculumVersion": s.Catalog.Version, "matchKey": matchKey, "attendance": "absent", "success": false, "revision": 2}, "", "  ")
+		b, e := json.MarshalIndent(map[string]any{"sessionId": session, "datasetId": dataset, "classId": classID, "instructorId": instructorID, "courseSourceId": courseSource, "swimmerSourceId": swimmerSource, "enrollmentId": enrollment, "lessonDate": date, "attemptId": attempt, "deletedAttemptId": deletedAttempt, "curriculumVersion": s.Catalog.Version, "matchKey": matchKey, "attendance": "absent", "success": false, "revision": 2, "lessonPlanOffline": true, "lessonPlanRows": len(plans[0].Rows), "lessonPlanRefreshPreservedWork": true}, "", "  ")
 		check(t, e)
 		check(t, os.WriteFile(evidence, b, 0600))
 		packageBody, e := json.MarshalIndent(p, "", "  ")
