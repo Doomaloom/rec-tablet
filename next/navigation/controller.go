@@ -202,8 +202,11 @@ func (c *Controller) Refresh() error {
 	if err != nil {
 		return c.Fail(err)
 	}
-	state.Notice = c.State.Notice
-	state.Error = c.State.Error
+	// A reported failure outlives the refresh; otherwise the screen's own
+	// notice (such as aggregate sync status) is shown.
+	if c.State.Error {
+		state.Notice, state.Error = c.State.Notice, true
+	}
 	c.State = state
 	c.changed()
 	return nil

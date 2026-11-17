@@ -285,14 +285,23 @@ func (s *Store) UploadPending(ctx context.Context) error {
 	if e != nil {
 		return e
 	}
+	// Rejected operations stay queued unchanged, but are offered only once per
+	// call so they cannot hold back later batches or other records.
+	rejected := map[string]bool{}
 	for ctx.Err() == nil {
 		batch := []SyncOperation{}
 		e = database.Transaction(s.DB, func(tx *sql.Tx) error {
-			pending, e := rows(tx, `SELECT o.* FROM sync_outbox o WHERE o.seq=(SELECT MIN(n.seq) FROM sync_outbox n WHERE n.record_id=o.record_id) AND NOT EXISTS(SELECT 1 FROM sync_review r WHERE r.record_id=o.record_id) ORDER BY seq LIMIT 200`)
+			pending, e := rows(tx, `SELECT o.* FROM sync_outbox o WHERE o.seq=(SELECT MIN(n.seq) FROM sync_outbox n WHERE n.record_id=o.record_id) AND NOT EXISTS(SELECT 1 FROM sync_review r WHERE r.record_id=o.record_id) ORDER BY seq`)
 			if e != nil {
 				return e
 			}
 			for _, r := range pending {
+				if rejected[r.String("operation_id")] {
+					continue
+				}
+				if len(batch) == 200 {
+					break
+				}
 				var o SyncOperation
 				if e = json.Unmarshal([]byte(r.String("body")), &o); e != nil {
 					return e
@@ -316,6 +325,9 @@ func (s *Store) UploadPending(ctx context.Context) error {
 			return e
 		}
 		if len(batch) == 0 {
+			if len(rejected) > 0 {
+				return errors.New("results server rejected some results; queue retained")
+			}
 			return nil
 		}
 		var response struct {
@@ -360,6 +372,8 @@ func (s *Store) UploadPending(ctx context.Context) error {
 						return e
 					}
 				case "rejected":
+					rejected[r.OperationID] = true
+					progress = true
 					continue
 				default:
 					return errors.New("unknown receipt status")

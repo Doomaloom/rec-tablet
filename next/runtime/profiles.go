@@ -183,7 +183,22 @@ func (m *profileManager) importPackage(pkg transfer.ClassPackage) (savedProfile,
 	}
 	if err = target.ValidateSyncProfile(pkg); err != nil {
 		target.Close()
-		return savedProfile{}, err
+		if legacy, ok := m.legacyPathLocked(pkg); !ok || legacy != path {
+			return savedProfile{}, err
+		}
+		// The name-keyed profile holds another class scope. Leave it as it is and
+		// give this canonical instructor a separate database.
+		path = m.freshPathLocked(packageKey(pkg))
+		if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			return savedProfile{}, err
+		}
+		if target, err = store.Open(path); err != nil {
+			return savedProfile{}, err
+		}
+		if err = target.ValidateSyncProfile(pkg); err != nil {
+			target.Close()
+			return savedProfile{}, err
+		}
 	}
 	if _, err = target.Import(pkg); err != nil {
 		target.Close()
@@ -220,16 +235,26 @@ func (m *profileManager) packagePathLocked(pkg transfer.ClassPackage) string {
 	if path, ok := m.pathForLocked(key); ok {
 		return path
 	}
-	if pkg.Credentials != nil {
-		for _, p := range m.index.Profiles {
-			if p.InstructorID == "" && p.Key == profileKey(pkg.DatasetID, pkg.Instructor) {
-				return p.Path
-			}
-		}
-	}
-	if path, ok := m.pathForLocked(key); ok {
+	if path, ok := m.legacyPathLocked(pkg); ok {
 		return path
 	}
+	return m.freshPathLocked(key)
+}
+
+// legacyPathLocked finds the name-keyed profile a bound package may migrate.
+func (m *profileManager) legacyPathLocked(pkg transfer.ClassPackage) (string, bool) {
+	if _, ok := m.pathForLocked(packageKey(pkg)); ok || pkg.Credentials == nil {
+		return "", false
+	}
+	for _, p := range m.index.Profiles {
+		if p.InstructorID == "" && p.Key == profileKey(pkg.DatasetID, pkg.Instructor) {
+			return p.Path, true
+		}
+	}
+	return "", false
+}
+
+func (m *profileManager) freshPathLocked(key string) string {
 	digest := sha256.Sum256([]byte(key))
 	path := filepath.Join(filepath.Dir(m.base), filepath.Base(m.base)+".sessions", hex.EncodeToString(digest[:])+".sqlite3")
 	// An in-place canonical migration may retain the former name-hashed path.

@@ -75,10 +75,14 @@ func (m *profileManager) retryUploadsSummary(ctx context.Context, active string)
 			summary.failures++
 			continue
 		}
-		lock, err := instance.Acquire(p.Path)
-		if err != nil {
-			summary.failures++
-			continue
+		// The process already holds the base database lock for its lifetime.
+		var lock *instance.Lock
+		if p.Path != m.base {
+			var err error
+			if lock, err = instance.Acquire(p.Path); err != nil {
+				summary.failures++
+				continue
+			}
 		}
 		db, err := store.Open(p.Path)
 		if err == nil {
@@ -98,7 +102,9 @@ func (m *profileManager) retryUploadsSummary(ctx context.Context, active string)
 		} else {
 			summary.failures++
 		}
-		_ = lock.Close()
+		if lock != nil {
+			_ = lock.Close()
+		}
 	}
 	return summary
 }

@@ -106,6 +106,16 @@ func (s *deviceSession) open(pkg transfer.ClassPackage) error {
 		release()
 		return err
 	}
+	if profile.Path != path {
+		// An incompatible legacy profile was preserved; lock the database in use.
+		release()
+		lock = nil
+		if profile.Path != s.profiles.base {
+			if lock, err = instance.Acquire(profile.Path); err != nil {
+				return err
+			}
+		}
+	}
 	database, err := store.Open(profile.Path)
 	if err != nil {
 		release()

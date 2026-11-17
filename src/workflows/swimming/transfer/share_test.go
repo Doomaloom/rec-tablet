@@ -60,3 +60,60 @@ func TestFetchSharedPackageRequiresTLSForRemoteServers(t *testing.T) {
 type roundTrip func(*http.Request) (*http.Response, error)
 
 func (f roundTrip) RoundTrip(request *http.Request) (*http.Response, error) { return f(request) }
+
+func TestFetchSharedPackageSyncCredentials(t *testing.T) {
+	const identity = `"sync":{"schemaVersion":1,"sessionId":"session","datasetId":"demo","instructorId":"instructor","courses":[]},`
+	pkg := func(sync string) string {
+		return `{` + sync + `"schemaVersion":1,"kind":"rec-tablet-classes","datasetId":"demo","instructor":"Alex","courses":[]}`
+	}
+	grant := func(session, dataset, instructor, upload, read string, version int) string {
+		body, _ := json.Marshal(map[string]any{"schemaVersion": version, "sessionId": session, "datasetId": dataset, "instructorId": instructor, "uploadToken": upload, "readToken": read, "expiresAt": "2099-01-01T00:00:00Z"})
+		return string(body)
+	}
+	fetch := func(body string) (ClassPackage, error) {
+		client := &http.Client{Transport: roundTrip(func(*http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+		})}
+		return fetchSharedPackage(context.Background(), "https://share.example/", "001234", client)
+	}
+	valid := grant("session", "demo", "instructor", "upload-secret", "read-secret", 1)
+	bound, err := fetch(`{"package":` + pkg(identity) + `,"sync":` + valid + `}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := bound.Credentials
+	if c == nil || bound.Sync == nil || c.UploadToken != "upload-secret" || c.ReadToken != "read-secret" || c.Server != "https://share.example" || c.InstructorID != "instructor" || c.SessionID != "session" {
+		t.Fatalf("bound redemption credentials: %+v", c)
+	}
+	// Capabilities exist only in memory; a re-serialized package is import-only.
+	saved, err := json.Marshal(bound)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(saved), "secret") || strings.Contains(string(saved), "Token") {
+		t.Fatal("package serialization leaked capabilities")
+	}
+	// Identity metadata without a server-issued grant never authorizes sync.
+	unbound, err := fetch(`{"package":` + pkg(identity) + `}`)
+	if err != nil || unbound.Credentials != nil {
+		t.Fatalf("package without a grant gained credentials: %v", err)
+	}
+	guest, err := fetch(`{"package":` + pkg("") + `}`)
+	if err != nil || guest.Credentials != nil || guest.Sync != nil {
+		t.Fatalf("guest package is not import-only: %v", err)
+	}
+	for name, wrapper := range map[string]string{
+		"guest package":    `{"package":` + pkg("") + `,"sync":` + valid + `}`,
+		"other session":    `{"package":` + pkg(identity) + `,"sync":` + grant("other", "demo", "instructor", "u", "r", 1) + `}`,
+		"other dataset":    `{"package":` + pkg(identity) + `,"sync":` + grant("session", "other", "instructor", "u", "r", 1) + `}`,
+		"other instructor": `{"package":` + pkg(identity) + `,"sync":` + grant("session", "demo", "other", "u", "r", 1) + `}`,
+		"no upload token":  `{"package":` + pkg(identity) + `,"sync":` + grant("session", "demo", "instructor", "", "r", 1) + `}`,
+		"no read token":    `{"package":` + pkg(identity) + `,"sync":` + grant("session", "demo", "instructor", "u", "", 1) + `}`,
+		"future schema":    `{"package":` + pkg(identity) + `,"sync":` + grant("session", "demo", "instructor", "u", "r", 2) + `}`,
+		"identity dataset": `{"package":` + pkg(strings.Replace(identity, `"datasetId":"demo"`, `"datasetId":"other"`, 1)) + `,"sync":` + valid + `}`,
+	} {
+		if got, err := fetch(wrapper); err == nil || got.Credentials != nil {
+			t.Fatalf("%s: inconsistent grant accepted", name)
+		}
+	}
+}

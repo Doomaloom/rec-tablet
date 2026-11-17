@@ -125,3 +125,53 @@ func TestDateSelectionRestoresNavigationOnReadFailure(t *testing.T) {
 		t.Fatal("typed lesson target lost")
 	}
 }
+
+type syncedClassStore struct {
+	classStore
+	pending, review int
+}
+
+func (s *syncedClassStore) SyncStatus() (int, int, error) { return s.pending, s.review, nil }
+
+func TestClassesShowAggregateSyncStatus(t *testing.T) {
+	nav := navigation.New()
+	nav.Date = "2026-09-04"
+	s := &syncedClassStore{}
+	c := New(nav, s)
+	nav.Features[navigation.Classes] = c
+	for _, tc := range []struct {
+		notice          string
+		pending, review int
+		want            string
+	}{
+		{"", 0, 0, ""},
+		{"Results uploaded", 0, 0, "Results uploaded"},
+		{"", 2, 0, "2 results waiting to upload at logout"},
+		{"Results uploaded", 2, 0, "Results uploaded · 2 results waiting to upload at logout"},
+		{"", 1, 3, "3 results need supervisor review · 1 waiting to upload"},
+	} {
+		c.SyncNotice, s.pending, s.review = tc.notice, tc.pending, tc.review
+		state, err := c.Build()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state.Notice != tc.want {
+			t.Fatalf("notice %q, want %q", state.Notice, tc.want)
+		}
+		if err = nav.Refresh(); err != nil {
+			t.Fatal(err)
+		}
+		if nav.State.Notice != tc.want || nav.State.Error {
+			t.Fatalf("refreshed notice %q (error %v), want %q", nav.State.Notice, nav.State.Error, tc.want)
+		}
+	}
+	// A reported failure stays visible across refreshes until it is cleared.
+	_ = nav.Fail(errors.New("Disk full"))
+	if err := nav.Refresh(); err != nil || nav.State.Notice != "Disk full" || !nav.State.Error {
+		t.Fatalf("failure notice lost: %q, %v", nav.State.Notice, err)
+	}
+	nav.Dismiss()
+	if err := nav.Refresh(); err != nil || nav.State.Notice != "3 results need supervisor review · 1 waiting to upload" || nav.State.Error {
+		t.Fatalf("sync notice not restored: %q, %v", nav.State.Notice, err)
+	}
+}
