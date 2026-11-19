@@ -3,6 +3,7 @@ package transfer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -42,8 +43,39 @@ func TestFetchSharedPackageReportsServerErrorsAndRejectsBadCodes(t *testing.T) {
 	if _, err := fetchSharedPackage(context.Background(), "https://share.example", "12345", client); err == nil || !strings.Contains(err.Error(), "six digit") {
 		t.Fatalf("bad code error: %v", err)
 	}
-	if _, err := fetchSharedPackage(context.Background(), "https://share.example", "123456", client); err == nil || !strings.Contains(err.Error(), "not found") {
+	if _, err := fetchSharedPackage(context.Background(), "https://share.example", "123456", client); err == nil || err.Error() != CodeNotRecognisedMessage {
 		t.Fatalf("server error: %v", err)
+	}
+}
+
+// The keypad shows plain instructions, never the server's response body (triage T1).
+func TestFetchSharedPackageMapsFailuresToInstructorMessages(t *testing.T) {
+	cases := []struct {
+		status int
+		body   string
+		want   string
+	}{
+		{http.StatusNotFound, "shared device session not found\n", CodeNotRecognisedMessage},
+		{http.StatusForbidden, "Binding no longer authorized\n", CodeNotRecognisedMessage},
+		{http.StatusTooManyRequests, "too many code attempts; try again shortly\n", TooManyTriesMessage},
+		{http.StatusBadRequest, "Invalid request body\n", ShareFailedMessage},
+		{http.StatusBadGateway, "<html>bad gateway</html>", ShareFailedMessage},
+		{http.StatusOK, "<html>Wi-Fi sign in</html>", ShareFailedMessage},
+	}
+	for _, c := range cases {
+		client := &http.Client{Transport: roundTrip(func(_ *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: c.status, Body: io.NopCloser(strings.NewReader(c.body)), Header: make(http.Header)}, nil
+		})}
+		_, err := fetchSharedPackage(context.Background(), "https://share.example", "123456", client)
+		if err == nil || err.Error() != c.want {
+			t.Errorf("status %d: got %v, want %q", c.status, err, c.want)
+		}
+	}
+	offline := errors.New("dial tcp: no route to host")
+	client := &http.Client{Transport: roundTrip(func(_ *http.Request) (*http.Response, error) { return nil, offline })}
+	_, err := fetchSharedPackage(context.Background(), "https://share.example", "123456", client)
+	if err == nil || err.Error() != NoConnectionMessage || !errors.Is(err, offline) {
+		t.Errorf("offline: got %v", err)
 	}
 }
 

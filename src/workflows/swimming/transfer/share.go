@@ -16,6 +16,37 @@ import (
 
 const DefaultShareServer = "https://decksupervisor.fly.dev"
 
+// Messages shown on the login keypad when a code cannot be redeemed. They fit
+// the keypad's notice line (two lines at 800x480) and say what to do next.
+const (
+	CodeNotRecognisedMessage = "Code not recognised, or sharing has ended. Ask the deck supervisor for a new code."
+	TooManyTriesMessage      = "Too many tries. Wait a minute, then try again."
+	NoConnectionMessage      = "Cannot reach the server. Check the Wi-Fi connection, then try again."
+	ShareFailedMessage       = "Could not load your classes. Try again, or ask the deck supervisor for help."
+)
+
+// ShareError carries an instructor-facing message and keeps the cause for errors.Is.
+type ShareError struct {
+	Message string
+	Cause   error
+}
+
+func (e *ShareError) Error() string { return e.Message }
+func (e *ShareError) Unwrap() error { return e.Cause }
+
+// redeemError maps the redeem endpoint's HTTP status; the body is not shown.
+func redeemError(status int, body string) error {
+	cause := fmt.Errorf("redeem failed with status %d: %.200s", status, strings.TrimSpace(body))
+	switch status {
+	case http.StatusNotFound, http.StatusForbidden, http.StatusGone:
+		return &ShareError{CodeNotRecognisedMessage, cause}
+	case http.StatusTooManyRequests:
+		return &ShareError{TooManyTriesMessage, cause}
+	default:
+		return &ShareError{ShareFailedMessage, cause}
+	}
+}
+
 func FetchSharedPackage(ctx context.Context, server, code string) (ClassPackage, error) {
 	return fetchSharedPackage(ctx, server, code, &http.Client{Timeout: 25 * time.Second})
 }
@@ -52,7 +83,7 @@ func fetchSharedPackage(ctx context.Context, server, code string, client *http.C
 	req.Header.Set("Content-Type", "application/json")
 	response, err := client.Do(req)
 	if err != nil {
-		return empty, fmt.Errorf("could not connect to the sharing server: %w", err)
+		return empty, &ShareError{NoConnectionMessage, err}
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(response.Body, MaxPackageBytes+2048))
@@ -60,11 +91,7 @@ func fetchSharedPackage(ctx context.Context, server, code string, client *http.C
 		return empty, err
 	}
 	if response.StatusCode != http.StatusOK {
-		message := strings.TrimSpace(string(data))
-		if message == "" || len(message) > 500 {
-			message = "session code is invalid or sharing has ended"
-		}
-		return empty, errors.New(message)
+		return empty, redeemError(response.StatusCode, string(data))
 	}
 	if len(data) > MaxPackageBytes+2048 {
 		return empty, errors.New("shared class package is too large")
@@ -74,10 +101,11 @@ func fetchSharedPackage(ctx context.Context, server, code string, client *http.C
 		Sync    *SyncCredentials `json:"sync"`
 	}
 	if err := json.Unmarshal(data, &wrapper); err != nil {
-		return empty, fmt.Errorf("sharing server returned invalid JSON: %w", err)
+		// A Wi-Fi sign-in page answering in place of the server lands here.
+		return empty, &ShareError{ShareFailedMessage, fmt.Errorf("sharing server returned invalid JSON: %w", err)}
 	}
 	if len(wrapper.Package) == 0 {
-		return empty, errors.New("sharing server returned no class package")
+		return empty, &ShareError{ShareFailedMessage, errors.New("sharing server returned no class package")}
 	}
 	pkg, err := DecodePackage(wrapper.Package)
 	if err != nil {
