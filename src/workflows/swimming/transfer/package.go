@@ -148,6 +148,34 @@ type PlannedActivity struct {
 	Text string `json:"text"`
 }
 
+// maxTitleRunes keeps a title taken from free text to a short list label.
+const maxTitleRunes = 60
+
+// Title names the row: its skill, else the first line of its activity text.
+// Library activities start with their title, so rows with no skill (games,
+// custom activities) still get a name. It returns "" for nameless rows.
+func (r PlannedRow) Title() string {
+	if skill := strings.TrimSpace(r.Skill); skill != "" {
+		return skill
+	}
+	text := r.Activity
+	for _, a := range r.Activities {
+		if strings.TrimSpace(a.Text) != "" {
+			text = a.Text
+			break
+		}
+	}
+	for _, line := range strings.Split(text, "\n") {
+		if line = strings.Join(strings.Fields(line), " "); line != "" {
+			if runes := []rune(line); len(runes) > maxTitleRunes {
+				return strings.TrimSpace(string(runes[:maxTitleRunes-1])) + "…"
+			}
+			return line
+		}
+	}
+	return ""
+}
+
 func ValidateLessonPlans(course ClassInput) error {
 	if course.LessonPlans == nil {
 		return nil

@@ -4,7 +4,6 @@ package lessonplan
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"rectablet/next/contracts"
 	"rectablet/next/navigation"
@@ -43,7 +42,7 @@ func (c *Component) Build() (contracts.State, error) {
 	rows := []navigation.Row{}
 	if plan != nil {
 		for i, r := range plan.Rows {
-			label := strings.TrimSpace(r.Skill)
+			label := r.Title()
 			if label == "" {
 				label = "Planned activity"
 			}
