@@ -188,6 +188,20 @@ func (s *Store) captureSync(q queryer) error {
 		if prior.String("body") == body {
 			continue
 		}
+		// Each operation carries the record's whole state, so unsent (unfrozen)
+		// edits it supersedes never need a round trip. Frozen operations may
+		// already be on the server and are kept for an idempotent retry. A delete
+		// also keeps the record's queue head, so a record the server has not seen
+		// yet is still created first (deleting an unknown record is rejected).
+		// The kept operations stay in their original order.
+		coalesce, args := "DELETE FROM sync_outbox WHERE record_id=? AND frozen=0", []any{id}
+		if o.Action == "delete" {
+			coalesce += " AND seq<>(SELECT MIN(seq) FROM sync_outbox WHERE record_id=?)"
+			args = append(args, id)
+		}
+		if _, e = q.Exec(coalesce, args...); e != nil {
+			return e
+		}
 		o.OperationID = ID()
 		o.BaseRevision = prior.Int("revision")
 		b, _ := json.Marshal(o)
@@ -275,6 +289,8 @@ func syncRequest(ctx context.Context, server, path, token string, body, out any)
 
 // UploadPending sends one immutable operation per record at a time. Only the
 // next unsent local edit receives a new base revision after a positive receipt.
+// captureSync coalesces unsent edits, so however often a record was edited it
+// needs at most two round trips: its queue head and its newest state.
 func (s *Store) UploadPending(ctx context.Context) error {
 	syncNetwork.Lock()
 	defer syncNetwork.Unlock()

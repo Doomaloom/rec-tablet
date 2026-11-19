@@ -52,7 +52,7 @@ func (s *deviceSession) login(code string, done func(error)) {
 			// Every successful code login retries all instructors using upload-only
 			// capabilities. Only this active profile receives a read capability.
 			previous := s.profiles.retryUploadsSummary(ctx, candidate.store.Path)
-			uploadCtx, stop := context.WithTimeout(ctx, 5*time.Second)
+			uploadCtx, stop := context.WithTimeout(ctx, uploadBudget(candidate.store))
 			uploadErr := candidate.store.UploadPending(uploadCtx)
 			stop()
 			readCtx, stop := context.WithTimeout(ctx, 5*time.Second)
@@ -142,7 +142,7 @@ func (s *deviceSession) logout() error {
 	s.cancelLogin()
 	var err error
 	if s.store != nil {
-		ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, stop := context.WithTimeout(context.Background(), uploadBudget(s.store))
 		uploadErr := s.store.UploadPending(ctx)
 		stop()
 		s.notice = boundaryNotice(s.store, uploadErr, nil, false)

@@ -59,6 +59,19 @@ func boundaryNotice(db *store.Store, uploadErr, readErr error, readAttempted boo
 	}
 	return strings.Join(parts, " · ")
 }
+
+// uploadBudget scales the boundary upload deadline with the queued work: the
+// results server applies operations one at a time, so a fixed few seconds can
+// expire mid-queue on a slow link. The cap keeps the next login from waiting
+// long; whatever is left stays queued and retries at the next code login.
+func uploadBudget(db *store.Store) time.Duration {
+	const base, perOperation, limit = 5 * time.Second, 100 * time.Millisecond, 20 * time.Second
+	pending, _, err := db.SyncStatus()
+	if err != nil {
+		return base
+	}
+	return min(base+time.Duration(pending)*perOperation, limit)
+}
 func (m *profileManager) retryUploadsSummary(ctx context.Context, active string) syncSummary {
 	m.mu.Lock()
 	profiles := append([]savedProfile(nil), m.index.Profiles...)

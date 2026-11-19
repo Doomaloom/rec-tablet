@@ -76,7 +76,9 @@ func TestSyncOutboxAtomicCoverageAndPrivateMigration(t *testing.T) {
 	check(t, f.s.EditAttempt(attempt))
 	check(t, f.s.Mark(attempt, "Splash1:1:1", "not_yet"))
 	_ = must(f.s.Submit(attempt))
-	if len(queue(t, f.s)) != before+2 {
+	// The unsent submission is superseded by its correction (coalesced).
+	ops = queue(t, f.s)
+	if len(ops) != before+1 || ops[len(ops)-1].RecordID != attempt || !strings.Contains(string(ops[len(ops)-1].Payload), "not_yet") {
 		t.Fatal("correction missing")
 	}
 	check(t, f.s.ResetClassProgress(f.course.String("id")))
