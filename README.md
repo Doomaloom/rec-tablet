@@ -28,7 +28,7 @@ Setup is a parent component with `FileTransfer`, `SessionSharing`, `DisplayPicke
 
 The swimming workflow has named navigation and feature dependencies. `module.go` constructs and registers the five features, and `swimming_navigation.go` deliberately forwards the workflow actions used by the app and shell. Consumers read screen state through `Snapshot()` and stage lesson dates through `SetDate()`. Navigation has a named `History` dependency and explicit history operations; features access that history directly where they already manage route frames.
 
-`src/app` wires the app together. `src/shell` hosts screens and common navigation controls, `src/shared/components` provides the COB Aquatics design library, `src/shared/ui` adapts it for scaled lesson controls and long-press gestures, and `src/platform` owns SQLite connection policy, file writing, and process locks. These packages do not import swimming. Future workflows can sit alongside swimming and provide their own routes, content, and data model.
+`src/app` wires the app together and imports the swimming workflow to do so. `src/shell` hosts screens and common navigation controls, `src/shared/components` provides the COB Aquatics design library, `src/shared/ui` adapts it for scaled lesson controls and long-press gestures, and `src/platform` owns SQLite connection policy, file writing, and process locks. These four packages do not import swimming. Future workflows can sit alongside swimming and provide their own routes, content, and data model.
 
 The [code guide](docs/code-guide.html#changes) explains how to add a feature or workflow. Run `make test` to check feature behavior, compatibility, and package boundaries.
 
@@ -116,7 +116,7 @@ Class marking uses a split header with the skill number and short title on the l
 
 ## Curriculum and transfer tools
 
-The embedded [curriculum JSON](src/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 290 skills and 937 criteria. Grouped multi-component skills are separate entries with the same skill number so each component can be marked independently. Unknown levels show Missing curriculum instead of using a fallback level. When the bundled curriculum version changes, assessment marking rows are reset and existing courses move to the new version while roster and attendance data are retained.
+The embedded [curriculum JSON](src/workflows/swimming/curriculum/catalog.json) preserves the 23 sister-app templates: 22 assessable levels and one private-lesson reference, with 353 skills and 1,027 criteria. Grouped multi-component skills are separate entries with the same skill number so each component can be marked independently. Unknown levels show Missing curriculum instead of using a fallback level. When the bundled curriculum version changes, assessment marking rows are reset and existing courses move to the new version while roster and attendance data are retained.
 
 Edit Class-mode short titles in [compact_titles.json](src/workflows/swimming/curriculum/compact_titles.json), using the existing skill IDs as keys and omitting the skill number from the values. These are concise header labels; the full assessment instructions remain visible in the main information line. They are embedded display metadata, separate from the versioned curriculum: editing them requires a rebuild but does not reset markings, change exports, or need a curriculum version bump. Skills without an override use their original title.
 
