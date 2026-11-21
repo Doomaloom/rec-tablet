@@ -2,6 +2,7 @@ package login
 
 import (
 	"fmt"
+	"image/color"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -143,11 +144,19 @@ func (c *Component) composeSettings(surface *ui.Surface) {
 	})
 }
 
+// noticeInk keeps red for login failures; status from Inform uses the neutral notice ink.
+func (c *Component) noticeInk() color.Color {
+	if c.error {
+		return ui.Red
+	}
+	return ui.Navy
+}
+
 func (c *Component) composeNotice(surface *ui.Surface) {
 	if c.notice == "" {
 		return
 	}
-	text := ui.NewText(c.notice, 16, ui.Red)
+	text := ui.NewText(c.notice, 16, c.noticeInk())
 	text.Center, text.MinimumFont, text.MaxLines = true, 14, 3
 	surface.AddNamed("login-notice", text, func(w, h float32) (float32, float32, float32, float32) {
 		x, y, width, height := surface.BodyBounds(w, h)

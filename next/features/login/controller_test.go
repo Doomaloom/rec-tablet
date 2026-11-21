@@ -3,6 +3,8 @@ package login
 import (
 	"errors"
 	"testing"
+
+	"rectablet/src/shared/ui"
 )
 
 func TestCodeEntryAndLoginLifecycle(t *testing.T) {
@@ -80,5 +82,24 @@ func TestSettingsCannotExposeLessonNavigation(t *testing.T) {
 	c.Clear()
 	if c.code != "" {
 		t.Fatal("clear did not reset code")
+	}
+}
+
+func TestInformedStatusIsNotDrawnAsAnError(t *testing.T) {
+	c := New(Options{})
+	c.Inform("Results uploaded")
+	if c.Snapshot().Error || c.noticeInk() == ui.Red {
+		t.Fatal("upload status is drawn like an error")
+	}
+	if c.noticeInk() != ui.Navy {
+		t.Fatal("upload status does not use the neutral notice ink")
+	}
+	c.Fail(errors.New("That code did not work. Check it and try again."))
+	if !c.Snapshot().Error || c.noticeInk() != ui.Red {
+		t.Fatal("login failure is not drawn in red")
+	}
+	c.Inform("Results uploaded")
+	if c.noticeInk() == ui.Red {
+		t.Fatal("status after a failure kept the error colour")
 	}
 }
