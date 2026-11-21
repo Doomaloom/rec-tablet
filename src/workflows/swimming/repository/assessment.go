@@ -37,7 +37,44 @@ func (s *Store) ResetClassProgress(courseID string) error {
 	})
 }
 func (s *Store) attemptRecords(person, skill, version string) ([]record, error) {
-	return s.queryRows(`SELECT a.*,l.date,EXISTS(SELECT 1 FROM drafts d WHERE d.attempt_id=a.id) AS editing FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE a.enrollment_id=? AND a.skill_id=? AND a.curriculum_version=? ORDER BY a.created_at DESC,a.rowid DESC`, person, skill, version)
+	rs, e := s.queryRows(`SELECT a.*,l.date,EXISTS(SELECT 1 FROM drafts d WHERE d.attempt_id=a.id) AS editing FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE a.enrollment_id=? AND a.skill_id=? AND a.curriculum_version=? ORDER BY a.created_at DESC,a.rowid DESC`, person, skill, version)
+	if e != nil {
+		return nil, e
+	}
+	// Opening a saved attempt starts a draft copy of its marks. It only counts as
+	// an edit once the copy differs from what was saved.
+	for _, r := range rs {
+		if r.Int("editing") == 0 || r.String("submitted_at") == "" {
+			continue
+		}
+		d, e := draft(s.DB, r.String("id"))
+		if e != nil {
+			continue
+		}
+		saved, e := answers(s.DB, r.String("id"))
+		if e != nil {
+			return nil, e
+		}
+		if sameMarks(d, saved) {
+			r["editing"] = int64(0)
+		}
+	}
+	return rs, nil
+}
+
+// sameMarks compares two answer sets, treating a missing mark as unmarked.
+func sameMarks(a, b map[string]string) bool {
+	for k, v := range a {
+		if v != "unmarked" && b[k] != v {
+			return false
+		}
+	}
+	for k, v := range b {
+		if v != "unmarked" && a[k] != v {
+			return false
+		}
+	}
+	return true
 }
 func (s *Store) NewAttempt(person, lesson, skill string) (string, error) {
 	id := ""

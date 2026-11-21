@@ -238,6 +238,26 @@ func TestRepeatedDraftAndSubmit(t *testing.T) {
 		t.Fatal(f.progress())
 	}
 }
+func TestOpeningAnAttemptIsNotMarkedAsEdited(t *testing.T) {
+	f := setup(t)
+	a := f.attempt(t, true, "")
+	editing := func() bool {
+		list := must(f.s.ListAttempts(f.person.String("id"), "Splash1:1", f.version))
+		return list[0].Editing
+	}
+	check(t, f.s.EditAttempt(a))
+	if editing() {
+		t.Fatal("opening a saved attempt without changing it reads as an edit")
+	}
+	check(t, f.s.Mark(a, "Splash1:1:1", "not_yet"))
+	if !editing() {
+		t.Fatal("an unsaved change was not shown")
+	}
+	check(t, f.s.Mark(a, "Splash1:1:1", "successful"))
+	if editing() {
+		t.Fatal("restoring the saved marks still reads as an edit")
+	}
+}
 func TestCorrectionCommitAndRestart(t *testing.T) {
 	f := setup(t)
 	a := f.attempt(t, true, "")

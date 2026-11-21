@@ -103,7 +103,7 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 			if a.SubmittedAt == nil {
 				label = "Unfinished attempt"
 			} else if a.Editing {
-				label += " · Edit saved"
+				label += " · Edit not saved"
 			}
 			created := a.CreatedAt
 			clock := created
