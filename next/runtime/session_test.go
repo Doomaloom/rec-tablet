@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -165,7 +167,7 @@ func TestVerifiedLoginLogoutIsolationAndSavedWork(t *testing.T) {
 }
 
 func TestLoginFailuresNeverOpenSession(t *testing.T) {
-	for _, scenario := range []string{"network", "malformed", "invalid-package", "missing-database", "locked-database", "index-write"} {
+	for _, scenario := range []string{"network", "malformed", "invalid-package", "locked-database", "index-write"} {
 		t.Run(scenario, func(t *testing.T) {
 			s, dispatch := sessionFixture(t)
 			pkg := profilePackage("Alex")
@@ -183,9 +185,6 @@ func TestLoginFailuresNeverOpenSession(t *testing.T) {
 				s.fetch = func(context.Context, string, string) (transfer.ClassPackage, error) { return pkg, nil }
 				if scenario == "invalid-package" {
 					pkg.Courses = nil
-				}
-				if scenario == "missing-database" {
-					s.profiles.index.Profiles = []savedProfile{{Key: profileKey(pkg.DatasetID, pkg.Instructor), Path: filepath.Join(t.TempDir(), "missing.sqlite3")}}
 				}
 				if scenario == "locked-database" {
 					path := s.profiles.packagePath(pkg)
@@ -300,5 +299,44 @@ func TestResumeUnavailableSessionDoesNotCreateDatabase(t *testing.T) {
 	}
 	if _, err := os.Stat(profile.Path); !os.IsNotExist(err) {
 		t.Fatal("resume created a replacement database")
+	}
+}
+
+func TestLoginRecoversWhenSavedDatabaseIsMissing(t *testing.T) {
+	s, dispatch := sessionFixture(t)
+	pkg := profilePackage("Alex")
+	s.fetch = func(context.Context, string, string) (transfer.ClassPackage, error) { return pkg, nil }
+	s.profiles.index.Profiles = []savedProfile{{Key: profileKey(pkg.DatasetID, pkg.Instructor), DatasetID: pkg.DatasetID, Instructor: "Alex", Path: s.profiles.packagePath(pkg)}}
+	var result error
+	s.login("001234", func(err error) { result = err })
+	complete(t, dispatch)
+	if result != nil || s.store == nil {
+		t.Fatalf("login stayed blocked: %v", result)
+	}
+	if !strings.Contains(s.notice, savedDataRecoveredMessage) {
+		t.Fatalf("notice does not explain the reload: %q", s.notice)
+	}
+}
+
+func TestPlainLoginErrorHidesDeveloperText(t *testing.T) {
+	lock := fmt.Errorf("this database is already open in Rec Tablet: %w", errors.New("resource temporarily unavailable"))
+	for name, tc := range map[string]struct {
+		err  error
+		want string
+	}{
+		"timeout":   {fmt.Errorf("Client.Timeout exceeded: %w", context.DeadlineExceeded), transfer.NoConnectionMessage},
+		"lock":      {lock, databaseOpenMessage},
+		"share":     {&transfer.ShareError{Message: transfer.TooManyTriesMessage}, transfer.TooManyTriesMessage},
+		"unrelated": {errors.New("something else"), "something else"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := plainLoginError(tc.err)
+			if got.Error() != tc.want {
+				t.Fatalf("message %q, want %q", got, tc.want)
+			}
+			if !errors.Is(got, tc.err) {
+				t.Fatal("cause lost")
+			}
+		})
 	}
 }

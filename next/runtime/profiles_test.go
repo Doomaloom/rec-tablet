@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -96,7 +95,7 @@ func TestNearestLessonDate(t *testing.T) {
 	}
 }
 
-func TestMissingSavedProfileIsNotRecreated(t *testing.T) {
+func TestMissingSavedProfileIsRecreatedAndReported(t *testing.T) {
 	manager, err := newProfileManager(filepath.Join(t.TempDir(), "lessons.sqlite3"))
 	if err != nil {
 		t.Fatal(err)
@@ -104,10 +103,13 @@ func TestMissingSavedProfileIsNotRecreated(t *testing.T) {
 	key := profileKey("dataset-a", "Alex")
 	missing := filepath.Join(t.TempDir(), "removed.sqlite3")
 	manager.index.Profiles = []savedProfile{{Key: key, DatasetID: "dataset-a", Instructor: "Alex", Path: missing}}
-	if _, err := manager.importPackage(profilePackage("Alex")); err == nil {
-		t.Fatal("silently recreated a missing saved profile")
+	if _, err := manager.importPackage(profilePackage("Alex")); err != nil {
+		t.Fatalf("missing saved profile blocks login: %v", err)
 	}
-	if _, err := os.Stat(missing); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("missing profile file was recreated: %v", err)
+	if _, err := os.Stat(missing); err != nil {
+		t.Fatalf("replacement database not made: %v", err)
+	}
+	if !manager.takeRecovered() || manager.takeRecovered() {
+		t.Fatal("recovery must be reported exactly once")
 	}
 }

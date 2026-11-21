@@ -55,6 +55,9 @@ type profileManager struct {
 	mu    sync.Mutex
 	base  string
 	index profileIndex
+	// recovered is set when a listed instructor's database file was gone and a
+	// new one was made, so the next login can say so.
+	recovered bool
 }
 
 func newProfileManager(base string) (*profileManager, error) {
@@ -173,8 +176,12 @@ func (m *profileManager) importPackage(pkg transfer.ClassPackage) (savedProfile,
 	defer m.mu.Unlock()
 	path := m.packagePathLocked(pkg)
 	if m.existingPackageLocked(pkg) {
-		if _, err := os.Stat(path); err != nil {
-			return savedProfile{}, errors.New("saved instructor database is missing; refusing to create a replacement")
+		// The saved file is gone, so there is nothing left to protect: start a
+		// new one from the class package instead of blocking this instructor.
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			m.recovered = true
+		} else if err != nil {
+			return savedProfile{}, err
 		}
 	}
 	target, err := store.Open(path)
@@ -331,6 +338,15 @@ func (m *profileManager) lastProfile() (savedProfile, bool) {
 		}
 	}
 	return savedProfile{}, false
+}
+
+// takeRecovered reports, once, that a missing instructor database was replaced.
+func (m *profileManager) takeRecovered() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	was := m.recovered
+	m.recovered = false
+	return was
 }
 
 func (m *profileManager) existingPackageLocked(pkg transfer.ClassPackage) bool {

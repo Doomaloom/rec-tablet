@@ -2,9 +2,12 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"rectablet/src/platform/instance"
@@ -29,6 +32,32 @@ type deviceSession struct {
 	dispatch   func(func())
 }
 
+// savedDataRecoveredMessage tells the instructor that their earlier saved work
+// on this tablet could not be found and a fresh copy of their classes was loaded.
+const savedDataRecoveredMessage = "Earlier saved results on this tablet were not found. Your classes were loaded again."
+
+// databaseOpenMessage is shown when the instructor's database is held by another
+// window of the app.
+const databaseOpenMessage = "Rec Tablet is already open for this instructor. Close the other window, then try again."
+
+// plainLoginError replaces developer text from a failed login with an
+// instruction, keeping the cause for errors.Is. Messages already written for
+// the instructor pass through.
+func plainLoginError(err error) error {
+	var shared *transfer.ShareError
+	if err == nil || errors.As(err, &shared) {
+		return err
+	}
+	var network net.Error
+	switch {
+	case errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &network) && network.Timeout()):
+		return &transfer.ShareError{Message: transfer.NoConnectionMessage, Cause: err}
+	case strings.Contains(err.Error(), "already open in Rec Tablet"):
+		return &transfer.ShareError{Message: databaseOpenMessage, Cause: err}
+	}
+	return err
+}
+
 func (s *deviceSession) login(code string, done func(error)) {
 	if s.loggingOut {
 		done(fmt.Errorf("finishing logout; please try the code again shortly"))
@@ -45,8 +74,10 @@ func (s *deviceSession) login(code string, done func(error)) {
 	go func() {
 		pkg, err := s.fetch(ctx, server, code)
 		candidate := &deviceSession{profiles: s.profiles}
+		recovered := false
 		if err == nil && ctx.Err() == nil {
 			err = candidate.open(pkg)
+			recovered = s.profiles.takeRecovered()
 		}
 		if err == nil && ctx.Err() == nil {
 			// Every successful code login retries all instructors using upload-only
@@ -59,6 +90,9 @@ func (s *deviceSession) login(code string, done func(error)) {
 			readErr := candidate.store.ReadAccepted(readCtx, pkg.Credentials)
 			stop()
 			candidate.notice = boundaryNotice(candidate.store, uploadErr, readErr, pkg.Credentials != nil)
+			if recovered {
+				candidate.notice = strings.TrimSuffix(savedDataRecoveredMessage+" · "+candidate.notice, " · ")
+			}
 			if earlier := previous.text(); earlier != "" {
 				candidate.notice += " · " + earlier
 			}
@@ -78,7 +112,7 @@ func (s *deviceSession) login(code string, done func(error)) {
 				s.store, s.lock = candidate.store, candidate.lock
 				s.notice = candidate.notice
 			}
-			done(err)
+			done(plainLoginError(err))
 		})
 	}()
 }
