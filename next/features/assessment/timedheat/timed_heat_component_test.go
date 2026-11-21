@@ -115,3 +115,48 @@ func TestTimedOutcomesUseLapsAndCompletionTime(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveAndDiscardReturnToHeatSetupInBothLayouts(t *testing.T) {
+	for _, layout := range []struct {
+		name  string
+		stack []navigation.Route
+	}{
+		{"large", []navigation.Route{navigation.LessonPlan, navigation.SkillSwimmers, navigation.TimedHeat}},
+		{"compact", []navigation.Route{navigation.LessonPlan, navigation.SkillSwimmers, navigation.TimedLaps, navigation.TimedHeat}},
+	} {
+		for _, action := range []string{"save", "discard"} {
+			t.Run(layout.name+" "+action, func(t *testing.T) {
+				stack := append([]navigation.Route(nil), layout.stack...)
+				c := Component{
+					State: State{Selection: []string{"swimmer"}, LapsInput: "1", Heat: &Heat{SkillID: "Splash7:10", Participants: []ParticipantState{{
+						Participant: Participant{AttemptID: "attempt", PersonID: "swimmer", LapsRequired: 1, LapsCompleted: 1}, Completed: true, CompletedAt: time.Second,
+					}}}},
+					navigation: common.Navigation{
+						Frame: func() navigation.Frame { return navigation.Frame{Screen: stack[len(stack)-1]} },
+						Run:   func(fn func() error) error { return fn() },
+						Pop:   func() { stack = stack[:len(stack)-1] },
+					},
+					storage: Storage{
+						SaveTimedHeat:    func([]domain.TimedResult) error { return nil },
+						DiscardTimedHeat: func([]string) error { return nil },
+					},
+				}
+				var err error
+				if action == "save" {
+					err = c.SaveTimedHeat()
+				} else {
+					err = c.DiscardTimedHeat()
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := stack[len(stack)-1]; got != navigation.SkillSwimmers {
+					t.Fatalf("after %s landed on %v, want the heat setup (%v)", action, got, navigation.SkillSwimmers)
+				}
+				if c.State.Heat != nil || len(c.State.Selection) != 0 || c.State.LapsInput != "" {
+					t.Fatal("heat state was not cleared for the next heat")
+				}
+			})
+		}
+	}
+}

@@ -169,8 +169,7 @@ func (c *Component) SaveTimedHeat() error {
 		c.State.Heat = nil
 		c.State.Selection = nil
 		c.State.LapsInput = ""
-		c.navigation.Pop()
-		c.navigation.Pop()
+		c.returnToSetup()
 		return nil
 	})
 }
@@ -191,10 +190,18 @@ func (c *Component) DiscardTimedHeat() error {
 		c.State.Heat = nil
 		c.State.Selection = nil
 		c.State.LapsInput = ""
-		c.navigation.Pop()
-		c.navigation.Pop()
+		c.returnToSetup()
 		return nil
 	})
+}
+
+// returnToSetup leaves the heat for the swimmer selection it was started from. The compact layout
+// has a laps screen in between; the large layout starts the heat straight from the setup screen.
+func (c *Component) returnToSetup() {
+	c.navigation.Pop()
+	if c.navigation.Frame().Screen == navigation.TimedLaps {
+		c.navigation.Pop()
+	}
 }
 
 func (c *Component) StartHeat() error {
