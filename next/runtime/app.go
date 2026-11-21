@@ -89,6 +89,7 @@ func Run(options Options) error {
 	defer session.close()
 	var view *app.View
 	var mountLogin func(error)
+	var loginScreen *login.Component // the login screen on show; nil while the lesson workflow is
 	var mountWorkflow func()
 	mode := func() ui.DisplayMode {
 		return ui.DisplayMode(a.Preferences().StringWithFallback("display-mode", string(ui.DisplayCompact))).Normalize()
@@ -115,14 +116,12 @@ func Run(options Options) error {
 			},
 			Cancel: session.cancelLogin,
 		})
-		if loginError != nil {
-			controller.Fail(loginError)
-		} else {
-			controller.Inform(session.notice)
-		}
+		showLoginNotice(controller, loginError, session.notice)
 		mount(controller)
+		loginScreen = controller
 	}
 	mountWorkflow = func() {
+		loginScreen = nil
 		controller := swimming.New(session.store)
 		controller.ConfigureSyncStatus(session.notice)
 		controller.EnableAsyncSaves(fyne.Do)
@@ -134,7 +133,14 @@ func Run(options Options) error {
 			if view != nil {
 				view.Close()
 			}
-			session.logoutAsync(func(err error) { mountLogin(err) })
+			// Digits typed while the upload runs must survive it: update the screen in place.
+			session.logoutAsync(func(err error) {
+				if loginScreen != nil {
+					showLoginNotice(loginScreen, err, session.notice)
+					return
+				}
+				mountLogin(err)
+			})
 			mountLogin(nil)
 		}, profiles.shareServer(options.ShareServer), profiles.setShareServer)
 		mount(controller)
@@ -184,6 +190,16 @@ func Run(options Options) error {
 	}
 	w.ShowAndRun()
 	return smokeErr
+}
+
+// showLoginNotice reports a login or logout outcome on an existing login screen
+// without rebuilding it, so a code that is being typed is kept.
+func showLoginNotice(screen *login.Component, err error, notice string) {
+	if err != nil {
+		screen.Fail(err)
+	} else {
+		screen.Inform(notice)
+	}
 }
 
 // Some OpenGL drivers return a blank front buffer despite displaying the app.
