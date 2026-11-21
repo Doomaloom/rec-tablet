@@ -72,6 +72,20 @@ func uploadBudget(db *store.Store) time.Duration {
 	}
 	return min(base+time.Duration(pending)*perOperation, limit)
 }
+
+// earlierUploadBudget is the deadline for retrying another instructor's queue at
+// a login. It starts at one second, so an unreachable server costs the new login
+// little, and grows with the queue so a large backlog can finish the batch it
+// sends: a deadline that cuts the request off records no receipts and the same
+// first batch would be resent at every later login.
+func earlierUploadBudget(db *store.Store) time.Duration {
+	const base, perOperation, limit = time.Second, 100 * time.Millisecond, 10 * time.Second
+	pending, _, err := db.SyncStatus()
+	if err != nil {
+		return base
+	}
+	return min(base+time.Duration(pending)*perOperation, limit)
+}
 func (m *profileManager) retryUploadsSummary(ctx context.Context, active string) syncSummary {
 	m.mu.Lock()
 	profiles := append([]savedProfile(nil), m.index.Profiles...)
@@ -99,7 +113,7 @@ func (m *profileManager) retryUploadsSummary(ctx context.Context, active string)
 		}
 		db, err := store.Open(p.Path)
 		if err == nil {
-			attemptCtx, stop := context.WithTimeout(ctx, time.Second)
+			attemptCtx, stop := context.WithTimeout(ctx, earlierUploadBudget(db))
 			err = db.UploadPending(attemptCtx)
 			stop()
 			if err != nil {
