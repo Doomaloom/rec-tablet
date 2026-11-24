@@ -105,6 +105,9 @@ func (c *Component) Build(input common.Input) (navigation.State, error) {
 			} else if a.Editing {
 				label += " · Edit not saved"
 			}
+			if a.CurriculumVersion != version {
+				label += " · Earlier curriculum"
+			}
 			created := a.CreatedAt
 			clock := created
 			if len(created) >= 19 {

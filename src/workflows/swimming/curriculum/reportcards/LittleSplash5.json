@@ -1,0 +1,835 @@
+{
+ "level": "LittleSplash5",
+ "skills": [
+  {
+   "id": "LittleSplash5:1",
+   "number": "1",
+   "name": "Forward roll entry wearing a lifejacket",
+   "fromSkills": [
+    "LittleSplash5:1"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.14,
+    "y": 10.27,
+    "w": 30.58,
+    "h": 2.78
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:1:1",
+     "text": "Appropriate lifejacket correctly donned and fastened on land",
+     "from": [
+      "LittleSplash5:1:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.5,
+      "y": 15.09,
+      "highlight": {
+       "x": 3.39,
+       "y": 13.57,
+       "w": 28.06,
+       "h": 4.78
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:1:2",
+     "text": "Controlled entry and return to surface",
+     "from": [
+      "LittleSplash5:1:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.59,
+      "y": 20.32,
+      "highlight": {
+       "x": 3.31,
+       "y": 18.93,
+       "w": 25.12,
+       "h": 2.89
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:2",
+   "number": "2",
+   "name": "Tread water 10 seconds",
+   "fromSkills": [
+    "LittleSplash5:2"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.39,
+    "y": 27.53,
+    "w": 18.97,
+    "h": 2.67
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:2:1",
+     "text": "Vertical body position",
+     "from": [
+      "LittleSplash5:2:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.71,
+      "y": 32.38,
+      "highlight": {
+       "x": 3.58,
+       "y": 30.9,
+       "w": 17.03,
+       "h": 2.9
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:2:2",
+     "text": "Mouth and nose above surface",
+     "from": [
+      "LittleSplash5:2:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.75,
+      "y": 35.32,
+      "highlight": {
+       "x": 3.64,
+       "y": 33.88,
+       "w": 20.97,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:2:3",
+     "text": "Sculling action of hand generates support",
+     "from": [
+      "LittleSplash5:2:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.77,
+      "y": 38.27,
+      "highlight": {
+       "x": 3.64,
+       "y": 36.78,
+       "w": 27.09,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:2:4",
+     "text": "Supportive kick",
+     "from": [
+      "LittleSplash5:2:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.82,
+      "y": 41.21,
+      "highlight": {
+       "x": 3.7,
+       "y": 39.76,
+       "w": 12.0,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:2:5",
+     "text": "10 second time met",
+     "from": [
+      "LittleSplash5:2:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.84,
+      "y": 44.15,
+      "highlight": {
+       "x": 3.7,
+       "y": 42.67,
+       "w": 14.61,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:3",
+   "number": "3",
+   "name": "Submerge and hold breath 5 seconds",
+   "fromSkills": [
+    "LittleSplash5:3"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.94,
+    "y": 72.31,
+    "w": 29.09,
+    "h": 3.14
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:3:1",
+     "text": "Entire body submerged",
+     "from": [
+      "LittleSplash5:3:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 5.23,
+      "y": 77.38,
+      "highlight": {
+       "x": 4.12,
+       "y": 75.92,
+       "w": 16.3,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:3:2",
+     "text": "5 second time met",
+     "from": [
+      "LittleSplash5:3:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 5.27,
+      "y": 80.32,
+      "highlight": {
+       "x": 4.12,
+       "y": 78.9,
+       "w": 13.7,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:4",
+   "number": "4",
+   "name": "Recover object from bottom in chest-deep water",
+   "fromSkills": [
+    "LittleSplash5:4"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 4.12,
+    "y": 82.27,
+    "w": 24.42,
+    "h": 5.8
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:4:1",
+     "text": "Face in water and feet off the bottom",
+     "from": [
+      "LittleSplash5:4:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 5.39,
+      "y": 90.03,
+      "highlight": {
+       "x": 4.24,
+       "y": 88.55,
+       "w": 24.3,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:4:2",
+     "text": "Object recovered with hands and returned to surface",
+     "from": [
+      "LittleSplash5:4:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 5.43,
+      "y": 92.97,
+      "highlight": {
+       "x": 4.3,
+       "y": 91.37,
+       "w": 28.61,
+       "h": 4.86
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:5",
+   "number": "5",
+   "name": "Wearing a lifejacket, sideways entry into deep water; tread 20 seconds; swim / kick 10 metres",
+   "fromSkills": [
+    "LittleSplash5:5"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 36.78,
+    "y": 9.84,
+    "w": 29.01,
+    "h": 8.34
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:5:1",
+     "text": "Completion of skills in a continuous sequence",
+     "from": [
+      "LittleSplash5:5:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.98,
+      "y": 20.53,
+      "highlight": {
+       "x": 36.85,
+       "y": 19.06,
+       "w": 29.39,
+       "h": 2.9
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:5:2",
+     "text": "Treading water 20 second time met",
+     "from": [
+      "LittleSplash5:5:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.98,
+      "y": 24.47,
+      "highlight": {
+       "x": 36.85,
+       "y": 22.98,
+       "w": 23.52,
+       "h": 2.9
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:5:3",
+     "text": "Swim / kick 10 metre distance completed",
+     "from": [
+      "LittleSplash5:5:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.98,
+      "y": 28.35,
+      "highlight": {
+       "x": 36.85,
+       "y": 26.9,
+       "w": 26.61,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:6",
+   "number": "6",
+   "name": "Whip kick in vertical position 20 seconds with a lifejacket or buoyant aid",
+   "fromSkills": [
+    "LittleSplash5:6"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 36.86,
+    "y": 37.43,
+    "w": 24.46,
+    "h": 8.34
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:6:1",
+     "text": "Kick in vertical position",
+     "from": [
+      "LittleSplash5:6:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.07,
+      "y": 48.23,
+      "highlight": {
+       "x": 36.97,
+       "y": 46.75,
+       "w": 16.42,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:6:2",
+     "text": "Kick is simultaneous and symmetrical; heels recover towards buttocks",
+     "from": [
+      "LittleSplash5:6:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.09,
+      "y": 52.06,
+      "highlight": {
+       "x": 36.94,
+       "y": 50.8,
+       "w": 28.18,
+       "h": 4.92
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:6:3",
+     "text": "Legs drive with knees apart; feet wider than knees",
+     "from": [
+      "LittleSplash5:6:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.11,
+      "y": 58.29,
+      "highlight": {
+       "x": 36.97,
+       "y": 56.86,
+       "w": 28.18,
+       "h": 4.71
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:6:4",
+     "text": "20 second time met",
+     "from": [
+      "LittleSplash5:6:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.14,
+      "y": 64.47,
+      "highlight": {
+       "x": 37.03,
+       "y": 62.98,
+       "w": 14.48,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:7",
+   "number": "7",
+   "name": "Front crawl 5 metres",
+   "fromSkills": [
+    "LittleSplash5:7"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 36.86,
+    "y": 68.88,
+    "w": 16.61,
+    "h": 2.78
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:7:1",
+     "text": "Body on front",
+     "from": [
+      "LittleSplash5:7:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.18,
+      "y": 73.91,
+      "highlight": {
+       "x": 37.03,
+       "y": 72.47,
+       "w": 11.03,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:7:2",
+     "text": "Alternate arm action",
+     "from": [
+      "LittleSplash5:7:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.18,
+      "y": 77.82,
+      "highlight": {
+       "x": 37.03,
+       "y": 76.39,
+       "w": 14.97,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:7:3",
+     "text": "Propulsive, rhythmic flutter kick with alternate leg drive; slight knee bend",
+     "from": [
+      "LittleSplash5:7:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.23,
+      "y": 81.73,
+      "highlight": {
+       "x": 37.09,
+       "y": 80.31,
+       "w": 23.82,
+       "h": 5.1
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:7:4",
+     "text": "Breathing with underwater exhalation",
+     "from": [
+      "LittleSplash5:7:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.23,
+      "y": 87.94,
+      "highlight": {
+       "x": 37.09,
+       "y": 86.51,
+       "w": 24.73,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:7:5",
+     "text": "5 metre distance completed",
+     "from": [
+      "LittleSplash5:7:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 38.27,
+      "y": 91.85,
+      "highlight": {
+       "x": 37.15,
+       "y": 90.43,
+       "w": 18.85,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:8",
+   "number": "8",
+   "name": "Back crawl 5 metres",
+   "fromSkills": [
+    "LittleSplash5:8"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 69.92,
+    "y": 5.35,
+    "w": 16.03,
+    "h": 2.57
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:8:1",
+     "text": "Body on back",
+     "from": [
+      "LittleSplash5:8:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.18,
+      "y": 10.12,
+      "highlight": {
+       "x": 70.06,
+       "y": 8.71,
+       "w": 10.91,
+       "h": 2.9
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:8:2",
+     "text": "Alternate arm action",
+     "from": [
+      "LittleSplash5:8:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.18,
+      "y": 13.71,
+      "highlight": {
+       "x": 70.06,
+       "y": 12.24,
+       "w": 14.73,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:8:3",
+     "text": "Propulsive, rhythmic flutter kick with alternate leg drive near the surface",
+     "from": [
+      "LittleSplash5:8:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.18,
+      "y": 17.29,
+      "highlight": {
+       "x": 70.06,
+       "y": 15.84,
+       "w": 23.88,
+       "h": 5.18
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:8:4",
+     "text": "Relaxed breathing",
+     "from": [
+      "LittleSplash5:8:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.14,
+      "y": 23.18,
+      "highlight": {
+       "x": 70.0,
+       "y": 21.73,
+       "w": 13.52,
+       "h": 2.9
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:8:5",
+     "text": "5 metre distance completed",
+     "from": [
+      "LittleSplash5:8:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.14,
+      "y": 26.73,
+      "highlight": {
+       "x": 70.0,
+       "y": 25.25,
+       "w": 18.85,
+       "h": 2.9
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:9",
+   "number": "9",
+   "name": "Interval training: 4 x 5 metres flutter kick on back with 30 second rests",
+   "fromSkills": [
+    "LittleSplash5:9"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 69.92,
+    "y": 80.21,
+    "w": 28.26,
+    "h": 5.35
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:9:1",
+     "text": "Repetitions completed",
+     "from": [
+      "LittleSplash5:9:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.02,
+      "y": 87.79,
+      "highlight": {
+       "x": 69.88,
+       "y": 86.35,
+       "w": 15.82,
+       "h": 2.9
+      }
+     }
+    },
+    {
+     "id": "LittleSplash5:9:2",
+     "text": "Propulsive, rhythmic flutter kick with alternate leg drive near the surface",
+     "from": [
+      "LittleSplash5:9:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.02,
+      "y": 91.41,
+      "highlight": {
+       "x": 69.88,
+       "y": 89.96,
+       "w": 24.0,
+       "h": 5.18
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:10a",
+   "number": "10a",
+   "name": "Water Smart Messages - Within Arms' Reach",
+   "fromSkills": [
+    "LittleSplash5:10a"
+   ],
+   "heading": {
+    "page": "outside",
+    "x": 2.73,
+    "y": 10.91,
+    "w": 19.26,
+    "h": 2.46
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:10a:2",
+     "text": "Stay away from water unless you are with an adult.",
+     "from": [
+      "LittleSplash5:10a:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 6.55,
+      "y": 22.2,
+      "highlight": {
+       "x": 5.45,
+       "y": 20.71,
+       "w": 24.85,
+       "h": 4.86
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "LittleSplash5:10b",
+   "number": "10b",
+   "name": "Water Smart Messages - Wear a Lifejacket",
+   "fromSkills": [
+    "LittleSplash5:10b"
+   ],
+   "heading": {
+    "page": "outside",
+    "x": 2.73,
+    "y": 10.91,
+    "w": 19.26,
+    "h": 2.46
+   },
+   "subskills": [
+    {
+     "id": "LittleSplash5:10b:2",
+     "text": "Is everyone in my family wearing lifejackets in the boat? Are they fastened properly?",
+     "from": [
+      "LittleSplash5:10b:2",
+      "LittleSplash5:10b:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 6.55,
+      "y": 28.16,
+      "highlight": {
+       "x": 5.45,
+       "y": 26.75,
+       "w": 25.09,
+       "h": 7.14
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "derivedBoxes": [
+  {
+   "label": "Participation in a water activity reinforcing the Water Smart messages",
+   "ticksWith": [
+    "LittleSplash5:10a:2",
+    "LittleSplash5:10b:2"
+   ],
+   "box": {
+    "page": "outside",
+    "x": 3.89,
+    "y": 16.15,
+    "highlight": {
+     "x": 2.89,
+     "y": 14.76,
+     "w": 30.17,
+     "h": 5.56
+    }
+   }
+  }
+ ],
+ "dropped": [
+  {
+   "oldId": "LittleSplash5:10a:1",
+   "reason": "participation criterion: the card has one shared participation box for both messages (see derivedBoxes)"
+  },
+  {
+   "oldId": "LittleSplash5:10b:1",
+   "reason": "participation criterion: the card has one shared participation box for both messages (see derivedBoxes)"
+  }
+ ],
+ "notes": [
+  "Skill 5: old 5:2 'Distance and time requirements completed' split into the card's time box (keeps 5:2, first in card order) and distance box (new id 5:3, from 5:2). Note the map's existing mapping put 5:2 on the distance box.",
+  "10b:2 and 10b:3 merged into one circle."
+ ]
+}

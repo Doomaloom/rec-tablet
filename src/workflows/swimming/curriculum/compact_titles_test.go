@@ -28,7 +28,9 @@ func TestCompactTitlesFitBundledSkills(t *testing.T) {
 		}
 	}
 	for id, title := range compactTitles {
-		if _, err := catalog.Skill(id); err != nil {
+		// Old ids stay: the website lesson plans still use the previous skills.
+		_, err := catalog.Skill(id)
+		if _, oldErr := BundledPrevious().Skill(id); err != nil && oldErr != nil {
 			t.Errorf("compact title references an unknown skill: %s", id)
 		}
 		if strings.TrimSpace(title) != title || title == "" || strings.ContainsAny(title, "\r\n") {

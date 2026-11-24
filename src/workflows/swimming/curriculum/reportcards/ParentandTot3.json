@@ -1,0 +1,595 @@
+{
+ "level": "ParentandTot3",
+ "skills": [
+  {
+   "id": "ParentandTot3:1",
+   "number": "1",
+   "name": "Jump entry (assisted)",
+   "fromSkills": [
+    "ParentandTot3:1"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:1:1",
+     "text": "Jump entry (assisted)",
+     "from": [
+      "ParentandTot3:1:1",
+      "ParentandTot3:1:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.68,
+      "y": 10.18,
+      "highlight": {
+       "x": 68.55,
+       "y": 8.71,
+       "w": 14.42,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:2",
+   "number": "2",
+   "name": "Entry and submerge from sitting position (assisted)",
+   "fromSkills": [
+    "ParentandTot3:2"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:2:1",
+     "text": "Entry and submerge from sitting position (assisted)",
+     "from": [
+      "ParentandTot3:2:1",
+      "ParentandTot3:2:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.77,
+      "y": 12.82,
+      "highlight": {
+       "x": 68.67,
+       "y": 11.37,
+       "w": 24.61,
+       "h": 4.55
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:3",
+   "number": "3",
+   "name": "Exit the water (unassisted)",
+   "fromSkills": [
+    "ParentandTot3:3"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:3:1",
+     "text": "Exit the water (unassisted)",
+     "from": [
+      "ParentandTot3:3:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 17.5,
+      "highlight": {
+       "x": 68.61,
+       "y": 16.08,
+       "w": 17.03,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:4",
+   "number": "4",
+   "name": "Hold breath underwater (assisted)",
+   "fromSkills": [
+    "ParentandTot3:4"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:4:1",
+     "text": "Hold breath underwater (assisted)",
+     "from": [
+      "ParentandTot3:4:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.73,
+      "y": 20.15,
+      "highlight": {
+       "x": 68.61,
+       "y": 18.67,
+       "w": 20.97,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:5",
+   "number": "5",
+   "name": "Attempt to open eyes underwater",
+   "fromSkills": [
+    "ParentandTot3:5"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:5:1",
+     "text": "Attempt to open eyes underwater",
+     "from": [
+      "ParentandTot3:5:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.66,
+      "y": 22.77,
+      "highlight": {
+       "x": 68.55,
+       "y": 21.33,
+       "w": 20.91,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:6",
+   "number": "6",
+   "name": "Attempt to recover object from bottom",
+   "fromSkills": [
+    "ParentandTot3:6"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:6:1",
+     "text": "Attempt to recover object from bottom",
+     "from": [
+      "ParentandTot3:6:1",
+      "ParentandTot3:6:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 25.35,
+      "highlight": {
+       "x": 68.61,
+       "y": 23.92,
+       "w": 23.64,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:7",
+   "number": "7",
+   "name": "Standing jump entry, return to edge (assisted)",
+   "fromSkills": [
+    "ParentandTot3:7"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:7:1",
+     "text": "Standing jump entry, return to edge (assisted)",
+     "from": [
+      "ParentandTot3:7:1",
+      "ParentandTot3:7:2",
+      "ParentandTot3:7:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 28.0,
+      "highlight": {
+       "x": 68.61,
+       "y": 26.59,
+       "w": 21.88,
+       "h": 4.55
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:8",
+   "number": "8",
+   "name": "Jump entry and float wearing a lifejacket (assisted)",
+   "fromSkills": [
+    "ParentandTot3:8"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:8:1",
+     "text": "Jump entry and float wearing a lifejacket (assisted)",
+     "from": [
+      "ParentandTot3:8:1",
+      "ParentandTot3:8:2",
+      "ParentandTot3:8:3",
+      "ParentandTot3:8:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 32.91,
+      "highlight": {
+       "x": 68.61,
+       "y": 31.45,
+       "w": 24.48,
+       "h": 4.47
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:9a",
+   "number": "9a",
+   "name": "Front “starfish” float (assisted)",
+   "fromSkills": [
+    "ParentandTot3:9a"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:9a:1",
+     "text": "Front “starfish” float (assisted)",
+     "from": [
+      "ParentandTot3:9a:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 37.68,
+      "highlight": {
+       "x": 68.61,
+       "y": 36.24,
+       "w": 19.03,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:9b",
+   "number": "9b",
+   "name": "Back “starfish” float (assisted)",
+   "fromSkills": [
+    "ParentandTot3:9b"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:9b:1",
+     "text": "Back “starfish” float (assisted)",
+     "from": [
+      "ParentandTot3:9b:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 40.23,
+      "highlight": {
+       "x": 68.61,
+       "y": 38.75,
+       "w": 18.79,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:10a",
+   "number": "10a",
+   "name": "Front “pencil” float (assisted)",
+   "fromSkills": [
+    "ParentandTot3:10a"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:10a:1",
+     "text": "Front “pencil” float (assisted)",
+     "from": [
+      "ParentandTot3:10a:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.66,
+      "y": 42.79,
+      "highlight": {
+       "x": 68.55,
+       "y": 41.33,
+       "w": 18.36,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:10b",
+   "number": "10b",
+   "name": "Back “pencil” float (assisted)",
+   "fromSkills": [
+    "ParentandTot3:10b"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:10b:1",
+     "text": "Back “pencil” float (assisted)",
+     "from": [
+      "ParentandTot3:10b:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 45.44,
+      "highlight": {
+       "x": 68.61,
+       "y": 44.0,
+       "w": 18.06,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:11a",
+   "number": "11a",
+   "name": "Kicking on front (assisted)",
+   "fromSkills": [
+    "ParentandTot3:11a"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:11a:1",
+     "text": "Kicking on front (assisted)",
+     "from": [
+      "ParentandTot3:11a:1",
+      "ParentandTot3:11a:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 48.03,
+      "highlight": {
+       "x": 68.61,
+       "y": 46.59,
+       "w": 16.67,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:11b",
+   "number": "11b",
+   "name": "Kicking on back (assisted)",
+   "fromSkills": [
+    "ParentandTot3:11b"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:11b:1",
+     "text": "Kicking on back (assisted)",
+     "from": [
+      "ParentandTot3:11b:1",
+      "ParentandTot3:11b:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.75,
+      "y": 50.68,
+      "highlight": {
+       "x": 68.61,
+       "y": 49.25,
+       "w": 16.55,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:12",
+   "number": "12",
+   "name": "Underwater passes",
+   "fromSkills": [
+    "ParentandTot3:12"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:12:1",
+     "text": "Underwater passes",
+     "from": [
+      "ParentandTot3:12:1",
+      "ParentandTot3:12:2",
+      "ParentandTot3:12:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.73,
+      "y": 53.29,
+      "highlight": {
+       "x": 68.61,
+       "y": 51.84,
+       "w": 12.85,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:13a",
+   "number": "13a",
+   "name": "Water Smart Messages - Within Arms' Reach",
+   "fromSkills": [
+    "ParentandTot3:13a"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:13a:2",
+     "text": "Within Arms' Reach",
+     "from": [
+      "ParentandTot3:13a:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.7,
+      "y": 58.7,
+      "highlight": {
+       "x": 70.61,
+       "y": 57.25,
+       "w": 13.33,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:13b",
+   "number": "13b",
+   "name": "Water Smart Messages - Wear a Lifejacket",
+   "fromSkills": [
+    "ParentandTot3:13b"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:13b:2",
+     "text": "Wear a Lifejacket",
+     "from": [
+      "ParentandTot3:13b:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.7,
+      "y": 61.5,
+      "highlight": {
+       "x": 70.61,
+       "y": 60.08,
+       "w": 12.06,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot3:13c",
+   "number": "13c",
+   "name": "Water Smart Messages - Swim to Survive",
+   "fromSkills": [
+    "ParentandTot3:13c"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot3:13c:2",
+     "text": "Swim to Survive",
+     "from": [
+      "ParentandTot3:13c:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 71.7,
+      "y": 64.3,
+      "highlight": {
+       "x": 70.61,
+       "y": 62.82,
+       "w": 11.45,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "derivedBoxes": [
+  {
+   "label": "Water Smart message",
+   "ticksWith": [
+    "ParentandTot3:13a:2",
+    "ParentandTot3:13b:2",
+    "ParentandTot3:13c:2"
+   ],
+   "box": {
+    "page": "inside",
+    "x": 69.73,
+    "y": 55.73,
+    "highlight": {
+     "x": 68.61,
+     "y": 54.27,
+     "w": 15.21,
+     "h": 2.82
+    }
+   }
+  }
+ ],
+ "dropped": [
+  {
+   "oldId": "ParentandTot3:13a:1",
+   "reason": "participation criterion: the card has no per-message participation box (single shared Water Smart message box, see derivedBoxes)"
+  },
+  {
+   "oldId": "ParentandTot3:13b:1",
+   "reason": "participation criterion: the card has no per-message participation box (single shared Water Smart message box, see derivedBoxes)"
+  },
+  {
+   "oldId": "ParentandTot3:13c:1",
+   "reason": "participation criterion: the card has no per-message participation box (single shared Water Smart message box, see derivedBoxes)"
+  }
+ ],
+ "notes": [
+  "Shared card page for PT1-3; one tick box per whole skill, so each skill has a single subskill (from = every old criterion of the skill). Skill heading rects are not in the map (heading null)."
+ ]
+}

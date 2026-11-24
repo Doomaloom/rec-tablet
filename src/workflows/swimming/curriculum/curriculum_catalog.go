@@ -9,8 +9,14 @@ import (
 	"unicode"
 )
 
-//go:embed catalog.json
+// catalog.json is the current (report-card) catalog. The previous template
+// catalog and the migration between them are embedded too: old attempts keep
+// their own catalog body and are translated when progress is read.
+//
+//go:embed catalog.json catalog-templates-b50c7f987e101b7e.json catalog-migration.json
 var assets embed.FS
+
+const previousCatalogFile = "catalog-templates-b50c7f987e101b7e.json"
 
 type Catalog struct {
 	SchemaVersion int     `json:"schemaVersion"`
@@ -43,14 +49,27 @@ type Subskill struct {
 	Group []string `json:"group"`
 }
 
-func Bundled() Catalog {
-	data, _ := assets.ReadFile("catalog.json")
+func loadCatalog(name string) Catalog {
+	data, err := assets.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
 	var c Catalog
 	if err := json.Unmarshal(data, &c); err != nil {
 		panic(err)
 	}
 	return c
 }
+
+// Bundled returns the current catalog new marking is recorded against.
+func Bundled() Catalog { return loadCatalog("catalog.json") }
+
+// BundledPrevious returns the catalog that existing attempts and results were
+// recorded against before the report-card catalog (Migration.From).
+func BundledPrevious() Catalog { return loadCatalog(previousCatalogFile) }
+
+// Historical returns every older catalog the bundled catalog can translate.
+func Historical() []Catalog { return []Catalog{BundledPrevious()} }
 func (c Catalog) Level(id string) (Level, bool) {
 	for _, l := range c.Levels {
 		if l.ID == id {

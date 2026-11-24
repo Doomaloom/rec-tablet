@@ -581,7 +581,7 @@ func TestCurriculumWordingRefreshPreservesMarking(t *testing.T) {
 	}
 }
 
-func TestCurriculumChangeResetsMarkingAndMovesCourses(t *testing.T) {
+func TestCurriculumChangeKeepsMarkingAndMovesCourses(t *testing.T) {
 	f := setup(t)
 	f.attempt(t, true, "")
 	draft := must(f.s.NewAttempt(f.person.String("id"), f.course.String("lesson_id"), "Splash1:1"))
@@ -591,6 +591,8 @@ func TestCurriculumChangeResetsMarkingAndMovesCourses(t *testing.T) {
 	check(t, err)
 	_, err = f.s.DB.Exec("INSERT INTO timed_attempts(attempt_id,laps_required,laps_completed,elapsed_ms) VALUES (?,?,?,?)", draft, 3, 1, 250)
 	check(t, err)
+	before := must(f.s.Snapshot())
+	oldVersion := f.version
 	updated := curriculum.Bundled()
 	updated.Version = "future-version"
 	check(t, f.s.Close())
@@ -599,35 +601,51 @@ func TestCurriculumChangeResetsMarkingAndMovesCourses(t *testing.T) {
 	if course.String("curriculum_version") != updated.Version {
 		t.Fatalf("course still uses old curriculum version: %s", course.String("curriculum_version"))
 	}
-	for _, table := range []string{"attempts", "results", "drafts", "revisions", "timed_attempts"} {
-		var count int
-		check(t, f.s.DB.QueryRow("SELECT COUNT(*) FROM "+table).Scan(&count))
-		if count != 0 {
-			t.Fatalf("catalog reset left %d rows in %s", count, table)
+	after := must(f.s.Snapshot())
+	for _, table := range []string{"attempts", "results", "drafts", "revisions"} {
+		if len(before.Tables[table]) == 0 || !reflect.DeepEqual(before.Tables[table], after.Tables[table]) {
+			t.Fatalf("catalog change altered %s", table)
 		}
 	}
-	if status := must(f.s.Attendance(course.String("lesson_id")))[f.person.String("id")]; status != "present" {
-		t.Fatalf("catalog reset lost attendance: %q", status)
+	if count(t, f.s, "timed_attempts") != 1 {
+		t.Fatal("catalog change lost timed rows")
 	}
-	if progress := must(f.s.Progress(f.person.String("id"), "Splash1:1", updated.Version)); progress.Assessed != 0 || progress.Successes != 0 {
-		t.Fatalf("catalog reset left progress: %+v", progress)
+	if status := must(f.s.Attendance(course.String("lesson_id")))[f.person.String("id")]; status != "present" {
+		t.Fatalf("catalog change lost attendance: %q", status)
+	}
+	// Attempts keep their own version and catalog; the draft is still usable.
+	if _, err := f.s.CatalogFor(oldVersion); err != nil {
+		t.Fatal(err)
+	}
+	if progress := must(f.s.Progress(f.person.String("id"), "Splash1:1", oldVersion)); progress.Assessed != 1 {
+		t.Fatalf("old attempts no longer counted: %+v", progress)
+	}
+	check(t, f.s.Mark(draft, "Splash1:1:2", "successful"))
+	if !must(f.s.Submit(draft)) {
+		t.Fatal("old draft no longer submittable")
 	}
 }
-func TestPythonDatabaseCompatibilityAfterCatalogReset(t *testing.T) {
+func TestPythonDatabaseCompatibilityAfterCatalogChange(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "python.sqlite3")
 	// Restore the exact Python-generated schema/data into an empty SQLite file.
 	db := must(OpenRawFixture(path))
+	raw := map[string]int{}
+	for _, table := range []string{"attempts", "results", "drafts", "revisions"} {
+		var n int
+		check(t, db.QueryRow("SELECT COUNT(*) FROM "+table).Scan(&n))
+		raw[table] = n
+	}
 	check(t, db.Close())
 	s := must(Open(path))
 	defer s.Close()
 	actual := must(s.Snapshot())
-	for _, table := range []string{"attempts", "results", "drafts", "revisions"} {
-		if len(actual.Tables[table]) != 0 {
-			t.Fatalf("Python database reset left rows in %s", table)
+	for table, n := range raw {
+		if len(actual.Tables[table]) != n {
+			t.Fatalf("Python database lost rows in %s: %d of %d", table, len(actual.Tables[table]), n)
 		}
 	}
 	if len(actual.Tables["attendance"]) == 0 || len(actual.Tables["courses"]) == 0 || len(actual.Tables["enrollments"]) == 0 {
-		t.Fatal("catalog reset lost roster or attendance data")
+		t.Fatal("catalog change lost roster or attendance data")
 	}
 	for _, course := range actual.Tables["courses"] {
 		if course["curriculum_version"] != curriculum.Bundled().Version {

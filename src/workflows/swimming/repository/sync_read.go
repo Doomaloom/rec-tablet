@@ -114,10 +114,14 @@ func (s *Store) applySyncRecord(tx *sql.Tx, c *transfer.SyncCredentials, r syncR
 	if dirty.Int("count") > 0 {
 		return nil
 	}
-	if r.CurriculumVersion != m.String("curriculum_version") {
-		return errors.New("result curriculum outside local course")
+	// Server history may be recorded in any curriculum version this tablet
+	// knows (the course's current one or an older registered one). The record
+	// is stored in its own version and never converted; a version the tablet has
+	// no catalog for cannot be validated and is refused.
+	if r.CurriculumVersion == "" {
+		return errors.New("result curriculum unavailable")
 	}
-	catalog, err := s.catalog(tx, m.String("curriculum_version"))
+	catalog, err := s.catalog(tx, r.CurriculumVersion)
 	if err != nil {
 		return errors.New("result curriculum unavailable")
 	}

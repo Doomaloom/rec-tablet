@@ -4,19 +4,34 @@ package repository
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"rectablet/src/workflows/swimming/domain"
 )
 
-func progress(q queryer, person, skill, version string) (domain.Progress, error) {
+// progress counts submitted attempts of a skill in one catalog version plus,
+// when that version is the bundled catalog, the previous-version attempts
+// translated onto the skill. Stored attempts are never converted.
+func (s *Store) progress(q queryer, person, skill, version string) (domain.Progress, error) {
 	r, e := one(q, `SELECT COUNT(*) AS assessed,COALESCE(SUM(success),0) AS successes FROM attempts WHERE enrollment_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NOT NULL`, person, skill, version)
 	if e != nil {
 		return domain.Progress{}, e
 	}
-	return domain.CalculateProgress(r.Int("assessed"), r.Int("successes")), nil
+	assessed, successes := r.Int("assessed"), r.Int("successes")
+	old, e := s.translatedAttempts(q, person, skill, version)
+	if e != nil {
+		return domain.Progress{}, e
+	}
+	for _, t := range old {
+		assessed++
+		if t.Success {
+			successes++
+		}
+	}
+	return domain.CalculateProgress(assessed, successes), nil
 }
 func (s *Store) Progress(person, skill, version string) (domain.Progress, error) {
-	return progress(s.DB, person, skill, version)
+	return s.progress(s.DB, person, skill, version)
 }
 
 // ResetClassProgress clears assessment history and drafts for every enrollment
@@ -36,8 +51,22 @@ func (s *Store) ResetClassProgress(courseID string) error {
 		return err
 	})
 }
+
+// attemptRecords lists a skill's attempts in the given version. For the bundled
+// catalog it also lists the previous-version attempts (and open drafts) of the
+// skills it was built from; they are shown as stored, in their own version, and
+// opened and edited under their own catalog.
 func (s *Store) attemptRecords(person, skill, version string) ([]record, error) {
-	rs, e := s.queryRows(`SELECT a.*,l.date,EXISTS(SELECT 1 FROM drafts d WHERE d.attempt_id=a.id) AS editing FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE a.enrollment_id=? AND a.skill_id=? AND a.curriculum_version=? ORDER BY a.created_at DESC,a.rowid DESC`, person, skill, version)
+	query := `SELECT a.*,l.date,EXISTS(SELECT 1 FROM drafts d WHERE d.attempt_id=a.id) AS editing FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE a.enrollment_id=? AND ((a.skill_id=? AND a.curriculum_version=?)`
+	args := []any{person, skill, version}
+	if olds := s.legacySkills(skill, version); len(olds) > 0 {
+		query += ` OR (a.curriculum_version=? AND a.skill_id IN (` + strings.TrimSuffix(strings.Repeat("?,", len(olds)), ",") + `))`
+		args = append(args, s.migration.From)
+		for _, o := range olds {
+			args = append(args, o)
+		}
+	}
+	rs, e := s.queryRows(query+`) ORDER BY a.created_at DESC,a.rowid DESC`, args...)
 	if e != nil {
 		return nil, e
 	}
@@ -586,11 +615,28 @@ func (s *Store) DiscardAttempts(ids []string) error {
 // the progress count and stored attempt history stay consistent.
 func (s *Store) RemoveLatestSuccess(person, skill, version string) error {
 	return s.transaction(func(q queryer) error {
-		a, e := one(q, `SELECT id FROM attempts WHERE enrollment_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NOT NULL AND success=1 ORDER BY submitted_at DESC,created_at DESC,rowid DESC LIMIT 1`, person, skill, version)
+		a, e := one(q, `SELECT id,submitted_at FROM attempts WHERE enrollment_id=? AND skill_id=? AND curriculum_version=? AND submitted_at IS NOT NULL AND success=1 ORDER BY submitted_at DESC,created_at DESC,rowid DESC LIMIT 1`, person, skill, version)
+		if e != nil && !errors.Is(e, ErrNotFound) {
+			return e
+		}
+		id, newest := "", ""
+		if e == nil {
+			id, newest = a.String("id"), a.String("submitted_at")
+		}
+		// A success recorded in the previous catalog counts toward the skill, so
+		// it can be the newest one; removing it removes that stored attempt.
+		old, e := s.translatedAttempts(q, person, skill, version)
 		if e != nil {
 			return e
 		}
-		id := a.String("id")
+		for _, t := range old {
+			if t.Success && (id == "" || t.SubmittedAt > newest) {
+				id, newest = t.SourceID, t.SubmittedAt
+			}
+		}
+		if id == "" {
+			return ErrNotFound
+		}
 		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts"} {
 			if _, e = q.Exec("DELETE FROM "+table+" WHERE attempt_id=?", id); e != nil {
 				return e

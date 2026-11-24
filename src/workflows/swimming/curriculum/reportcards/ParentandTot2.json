@@ -1,0 +1,473 @@
+{
+ "level": "ParentandTot2",
+ "skills": [
+  {
+   "id": "ParentandTot2:1",
+   "number": "1",
+   "name": "Entry from sitting position (assisted)",
+   "fromSkills": [
+    "ParentandTot2:1"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:1:1",
+     "text": "Entry from sitting position (assisted)",
+     "from": [
+      "ParentandTot2:1:1",
+      "ParentandTot2:1:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.98,
+      "y": 10.53,
+      "highlight": {
+       "x": 35.88,
+       "y": 9.1,
+       "w": 22.67,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:2",
+   "number": "2",
+   "name": "Exit the water (assisted)",
+   "fromSkills": [
+    "ParentandTot2:2"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:2:1",
+     "text": "Exit the water (assisted)",
+     "from": [
+      "ParentandTot2:2:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.0,
+      "y": 13.15,
+      "highlight": {
+       "x": 35.88,
+       "y": 11.69,
+       "w": 16.0,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:3",
+   "number": "3",
+   "name": "Blow bubbles on and in water",
+   "fromSkills": [
+    "ParentandTot2:3"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:3:1",
+     "text": "Blow bubbles on and in water",
+     "from": [
+      "ParentandTot2:3:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.02,
+      "y": 15.77,
+      "highlight": {
+       "x": 35.88,
+       "y": 14.35,
+       "w": 18.97,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:4",
+   "number": "4",
+   "name": "Face wet and in water",
+   "fromSkills": [
+    "ParentandTot2:4"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:4:1",
+     "text": "Face wet and in water",
+     "from": [
+      "ParentandTot2:4:1",
+      "ParentandTot2:4:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.05,
+      "y": 18.32,
+      "highlight": {
+       "x": 35.94,
+       "y": 16.86,
+       "w": 14.73,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:5",
+   "number": "5",
+   "name": "Attempt to recover object below surface",
+   "fromSkills": [
+    "ParentandTot2:5"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:5:1",
+     "text": "Attempt to recover object below surface",
+     "from": [
+      "ParentandTot2:5:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.07,
+      "y": 20.94,
+      "highlight": {
+       "x": 35.94,
+       "y": 19.45,
+       "w": 24.73,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:6",
+   "number": "6",
+   "name": "Entry from sitting position wearing a lifejacket and return (assisted)",
+   "fromSkills": [
+    "ParentandTot2:6"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:6:1",
+     "text": "Entry from sitting position wearing a lifejacket and return (assisted)",
+     "from": [
+      "ParentandTot2:6:1",
+      "ParentandTot2:6:2",
+      "ParentandTot2:6:3",
+      "ParentandTot2:6:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.09,
+      "y": 23.56,
+      "highlight": {
+       "x": 35.94,
+       "y": 22.12,
+       "w": 22.61,
+       "h": 4.39
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:7",
+   "number": "7",
+   "name": "Front float face in (assisted)",
+   "fromSkills": [
+    "ParentandTot2:7"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:7:1",
+     "text": "Front float face in (assisted)",
+     "from": [
+      "ParentandTot2:7:1",
+      "ParentandTot2:7:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.11,
+      "y": 28.21,
+      "highlight": {
+       "x": 36.0,
+       "y": 26.75,
+       "w": 17.88,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:8",
+   "number": "8",
+   "name": "Back float (assisted)",
+   "fromSkills": [
+    "ParentandTot2:8"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:8:1",
+     "text": "Back float (assisted)",
+     "from": [
+      "ParentandTot2:8:1",
+      "ParentandTot2:8:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.16,
+      "y": 31.0,
+      "highlight": {
+       "x": 36.06,
+       "y": 29.57,
+       "w": 13.76,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:9a",
+   "number": "9a",
+   "name": "Kicking on front (assisted)",
+   "fromSkills": [
+    "ParentandTot2:9a"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:9a:1",
+     "text": "Kicking on front (assisted)",
+     "from": [
+      "ParentandTot2:9a:1",
+      "ParentandTot2:9a:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.18,
+      "y": 33.56,
+      "highlight": {
+       "x": 36.06,
+       "y": 32.08,
+       "w": 16.91,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:9b",
+   "number": "9b",
+   "name": "Kicking on back (assisted)",
+   "fromSkills": [
+    "ParentandTot2:9b"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:9b:1",
+     "text": "Kicking on back (assisted)",
+     "from": [
+      "ParentandTot2:9b:1",
+      "ParentandTot2:9b:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.16,
+      "y": 36.21,
+      "highlight": {
+       "x": 36.06,
+       "y": 34.75,
+       "w": 16.85,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:10",
+   "number": "10",
+   "name": "Surface passes with continuous contact",
+   "fromSkills": [
+    "ParentandTot2:10"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:10:1",
+     "text": "Surface passes with continuous contact",
+     "from": [
+      "ParentandTot2:10:1",
+      "ParentandTot2:10:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 37.2,
+      "y": 38.71,
+      "highlight": {
+       "x": 36.06,
+       "y": 37.25,
+       "w": 24.06,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:11a",
+   "number": "11a",
+   "name": "Water Smart Messages - Within Arms' Reach",
+   "fromSkills": [
+    "ParentandTot2:11a"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:11a:2",
+     "text": "Within Arms' Reach",
+     "from": [
+      "ParentandTot2:11a:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 39.4,
+      "y": 44.2,
+      "highlight": {
+       "x": 38.3,
+       "y": 42.75,
+       "w": 13.39,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:11b",
+   "number": "11b",
+   "name": "Water Smart Messages - Wear a Lifejacket",
+   "fromSkills": [
+    "ParentandTot2:11b"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:11b:2",
+     "text": "Wear a Lifejacket",
+     "from": [
+      "ParentandTot2:11b:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 39.4,
+      "y": 47.0,
+      "highlight": {
+       "x": 38.3,
+       "y": 45.57,
+       "w": 12.0,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "ParentandTot2:11c",
+   "number": "11c",
+   "name": "Water Smart Messages - Swim to Survive",
+   "fromSkills": [
+    "ParentandTot2:11c"
+   ],
+   "heading": null,
+   "subskills": [
+    {
+     "id": "ParentandTot2:11c:2",
+     "text": "Swim to Survive",
+     "from": [
+      "ParentandTot2:11c:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 39.4,
+      "y": 49.8,
+      "highlight": {
+       "x": 38.3,
+       "y": 48.31,
+       "w": 11.52,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "derivedBoxes": [
+  {
+   "label": "Water Smart message",
+   "ticksWith": [
+    "ParentandTot2:11a:2",
+    "ParentandTot2:11b:2",
+    "ParentandTot2:11c:2"
+   ],
+   "box": {
+    "page": "inside",
+    "x": 37.23,
+    "y": 41.41,
+    "highlight": {
+     "x": 36.12,
+     "y": 39.92,
+     "w": 15.39,
+     "h": 2.82
+    }
+   }
+  }
+ ],
+ "dropped": [
+  {
+   "oldId": "ParentandTot2:11a:1",
+   "reason": "participation criterion: the card has no per-message participation box (single shared Water Smart message box, see derivedBoxes)"
+  },
+  {
+   "oldId": "ParentandTot2:11b:1",
+   "reason": "participation criterion: the card has no per-message participation box (single shared Water Smart message box, see derivedBoxes)"
+  },
+  {
+   "oldId": "ParentandTot2:11c:1",
+   "reason": "participation criterion: the card has no per-message participation box (single shared Water Smart message box, see derivedBoxes)"
+  }
+ ],
+ "notes": [
+  "Shared card page for PT1-3; one tick box per whole skill, so each skill has a single subskill (from = every old criterion of the skill). Skill heading rects are not in the map (heading null)."
+ ]
+}

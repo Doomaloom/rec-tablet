@@ -20,8 +20,10 @@ func templateDirectory(t *testing.T) string {
 	return dir
 }
 
-func TestBundledCatalog(t *testing.T) {
-	c := Bundled()
+// The tests below pin the PREVIOUS template-extracted catalog, which stays
+// embedded so old attempts keep their catalog body.
+func TestPreviousCatalog(t *testing.T) {
+	c := BundledPrevious()
 	if len(c.Levels) != 23 {
 		t.Fatal(len(c.Levels))
 	}
@@ -69,13 +71,13 @@ func TestExtractionParity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(actual, Bundled()) {
-		t.Fatal("bundled catalog differs from front-page skills and back-page subskills; regenerate it with extract-curriculum")
+	if !reflect.DeepEqual(actual, BundledPrevious()) {
+		t.Fatal("previous catalog differs from front-page skills and back-page subskills; regenerate it with extract-curriculum")
 	}
 }
 
 func TestFrontPageStrokeNamesAndNumbers(t *testing.T) {
-	c := Bundled()
+	c := BundledPrevious()
 	for _, tc := range []struct{ id, number, name string }{
 		{"Splash7:8-front-crawl", "8a", "Front Crawl - 50 m or yd"},
 		{"Splash7:8-back-crawl", "8b", "Back Crawl - 50 m or yd"},
@@ -104,7 +106,7 @@ func TestFrontPageStrokeNamesAndNumbers(t *testing.T) {
 }
 
 func TestFrontPageUnitsAndSharedCriteria(t *testing.T) {
-	c := Bundled()
+	c := BundledPrevious()
 	for _, id := range []string{"Splash2A:8-front-crawl", "Splash2A:8-back-crawl"} {
 		s, err := c.Skill(id)
 		if err != nil {
@@ -127,7 +129,7 @@ func TestFrontPageUnitsAndSharedCriteria(t *testing.T) {
 }
 
 func TestExtractionExceptions(t *testing.T) {
-	c := Bundled()
+	c := BundledPrevious()
 	s, _ := c.Skill("Splash1:3")
 	if len(s.Subskills) != 5 {
 		t.Fatal(s)
@@ -154,7 +156,7 @@ func TestExtractionExceptions(t *testing.T) {
 
 func TestSourceWordsPreserved(t *testing.T) {
 	words := regexp.MustCompile(`[\pL\pN_]+`)
-	for _, level := range Bundled().Levels {
+	for _, level := range BundledPrevious().Levels {
 		targets := map[string]map[string]bool{}
 		lines := map[string][]string{}
 		add := func(source, text string) {

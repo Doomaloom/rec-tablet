@@ -27,6 +27,9 @@ type Store struct {
 	Catalog   curriculum.Catalog
 	catalogs  sync.Map
 	syncReady bool
+	// migration is set when Catalog is the bundled report-card catalog; it
+	// translates attempts kept in the previous version when progress is read.
+	migration curriculum.Migration
 }
 
 func Now() string { return time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00") }
@@ -50,6 +53,9 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
 		return nil, err
 	}
 	s := &Store{DB: db, Path: path, Catalog: c}
+	if m := curriculum.BundledMigration(); c.Version == m.To {
+		s.migration = m
+	}
 	fail := func(e error) (*Store, error) { db.Close(); return nil, e }
 	var version int
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
@@ -104,7 +110,20 @@ func OpenWithCatalog(path string, c curriculum.Catalog) (*Store, error) {
 	if _, err = db.Exec("INSERT INTO curricula VALUES (?,?) ON CONFLICT(version) DO UPDATE SET body=excluded.body", c.Version, string(body)); err != nil {
 		return fail(err)
 	}
-	if err = s.resetMarkingDataForCatalogChange(c.Version); err != nil {
+	// Older catalog versions stay registered: attempts, results and drafts keep
+	// their own curriculum_version and must always find their catalog body, even
+	// on a fresh install that downloads old-version results from the server.
+	// Versions are immutable, so an existing row is never replaced.
+	for _, old := range curriculum.Historical() {
+		oldBody, e := json.Marshal(old)
+		if e != nil {
+			return fail(e)
+		}
+		if _, err = db.Exec("INSERT INTO curricula VALUES (?,?) ON CONFLICT(version) DO NOTHING", old.Version, string(oldBody)); err != nil {
+			return fail(err)
+		}
+	}
+	if err = s.moveCoursesToCatalog(c.Version); err != nil {
 		return fail(err)
 	}
 	return s, nil
@@ -122,39 +141,13 @@ func (s *Store) transaction(fn func(queryer) error) error {
 	})
 }
 
-// resetMarkingDataForCatalogChange handles the intentionally non-production
-// curriculum reset used when the bundled catalog changes shape. Courses keep
-// their roster and attendance data, while assessment rows are discarded and
-// all courses are pointed at the newly bundled curriculum version.
-func (s *Store) resetMarkingDataForCatalogChange(version string) error {
-	// Bound history and drafts remain authoritative local data across upgrades.
-	// Never turn a curriculum update into server deletion operations.
-	if s.syncReady {
-		if _, err := grant(s.DB); err == nil {
-			return nil
-		} else if !errors.Is(err, ErrNotFound) {
-			return err
-		}
-	}
-
+// moveCoursesToCatalog points every course at the bundled catalog version so
+// new marking uses its subskills. Marking data is never touched: attempts,
+// results, drafts, revisions and timed rows keep the curriculum_version they
+// were recorded with, and old drafts stay submittable under their own catalog.
+func (s *Store) moveCoursesToCatalog(version string) error {
 	return s.transaction(func(q queryer) error {
-		oldCourses, err := one(q, "SELECT COUNT(*) AS count FROM courses WHERE curriculum_version<>?", version)
-		if err != nil {
-			return err
-		}
-		oldAttempts, err := one(q, "SELECT COUNT(*) AS count FROM attempts WHERE curriculum_version<>?", version)
-		if err != nil {
-			return err
-		}
-		if oldCourses.Int("count") == 0 && oldAttempts.Int("count") == 0 {
-			return nil
-		}
-		for _, table := range []string{"revisions", "results", "drafts", "timed_attempts", "attempts"} {
-			if _, err = q.Exec("DELETE FROM " + table); err != nil {
-				return err
-			}
-		}
-		_, err = q.Exec("UPDATE courses SET curriculum_version=?", version)
+		_, err := q.Exec("UPDATE courses SET curriculum_version=? WHERE curriculum_version<>?", version, version)
 		return err
 	})
 }

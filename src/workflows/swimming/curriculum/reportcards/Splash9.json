@@ -1,0 +1,1889 @@
+{
+ "level": "Splash9",
+ "skills": [
+  {
+   "id": "Splash9:1",
+   "number": "1",
+   "name": "Entries with aids - at least 2",
+   "fromSkills": [
+    "Splash9:1"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.03,
+    "y": 10.75,
+    "w": 17.39,
+    "h": 2.12
+   },
+   "subskills": [
+    {
+     "id": "Splash9:1:1",
+     "text": "Eyes up and forward on entry",
+     "from": [
+      "Splash9:1:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.02,
+      "y": 14.62,
+      "highlight": {
+       "x": 2.91,
+       "y": 13.18,
+       "w": 19.15,
+       "h": 2.57
+      }
+     }
+    },
+    {
+     "id": "Splash9:1:2",
+     "text": "Control of aid on entry",
+     "from": [
+      "Splash9:1:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.04,
+      "y": 16.91,
+      "highlight": {
+       "x": 2.91,
+       "y": 15.45,
+       "w": 18.55,
+       "h": 2.65
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:2",
+   "number": "2",
+   "name": "Head-up swim 25 metres and scull in ready position",
+   "fromSkills": [
+    "Splash9:2"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.09,
+    "y": 19.37,
+    "w": 18.3,
+    "h": 4.24
+   },
+   "subskills": [
+    {
+     "id": "Splash9:2:1",
+     "text": "Control of aid on entry",
+     "from": [
+      "Splash9:2:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.11,
+      "y": 25.23,
+      "highlight": {
+       "x": 2.97,
+       "y": 23.76,
+       "w": 15.45,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:2:2",
+     "text": "Eyes above the surface during swim",
+     "from": [
+      "Splash9:2:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.11,
+      "y": 27.53,
+      "highlight": {
+       "x": 2.97,
+       "y": 26.12,
+       "w": 22.55,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:2:3",
+     "text": "Basic arm and leg mechanics",
+     "from": [
+      "Splash9:2:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.11,
+      "y": 29.82,
+      "highlight": {
+       "x": 2.97,
+       "y": 28.39,
+       "w": 18.79,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:2:4",
+     "text": "25 metre distance completed non-stop",
+     "from": [
+      "Splash9:2:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.14,
+      "y": 32.12,
+      "highlight": {
+       "x": 3.03,
+       "y": 30.67,
+       "w": 24.12,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:2:5",
+     "text": "Ready position with effective support scull showing ability to move forward, backward and turn",
+     "from": [
+      "Splash9:2:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.16,
+      "y": 34.41,
+      "highlight": {
+       "x": 3.03,
+       "y": 32.94,
+       "w": 26.36,
+       "h": 6.2
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:3",
+   "number": "3",
+   "name": "Defense methods - front, side and rear",
+   "fromSkills": [
+    "Splash9:3"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.21,
+    "y": 40.78,
+    "w": 23.94,
+    "h": 2.2
+   },
+   "subskills": [
+    {
+     "id": "Splash9:3:1",
+     "text": "Avoidance of grasp(s)",
+     "from": [
+      "Splash9:3:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.21,
+      "y": 44.73,
+      "highlight": {
+       "x": 3.09,
+       "y": 43.29,
+       "w": 14.91,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:3:2",
+     "text": "Ready position at a safe distance",
+     "from": [
+      "Splash9:3:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.21,
+      "y": 47.03,
+      "highlight": {
+       "x": 3.09,
+       "y": 45.57,
+       "w": 20.91,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:3:3",
+     "text": "Constructive communication",
+     "from": [
+      "Splash9:3:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.25,
+      "y": 49.29,
+      "highlight": {
+       "x": 3.15,
+       "y": 47.84,
+       "w": 18.48,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:3:4",
+     "text": "Treading water throughout",
+     "from": [
+      "Splash9:3:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.25,
+      "y": 51.53,
+      "highlight": {
+       "x": 3.15,
+       "y": 50.12,
+       "w": 17.58,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:4",
+   "number": "4",
+   "name": "Eggbeater kick - travel, change direction and height",
+   "fromSkills": [
+    "Splash9:4"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.27,
+    "y": 53.96,
+    "w": 25.09,
+    "h": 4.31
+   },
+   "subskills": [
+    {
+     "id": "Splash9:4:1",
+     "text": "Vertical body position",
+     "from": [
+      "Splash9:4:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.29,
+      "y": 59.88,
+      "highlight": {
+       "x": 3.15,
+       "y": 58.43,
+       "w": 14.91,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:4:2",
+     "text": "Movement pattern of kick resembles whip kick with alternate leg action",
+     "from": [
+      "Splash9:4:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.32,
+      "y": 62.18,
+      "highlight": {
+       "x": 3.21,
+       "y": 60.71,
+       "w": 25.58,
+       "h": 4.31
+      }
+     }
+    },
+    {
+     "id": "Splash9:4:3",
+     "text": "Drive with knees apart; feet wider than knees",
+     "from": [
+      "Splash9:4:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.34,
+      "y": 66.44,
+      "highlight": {
+       "x": 3.21,
+       "y": 65.02,
+       "w": 27.39,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:4:4",
+     "text": "Head above surface throughout change in height on command",
+     "from": [
+      "Splash9:4:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.34,
+      "y": 68.71,
+      "highlight": {
+       "x": 3.21,
+       "y": 67.29,
+       "w": 25.64,
+       "h": 4.39
+      }
+     }
+    },
+    {
+     "id": "Splash9:4:5",
+     "text": "Travel 1-2 metres in any direction",
+     "from": [
+      "Splash9:4:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.39,
+      "y": 72.97,
+      "highlight": {
+       "x": 3.27,
+       "y": 71.53,
+       "w": 20.67,
+       "h": 2.67
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:5",
+   "number": "5",
+   "name": "Carry Object (4.5kg) 25 metres",
+   "fromSkills": [
+    "Splash9:5"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 3.39,
+    "y": 75.45,
+    "w": 19.33,
+    "h": 2.35
+   },
+   "subskills": [
+    {
+     "id": "Splash9:5:1",
+     "text": "Basic lifesaving kick mechanics with control of direction",
+     "from": [
+      "Splash9:5:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.43,
+      "y": 79.35,
+      "highlight": {
+       "x": 3.33,
+       "y": 77.88,
+       "w": 26.36,
+       "h": 4.24
+      }
+     }
+    },
+    {
+     "id": "Splash9:5:2",
+     "text": "25 metre distance completed non-stop",
+     "from": [
+      "Splash9:5:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.43,
+      "y": 83.62,
+      "highlight": {
+       "x": 3.33,
+       "y": 82.2,
+       "w": 23.88,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:5:3",
+     "text": "Head remains above the surface",
+     "from": [
+      "Splash9:5:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 4.46,
+      "y": 85.88,
+      "highlight": {
+       "x": 3.33,
+       "y": 84.39,
+       "w": 20.24,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:6",
+   "number": "6",
+   "name": "Remove unconscious victim",
+   "fromSkills": [
+    "Splash9:6"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 35.82,
+    "y": 5.73,
+    "w": 17.27,
+    "h": 1.96
+   },
+   "subskills": [
+    {
+     "id": "Splash9:6:1",
+     "text": "Clear and appropriate direction for bystander",
+     "from": [
+      "Splash9:6:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.75,
+      "y": 9.5,
+      "highlight": {
+       "x": 35.64,
+       "y": 8.08,
+       "w": 27.64,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:6:2",
+     "text": "Appropriate choice of removal",
+     "from": [
+      "Splash9:6:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.75,
+      "y": 11.79,
+      "highlight": {
+       "x": 35.64,
+       "y": 10.35,
+       "w": 19.52,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:6:3",
+     "text": "Safe removal without injury to rescuer, bystander or victim",
+     "from": [
+      "Splash9:6:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.75,
+      "y": 14.06,
+      "highlight": {
+       "x": 35.64,
+       "y": 12.63,
+       "w": 23.88,
+       "h": 4.47
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:7",
+   "number": "7",
+   "name": "Search to recover object",
+   "fromSkills": [
+    "Splash9:7"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 35.76,
+    "y": 18.59,
+    "w": 15.27,
+    "h": 2.2
+   },
+   "subskills": [
+    {
+     "id": "Splash9:7:1",
+     "text": "Eyes up and forward on approach",
+     "from": [
+      "Splash9:7:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 22.41,
+      "highlight": {
+       "x": 35.64,
+       "y": 20.94,
+       "w": 21.39,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:7:2",
+     "text": "Vertical descent",
+     "from": [
+      "Splash9:7:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 24.68,
+      "highlight": {
+       "x": 35.64,
+       "y": 23.22,
+       "w": 11.76,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:7:3",
+     "text": "Travel in designated direction",
+     "from": [
+      "Splash9:7:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 26.97,
+      "highlight": {
+       "x": 35.64,
+       "y": 25.49,
+       "w": 19.03,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:7:4",
+     "text": "Eyes open underwater",
+     "from": [
+      "Splash9:7:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 29.27,
+      "highlight": {
+       "x": 35.64,
+       "y": 27.84,
+       "w": 15.21,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:7:5",
+     "text": "Object recovered and returned",
+     "from": [
+      "Splash9:7:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 31.56,
+      "highlight": {
+       "x": 35.64,
+       "y": 30.12,
+       "w": 19.7,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:7:6",
+     "text": "Arm extended above head on ascent",
+     "from": [
+      "Splash9:7:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 33.82,
+      "highlight": {
+       "x": 35.64,
+       "y": 32.39,
+       "w": 23.03,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:8",
+   "number": "8",
+   "name": "Turn and support victim face-up in shallow water",
+   "fromSkills": [
+    "Splash9:8"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 35.76,
+    "y": 36.39,
+    "w": 21.52,
+    "h": 4.0
+   },
+   "subskills": [
+    {
+     "id": "Splash9:8:1",
+     "text": "Victim's face supported above surface",
+     "from": [
+      "Splash9:8:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 42.21,
+      "highlight": {
+       "x": 35.64,
+       "y": 40.78,
+       "w": 23.76,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:8:2",
+     "text": "Airway maintained throughout: water prevented from entering victim's nose or mouth",
+     "from": [
+      "Splash9:8:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.77,
+      "y": 44.5,
+      "highlight": {
+       "x": 35.64,
+       "y": 43.06,
+       "w": 27.09,
+       "h": 6.2
+      }
+     }
+    },
+    {
+     "id": "Splash9:8:3",
+     "text": "Victim quickly secured at nearest point of safety",
+     "from": [
+      "Splash9:8:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.8,
+      "y": 50.68,
+      "highlight": {
+       "x": 35.7,
+       "y": 49.25,
+       "w": 24.18,
+       "h": 4.39
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:9-front-crawl",
+   "number": "9",
+   "name": "Front crawl 100 metres",
+   "fromSkills": [
+    "Splash9:9-front-crawl"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 35.88,
+    "y": 55.29,
+    "w": 14.36,
+    "h": 1.96
+   },
+   "subskills": [
+    {
+     "id": "Splash9:9-front-crawl:2",
+     "text": "Alternate arm action with overarm recovery and underwater pull",
+     "from": [
+      "Splash9:9-front-crawl:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.82,
+      "y": 58.97,
+      "highlight": {
+       "x": 35.7,
+       "y": 57.49,
+       "w": 26.73,
+       "h": 4.39
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-front-crawl:3",
+     "text": "Hand entry beyond shoulder; pull past hip",
+     "from": [
+      "Splash9:9-front-crawl:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.82,
+      "y": 63.23,
+      "highlight": {
+       "x": 35.7,
+       "y": 61.8,
+       "w": 25.82,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-front-crawl:4",
+     "text": "Alternate leg action drive",
+     "from": [
+      "Splash9:9-front-crawl:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.82,
+      "y": 65.5,
+      "highlight": {
+       "x": 35.7,
+       "y": 64.08,
+       "w": 16.79,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-front-crawl:5",
+     "text": "Rhythmic kick",
+     "from": [
+      "Splash9:9-front-crawl:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.84,
+      "y": 67.82,
+      "highlight": {
+       "x": 35.7,
+       "y": 66.35,
+       "w": 10.67,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-front-crawl:6",
+     "text": "Regular breathing pattern to side with underwater exhalation",
+     "from": [
+      "Splash9:9-front-crawl:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.84,
+      "y": 70.12,
+      "highlight": {
+       "x": 35.7,
+       "y": 68.71,
+       "w": 23.76,
+       "h": 4.16
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-front-crawl:7",
+     "text": "Continuous propulsion",
+     "from": [
+      "Splash9:9-front-crawl:7"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.84,
+      "y": 74.38,
+      "highlight": {
+       "x": 35.7,
+       "y": 72.94,
+       "w": 15.21,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-front-crawl:1",
+     "text": "100 metre distance completed",
+     "from": [
+      "Splash9:9-front-crawl:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.84,
+      "y": 76.65,
+      "highlight": {
+       "x": 35.7,
+       "y": 75.22,
+       "w": 19.52,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:9-back-crawl",
+   "number": "9",
+   "name": "Back crawl 100 metres",
+   "fromSkills": [
+    "Splash9:9-back-crawl"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 35.88,
+    "y": 79.29,
+    "w": 14.06,
+    "h": 1.96
+   },
+   "subskills": [
+    {
+     "id": "Splash9:9-back-crawl:2",
+     "text": "Alternate arm action with overarm recovery and under water pull",
+     "from": [
+      "Splash9:9-back-crawl:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.84,
+      "y": 83.03,
+      "highlight": {
+       "x": 35.7,
+       "y": 81.57,
+       "w": 26.73,
+       "h": 4.31
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-back-crawl:3",
+     "text": "Hand entry beyond shoulder; pull past hip",
+     "from": [
+      "Splash9:9-back-crawl:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.86,
+      "y": 87.27,
+      "highlight": {
+       "x": 35.76,
+       "y": 85.8,
+       "w": 25.76,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-back-crawl:4",
+     "text": "Alternate leg action drive",
+     "from": [
+      "Splash9:9-back-crawl:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.86,
+      "y": 89.53,
+      "highlight": {
+       "x": 35.76,
+       "y": 88.08,
+       "w": 16.73,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-back-crawl:5",
+     "text": "Rhythmic kick",
+     "from": [
+      "Splash9:9-back-crawl:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.86,
+      "y": 91.79,
+      "highlight": {
+       "x": 35.76,
+       "y": 90.35,
+       "w": 10.61,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-back-crawl:6",
+     "text": "Continuous propulsion",
+     "from": [
+      "Splash9:9-back-crawl:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.86,
+      "y": 94.09,
+      "highlight": {
+       "x": 35.76,
+       "y": 92.63,
+       "w": 15.15,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-back-crawl:1",
+     "text": "100 metre distance completed",
+     "from": [
+      "Splash9:9-back-crawl:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 36.89,
+      "y": 96.38,
+      "highlight": {
+       "x": 35.76,
+       "y": 94.9,
+       "w": 19.45,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:9-breaststroke",
+   "number": "9",
+   "name": "Breaststroke 100 metres",
+   "fromSkills": [
+    "Splash9:9-breaststroke"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 68.36,
+    "y": 5.57,
+    "w": 14.97,
+    "h": 1.88
+   },
+   "subskills": [
+    {
+     "id": "Splash9:9-breaststroke:2",
+     "text": "Symmetrical arm recovery and drive",
+     "from": [
+      "Splash9:9-breaststroke:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 9.21,
+      "highlight": {
+       "x": 68.18,
+       "y": 7.76,
+       "w": 22.48,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-breaststroke:3",
+     "text": "Regular breathing pattern with under water exhalation",
+     "from": [
+      "Splash9:9-breaststroke:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 11.5,
+      "highlight": {
+       "x": 68.18,
+       "y": 10.04,
+       "w": 23.09,
+       "h": 4.24
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-breaststroke:4",
+     "text": "Both legs kick at same time and recover at the same time",
+     "from": [
+      "Splash9:9-breaststroke:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 15.73,
+      "highlight": {
+       "x": 68.18,
+       "y": 14.27,
+       "w": 25.82,
+       "h": 4.24
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-breaststroke:5",
+     "text": "Drive with knees apart; feet wider than knees",
+     "from": [
+      "Splash9:9-breaststroke:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 20.0,
+      "highlight": {
+       "x": 68.18,
+       "y": 18.59,
+       "w": 27.33,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-breaststroke:6",
+     "text": "Continuous propulsion",
+     "from": [
+      "Splash9:9-breaststroke:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 22.29,
+      "highlight": {
+       "x": 68.18,
+       "y": 20.86,
+       "w": 15.03,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:9-breaststroke:1",
+     "text": "100 metre distance completed",
+     "from": [
+      "Splash9:9-breaststroke:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 24.56,
+      "highlight": {
+       "x": 68.18,
+       "y": 23.14,
+       "w": 19.33,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:10",
+   "number": "10",
+   "name": "Fitness Training workout 600 metres (3 times)",
+   "fromSkills": [
+    "Splash9:10"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 68.36,
+    "y": 27.22,
+    "w": 22.61,
+    "h": 4.16
+   },
+   "subskills": [
+    {
+     "id": "Splash9:10:8",
+     "text": "Workout is completed at least 3 times during training course",
+     "from": [
+      "Splash9:10:8"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 32.91,
+      "highlight": {
+       "x": 68.18,
+       "y": 31.45,
+       "w": 27.21,
+       "h": 4.47
+      }
+     }
+    },
+    {
+     "id": "Splash9:10:9",
+     "text": "Ability to locate pulse and count beats per minute",
+     "from": [
+      "Splash9:10:9"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 37.18,
+      "highlight": {
+       "x": 68.18,
+       "y": 35.76,
+       "w": 23.76,
+       "h": 4.24
+      }
+     }
+    },
+    {
+     "id": "Splash9:10:10",
+     "text": "Ability to adapt pace in accordance with desired heart rate target",
+     "from": [
+      "Splash9:10:10"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 41.44,
+      "highlight": {
+       "x": 68.18,
+       "y": 40.0,
+       "w": 24.67,
+       "h": 4.39
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:11",
+   "number": "11",
+   "name": "Swim 300 metres in 9 minutes (300 yard in 8 minutes) or better",
+   "fromSkills": [
+    "Splash9:11"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 68.3,
+    "y": 45.88,
+    "w": 26.67,
+    "h": 4.24
+   },
+   "subskills": [
+    {
+     "id": "Splash9:11:1",
+     "text": "Recognizable stroke(s) used",
+     "from": [
+      "Splash9:11:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 51.68,
+      "highlight": {
+       "x": 68.18,
+       "y": 50.2,
+       "w": 18.3,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:11:2",
+     "text": "300 metre or 300 yard distance completed with a uniform pace",
+     "from": [
+      "Splash9:11:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 53.97,
+      "highlight": {
+       "x": 68.18,
+       "y": 52.55,
+       "w": 26.3,
+       "h": 4.39
+      }
+     }
+    },
+    {
+     "id": "Splash9:11:3",
+     "text": "Swim 300 metre in 9 minutes (300 yard in 8 minutes) or better",
+     "from": [
+      "Splash9:11:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.32,
+      "y": 58.21,
+      "highlight": {
+       "x": 68.18,
+       "y": 56.78,
+       "w": 26.97,
+       "h": 4.31
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:12",
+   "number": "12",
+   "name": "Care for bone and joint injury",
+   "fromSkills": [
+    "Splash9:12"
+   ],
+   "heading": {
+    "page": "inside",
+    "x": 68.36,
+    "y": 69.33,
+    "w": 18.24,
+    "h": 2.2
+   },
+   "subskills": [
+    {
+     "id": "Splash9:12:1",
+     "text": "Assessment of environment for hazards",
+     "from": [
+      "Splash9:12:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.34,
+      "y": 73.09,
+      "highlight": {
+       "x": 68.24,
+       "y": 71.61,
+       "w": 24.36,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:12:2",
+     "text": "Establish responsiveness",
+     "from": [
+      "Splash9:12:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.34,
+      "y": 75.38,
+      "highlight": {
+       "x": 68.24,
+       "y": 73.96,
+       "w": 16.12,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:12:3",
+     "text": "Recognition of injury based on pain, obvious deformity or swelling and probable cause",
+     "from": [
+      "Splash9:12:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.34,
+      "y": 77.68,
+      "highlight": {
+       "x": 68.24,
+       "y": 76.24,
+       "w": 27.09,
+       "h": 4.39
+      }
+     }
+    },
+    {
+     "id": "Splash9:12:4",
+     "text": "Movement of injury minimized to prevent further injury",
+     "from": [
+      "Splash9:12:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.34,
+      "y": 81.91,
+      "highlight": {
+       "x": 68.24,
+       "y": 80.47,
+       "w": 25.21,
+       "h": 4.39
+      }
+     }
+    },
+    {
+     "id": "Splash9:12:5",
+     "text": "If available, ice applied to injury site",
+     "from": [
+      "Splash9:12:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.34,
+      "y": 86.15,
+      "highlight": {
+       "x": 68.24,
+       "y": 84.71,
+       "w": 22.3,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:12:6",
+     "text": "EMS activated if necessary",
+     "from": [
+      "Splash9:12:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "inside",
+      "x": 69.36,
+      "y": 88.44,
+      "highlight": {
+       "x": 68.24,
+       "y": 86.98,
+       "w": 17.27,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:13",
+   "number": "13",
+   "name": "Care for respiratory emergency - asthma or allergic reaction",
+   "fromSkills": [
+    "Splash9:13"
+   ],
+   "heading": {
+    "page": "outside",
+    "x": 2.91,
+    "y": 5.65,
+    "w": 26.97,
+    "h": 4.39
+   },
+   "subskills": [
+    {
+     "id": "Splash9:13:1",
+     "text": "Assessment of environment for hazards",
+     "from": [
+      "Splash9:13:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 3.98,
+      "y": 11.62,
+      "highlight": {
+       "x": 2.85,
+       "y": 10.2,
+       "w": 24.61,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:13:2",
+     "text": "Establish responsiveness",
+     "from": [
+      "Splash9:13:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 3.98,
+      "y": 13.88,
+      "highlight": {
+       "x": 2.85,
+       "y": 12.39,
+       "w": 16.61,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:13:3",
+     "text": "Determination of cause (and removal if possible) of emergency",
+     "from": [
+      "Splash9:13:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.02,
+      "y": 16.18,
+      "highlight": {
+       "x": 2.91,
+       "y": 14.75,
+       "w": 24.3,
+       "h": 4.31
+      }
+     }
+    },
+    {
+     "id": "Splash9:13:4",
+     "text": "Victim placed in most comfortable position",
+     "from": [
+      "Splash9:13:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.02,
+      "y": 20.44,
+      "highlight": {
+       "x": 2.91,
+       "y": 18.98,
+       "w": 26.48,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:13:5",
+     "text": "Victim assisted to find and use medication (asthma inhaler or epinephrine auto-injector)",
+     "from": [
+      "Splash9:13:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.07,
+      "y": 22.71,
+      "highlight": {
+       "x": 2.97,
+       "y": 21.25,
+       "w": 27.58,
+       "h": 4.39
+      }
+     }
+    },
+    {
+     "id": "Splash9:13:6",
+     "text": "(If required) EMS activated",
+     "from": [
+      "Splash9:13:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.07,
+      "y": 26.94,
+      "highlight": {
+       "x": 2.97,
+       "y": 25.49,
+       "w": 17.7,
+       "h": 2.82
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:14",
+   "number": "14",
+   "name": "Locate and describe submerged object",
+   "fromSkills": [
+    "Splash9:14"
+   ],
+   "heading": {
+    "page": "outside",
+    "x": 3.21,
+    "y": 38.51,
+    "w": 24.12,
+    "h": 2.2
+   },
+   "subskills": [
+    {
+     "id": "Splash9:14:1",
+     "text": "Ability to identify the barriers to recognition",
+     "from": [
+      "Splash9:14:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.21,
+      "y": 42.47,
+      "highlight": {
+       "x": 3.09,
+       "y": 41.02,
+       "w": 26.97,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:14:2",
+     "text": "Move to a position to enable candidate to best “see” the object",
+     "from": [
+      "Splash9:14:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.21,
+      "y": 44.77,
+      "highlight": {
+       "x": 3.09,
+       "y": 43.29,
+       "w": 25.58,
+       "h": 4.31
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Splash9:15",
+   "number": "15",
+   "name": "Rescue with towing aid 20 metres",
+   "fromSkills": [
+    "Splash9:15"
+   ],
+   "heading": {
+    "page": "outside",
+    "x": 3.33,
+    "y": 49.18,
+    "w": 20.97,
+    "h": 2.12
+   },
+   "subskills": [
+    {
+     "id": "Splash9:15:1",
+     "text": "Quick accurate recognition",
+     "from": [
+      "Splash9:15:1"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.29,
+      "y": 53.03,
+      "highlight": {
+       "x": 3.15,
+       "y": 51.61,
+       "w": 17.64,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:2",
+     "text": "Personal safety maintained",
+     "from": [
+      "Splash9:15:2"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.29,
+      "y": 55.32,
+      "highlight": {
+       "x": 3.15,
+       "y": 53.88,
+       "w": 17.76,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:3",
+     "text": "Appropriate assessment of situation",
+     "from": [
+      "Splash9:15:3"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.32,
+      "y": 57.62,
+      "highlight": {
+       "x": 3.21,
+       "y": 56.16,
+       "w": 22.48,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:4",
+     "text": "Call for help",
+     "from": [
+      "Splash9:15:4"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.34,
+      "y": 59.88,
+      "highlight": {
+       "x": 3.21,
+       "y": 58.43,
+       "w": 9.58,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:5",
+     "text": "Appropriate choice and use of aid",
+     "from": [
+      "Splash9:15:5"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.36,
+      "y": 62.18,
+      "highlight": {
+       "x": 3.21,
+       "y": 60.71,
+       "w": 21.27,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:6",
+     "text": "Appropriate entry and efficient approach",
+     "from": [
+      "Splash9:15:6"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.36,
+      "y": 64.47,
+      "highlight": {
+       "x": 3.21,
+       "y": 62.98,
+       "w": 25.27,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:7",
+     "text": "Appropriate choice of tow for the circumstance",
+     "from": [
+      "Splash9:15:7"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.39,
+      "y": 66.73,
+      "highlight": {
+       "x": 3.27,
+       "y": 65.25,
+       "w": 19.09,
+       "h": 4.24
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:8",
+     "text": "Victim secured at nearest point of safety",
+     "from": [
+      "Splash9:15:8"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.41,
+      "y": 71.0,
+      "highlight": {
+       "x": 3.27,
+       "y": 69.57,
+       "w": 24.91,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:9",
+     "text": "Appropriate care of victim and follow-up",
+     "from": [
+      "Splash9:15:9"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.46,
+      "y": 73.29,
+      "highlight": {
+       "x": 3.33,
+       "y": 71.84,
+       "w": 25.03,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:10",
+     "text": "Visual contact and constructive communication throughout",
+     "from": [
+      "Splash9:15:10"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.46,
+      "y": 75.56,
+      "highlight": {
+       "x": 3.33,
+       "y": 74.12,
+       "w": 19.88,
+       "h": 4.24
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:11",
+     "text": "Appropriate use of bystanders when available",
+     "from": [
+      "Splash9:15:11"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.5,
+      "y": 79.82,
+      "highlight": {
+       "x": 3.39,
+       "y": 78.35,
+       "w": 27.7,
+       "h": 2.82
+      }
+     }
+    },
+    {
+     "id": "Splash9:15:12",
+     "text": "Victim observed/reassured until rescuer relieved of responsibility",
+     "from": [
+      "Splash9:15:12"
+     ],
+     "fromSkillSuccess": false,
+     "box": {
+      "page": "outside",
+      "x": 4.5,
+      "y": 82.09,
+      "highlight": {
+       "x": 3.39,
+       "y": 80.63,
+       "w": 24.48,
+       "h": 4.24
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "derivedBoxes": [],
+ "dropped": [
+  {
+   "oldId": "Splash9:10:1",
+   "reason": "no box on the card"
+  },
+  {
+   "oldId": "Splash9:10:2",
+   "reason": "no box on the card"
+  },
+  {
+   "oldId": "Splash9:10:3",
+   "reason": "no box on the card"
+  },
+  {
+   "oldId": "Splash9:10:4",
+   "reason": "no box on the card"
+  },
+  {
+   "oldId": "Splash9:10:5",
+   "reason": "no box on the card"
+  },
+  {
+   "oldId": "Splash9:10:6",
+   "reason": "no box on the card"
+  },
+  {
+   "oldId": "Splash9:10:7",
+   "reason": "no box on the card"
+  }
+ ],
+ "notes": [
+  "Timed skill Splash9:11 keeps its id. Old 10:1-10:7 (workout components) have no box and are dropped.",
+  "The three card boxes of skill 11 are printed: \"Recognizable stroke(s) used\", \"300 metre or 300 yard distance completed with a uniform pace\", and \"Swim 300 metre in 9 minutes (300 yard in 8 minutes) or better\" (the last matches old 11:3 Time limit met or bettered).",
+  "Old catalog numbers kept: the three crawl/breaststroke skills all keep number 9.",
+  "Box 9-breaststroke:3 and 9-back-crawl:2 print \"under water\" with a space; kept as printed."
+ ]
+}

@@ -17,18 +17,40 @@ var plannedIDs = func() map[string][]string {
 	return aliases
 }()
 
+// PlannedSkills maps a website lesson-plan skill id to tablet skills. The
+// website keeps the previous skill list, so an id absent from the explicit
+// aliases resolves through the migration: an old skill that was split maps to
+// every new skill it became. Unknown ids resolve to themselves.
 func (l Level) PlannedSkills(id string) []Skill {
-	ids, ok := plannedIDs[id]
-	if !ok {
+	ids, explicit := plannedIDs[id]
+	if !explicit {
 		ids = []string{id}
 	}
+	byID := map[string]Skill{}
+	for _, skill := range l.Skills {
+		byID[skill.ID] = skill
+	}
 	out := []Skill{}
-	for _, id := range ids {
-		for _, skill := range l.Skills {
-			if skill.ID == id {
+	if explicit {
+		for _, id := range ids {
+			if skill, ok := byID[id]; ok {
 				out = append(out, skill)
-				break
 			}
+		}
+		return out
+	}
+	migrated := map[string]bool{}
+	for _, nid := range BundledMigration().NewSkills(id) {
+		migrated[nid] = true
+	}
+	for _, skill := range l.Skills {
+		if migrated[skill.ID] {
+			out = append(out, skill)
+		}
+	}
+	if len(out) == 0 {
+		if skill, ok := byID[id]; ok {
+			out = append(out, skill)
 		}
 	}
 	return out
